@@ -1,0 +1,8 @@
+{
+  "name": "pocketplan",
+  "private": true,
+  "workspaces": ["frontend", "backend"],
+  "scripts": {
+    "build": "npm --workspace frontend run build"
+  }
+}
