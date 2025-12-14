@@ -642,6 +642,10 @@ input[type='password']::-ms-clear {
   color: #cbd5e1;
 }
 
+.theme-toggle {
+  z-index: 10;
+}
+
 .auth-page.theme-dark {
   background: #0f172ae0 url('/bg-pattern.svg') center/cover fixed no-repeat;
   color: #e5e7eb;
@@ -994,6 +998,42 @@ input[type='password']::-ms-clear {
 
 .profile-name {
   margin: 10px 0 0;
+}
+
+/* Scrollbar styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #e45153 #f1f1f1;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #e45153, #fcd34d);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #c93e42, #fbbf24);
+}
+
+.theme-dark * {
+  scrollbar-color: #fcd34d #111827;
+}
+
+.theme-dark *::-webkit-scrollbar-track {
+  background: #111827;
+}
+
+.theme-dark *::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #fcd34d, #f59e0b);
 }
 
 .profile-email {
