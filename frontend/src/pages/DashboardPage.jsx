@@ -7,8 +7,7 @@ const formatRupiah = (value) =>
 const DashboardPage = () => {
   const { summary, transactions, goals } = useData();
 
-  const mainGoal = goals[0];
-  const progressPercent = mainGoal ? Math.min(100, Math.round((mainGoal.amount / mainGoal.target) * 100)) : 0;
+  const progressPercent = (goal) => (goal ? Math.min(100, Math.round((goal.amount / goal.target) * 100)) : 0);
 
   return (
     <div className="dashboard">
@@ -41,18 +40,20 @@ const DashboardPage = () => {
         </div>
         <div className="card goals-card">
           <div className="label">Saving Goals</div>
-          {mainGoal ? (
-            <div className="goal-item">
-              <div className="goal-header">
-                <span className="goal-name">{mainGoal.name}</span>
-                <span className="goal-amount">
-                  {mainGoal.amount.toLocaleString('id-ID')}/{mainGoal.target.toLocaleString('id-ID')}
-                </span>
+          {goals.length ? (
+            goals.map((goal) => (
+              <div className="goal-item" key={goal.id || goal.name}>
+                <div className="goal-header">
+                  <span className="goal-name">{goal.name}</span>
+                  <span className="goal-amount">
+                    {goal.amount.toLocaleString('id-ID')}/{goal.target.toLocaleString('id-ID')}
+                  </span>
+                </div>
+                <div className="progress-shell">
+                  <div className="fill" style={{ width: `${progressPercent(goal)}%` }} />
+                </div>
               </div>
-              <div className="progress-shell">
-                <div className="fill" style={{ width: `${progressPercent}%` }} />
-              </div>
-            </div>
+            ))
           ) : (
             <p className="muted">No goals yet</p>
           )}

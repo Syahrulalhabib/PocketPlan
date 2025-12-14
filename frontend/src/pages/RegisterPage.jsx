@@ -20,14 +20,32 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (password !== confirm) return alert('Password mismatch');
+    setError('');
+    if (!name || !email || !password || !confirm) {
+      setError('Please fill in all fields.');
+      return;
+    }
+    if (password !== confirm) {
+      setError('Password and confirmation do not match.');
+      return;
+    }
     setLoading(true);
-    await register(name, email, password);
-    setLoading(false);
-    navigate('/dashboard');
+    try {
+      await register(name, email, password);
+      navigate('/dashboard');
+    } catch (err) {
+      if (err?.code === 'auth/email-already-in-use') {
+        setError('Email already in use. Please sign in or use a different email.');
+      } else {
+        setError(err?.message || 'Registration failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -88,6 +106,7 @@ const RegisterPage = () => {
           <button className="pill btn-primary auth-submit" disabled={loading}>
             {loading ? 'Signing up...' : 'Sign up'}
           </button>
+          {error && <div className="form-status">{error}</div>}
         </form>
         <div className="auth-footer">
           Already have an account? <Link to="/login" className="primary-link">Sign in</Link>

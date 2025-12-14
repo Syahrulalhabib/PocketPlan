@@ -382,6 +382,10 @@ button {
   padding: 16px;
 }
 
+.goals-card .goal-item + .goal-item {
+  margin-top: 12px;
+}
+
 .goal-header {
   display: flex;
   justify-content: space-between;
@@ -861,6 +865,12 @@ input[type='password']::-ms-clear {
   stroke-linejoin: round;
 }
 
+.feature-icon img.feature-logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
 .feature-title {
   font-weight: 800;
   margin-bottom: 6px;
@@ -1041,6 +1051,8 @@ input[type='password']::-ms-clear {
   width: min(520px, 100%);
   padding: 18px;
   border-radius: 18px;
+  max-height: 90vh;
+  overflow: auto;
   animation: modalPopIn 220ms ease;
 }
 
@@ -1322,6 +1334,29 @@ input[type='password']::-ms-clear {
   position: relative;
 }
 
+.number-input input[type='number']::-webkit-outer-spin-button,
+.number-input input[type='number']::-webkit-inner-spin-button,
+.number-input input[type='text']::-webkit-outer-spin-button,
+.number-input input[type='text']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.number-input input[type='number'],
+.number-input input[type='text'] {
+  -moz-appearance: textfield;
+}
+
+.number-input input[type='number']::-webkit-outer-spin-button,
+.number-input input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.number-input input[type='number'] {
+  -moz-appearance: textfield;
+}
+
 .value-animate {
   animation: valueFade var(--theme-fade) ease;
 }
@@ -1338,6 +1373,15 @@ input[type='password']::-ms-clear {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.number-input:hover .number-controls,
+.number-input:focus-within .number-controls {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .number-controls button {
@@ -1363,6 +1407,8 @@ input[type='password']::-ms-clear {
 .theme-dark input[type='date']::-webkit-calendar-picker-indicator {
   filter: invert(1);
 }
+
+/* Date input styling */
 
 @keyframes fadeSlide {
   from {

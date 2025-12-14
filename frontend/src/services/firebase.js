@@ -7,6 +7,7 @@ import {
   signInWithPopup,
   createUserWithEmailAndPassword,
   signOut,
+  sendPasswordResetEmail,
   updateProfile
 } from 'firebase/auth';
 import {
@@ -52,6 +53,7 @@ export const signInEmail = (email, password) => signInWithEmailAndPassword(auth,
 export const signUpEmail = (email, password) => createUserWithEmailAndPassword(auth, email, password);
 export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
 export const signOutUser = () => signOut(auth);
+export const resetPasswordEmail = (email) => sendPasswordResetEmail(auth, email);
 export const watchAuth = (cb) => onAuthStateChanged(auth, cb);
 export const updateProfileName = (name) => (auth?.currentUser && name ? updateProfile(auth.currentUser, { displayName: name }) : undefined);
 export const updateProfileData = (data) => (auth?.currentUser ? updateProfile(auth.currentUser, data) : undefined);

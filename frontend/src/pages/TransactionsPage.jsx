@@ -13,12 +13,13 @@ const emptyForm = {
   description: ''
 };
 
-const parseMoney = (value) => {
+const parseFormattedNumber = (value) => {
   const digits = String(value || '').replace(/\D/g, '');
-  return digits ? Number(digits) : '';
+  return digits === '' ? '' : Number(digits);
 };
 
-const formatMoney = (value) => (value === '' || value === null || value === undefined ? '' : Number(value).toLocaleString('id-ID'));
+const formatDisplayNumber = (value) =>
+  value === '' || value === null || value === undefined ? '' : Number(value).toLocaleString('id-ID');
 
 const adjustMoney = (current, delta) => {
   const next = Math.max(0, (Number(current) || 0) + delta);
@@ -29,6 +30,7 @@ const TransactionsPage = () => {
   const { transactions, addTransaction, updateTransaction, deleteTransaction } = useData();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
+  const [sortOrder, setSortOrder] = useState('newest');
   const [showModal, setShowModal] = useState(false);
   const [viewModal, setViewModal] = useState(false);
   const [editModal, setEditModal] = useState(false);
@@ -37,7 +39,7 @@ const TransactionsPage = () => {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return transactions.filter((t) => {
+    const list = transactions.filter((t) => {
       const matchesSearch =
         t.category.toLowerCase().includes(q) ||
         t.type.toLowerCase().includes(q) ||
@@ -45,7 +47,12 @@ const TransactionsPage = () => {
       const matchesType = typeFilter === 'All' || t.type === typeFilter;
       return matchesSearch && matchesType;
     });
-  }, [transactions, search, typeFilter]);
+    return [...list].sort((a, b) => {
+      const aDate = new Date(a.date || a.createdAt || 0).getTime();
+      const bDate = new Date(b.date || b.createdAt || 0).getTime();
+      return sortOrder === 'newest' ? bDate - aDate : aDate - bDate;
+    });
+  }, [transactions, search, typeFilter, sortOrder]);
 
   const submitForm = async (e) => {
     e.preventDefault();
@@ -91,6 +98,21 @@ const TransactionsPage = () => {
             ))}
           </div>
         </div>
+        <div className="filter-group">
+          <span className="filter-label">Sort:</span>
+          <div className="pill-switch">
+            {['newest', 'oldest'].map((order) => (
+              <button
+                key={order}
+                type="button"
+                className={`pill small ${sortOrder === order ? 'active' : ''}`}
+                onClick={() => setSortOrder(order)}
+              >
+                {order === 'newest' ? 'Newest' : 'Oldest'}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="search-box card">
           <span>🔍</span>
           <input
@@ -116,7 +138,7 @@ const TransactionsPage = () => {
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody className="filter-animated" key={typeFilter}>
+          <tbody className="filter-animated" key={`${typeFilter}-${sortOrder}`}>
             {filtered.map((t) => (
               <tr key={t.id}>
                 <td>
@@ -183,7 +205,7 @@ const TransactionsPage = () => {
                 key={type}
                 type="button"
                 className={`pill small ${form.type === type ? 'active' : ''}`}
-                onClick={() => setForm({ ...form, type })}
+                onClick={() => setForm({ ...form, type, amount: '' })}
               >
                 {type}
               </button>
@@ -192,14 +214,12 @@ const TransactionsPage = () => {
           <label>Amount</label>
           <div className="number-input">
             <input
-              key={form.amount}
-              className="input number-field value-animate"
+              className="input number-field"
               type="text"
-              value={formatMoney(form.amount)}
-              onChange={(e) => setForm({ ...form, amount: parseMoney(e.target.value) })}
-              required
               inputMode="numeric"
-              pattern="[0-9.]*"
+              value={formatDisplayNumber(form.amount)}
+              onChange={(e) => setForm({ ...form, amount: parseFormattedNumber(e.target.value) })}
+              required
             />
             <div className="number-controls">
               <button type="button" onClick={() => setForm({ ...form, amount: adjustMoney(form.amount, 10000) })}>
@@ -226,7 +246,7 @@ const TransactionsPage = () => {
             placeholder="Optional"
           />
           <div className="modal-actions">
-            <button type="button" className="pill btn-secondary" onClick={() => setShowModal(false)}>
+            <button type="button" className="pill btn-secondary" onClick={() => { setShowModal(false); setForm(emptyForm); }}>
               Cancel
             </button>
             <button type="submit" className="pill btn-primary">
@@ -259,7 +279,7 @@ const TransactionsPage = () => {
                 key={type}
                 type="button"
                 className={`pill small ${form.type === type ? 'active' : ''}`}
-                onClick={() => setForm({ ...form, type })}
+                onClick={() => setForm({ ...form, type, amount: '' })}
               >
                 {type}
               </button>
@@ -268,14 +288,12 @@ const TransactionsPage = () => {
           <label>Amount</label>
           <div className="number-input">
             <input
-              key={form.amount}
-              className="input number-field value-animate"
+              className="input number-field"
               type="text"
-              value={formatMoney(form.amount)}
-              onChange={(e) => setForm({ ...form, amount: parseMoney(e.target.value) })}
-              required
               inputMode="numeric"
-              pattern="[0-9.]*"
+              value={formatDisplayNumber(form.amount)}
+              onChange={(e) => setForm({ ...form, amount: parseFormattedNumber(e.target.value) })}
+              required
             />
             <div className="number-controls">
               <button type="button" onClick={() => setForm({ ...form, amount: adjustMoney(form.amount, 10000) })}>
@@ -302,7 +320,7 @@ const TransactionsPage = () => {
             placeholder="Optional"
           />
           <div className="modal-actions">
-            <button type="button" className="pill btn-secondary" onClick={() => setEditModal(false)}>
+            <button type="button" className="pill btn-secondary" onClick={() => { setEditModal(false); setSelected(null); }}>
               Cancel
             </button>
             <button type="submit" className="pill btn-primary">

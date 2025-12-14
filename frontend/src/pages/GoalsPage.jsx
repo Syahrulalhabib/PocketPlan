@@ -11,12 +11,13 @@ const emptyForm = {
   target: ''
 };
 
-const parseMoney = (value) => {
+const parseFormattedNumber = (value) => {
   const digits = String(value || '').replace(/\D/g, '');
-  return digits ? Number(digits) : '';
+  return digits === '' ? '' : Number(digits);
 };
 
-const formatMoney = (value) => (value === '' || value === null || value === undefined ? '' : Number(value).toLocaleString('id-ID'));
+const formatDisplayNumber = (value) =>
+  value === '' || value === null || value === undefined ? '' : Number(value).toLocaleString('id-ID');
 
 const adjustMoney = (current, delta) => {
   const next = Math.max(0, (Number(current) || 0) + delta);
@@ -27,6 +28,7 @@ const GoalsPage = () => {
   const { goals, addGoal, updateGoal, deleteGoal } = useData();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
+  const [sortOrder, setSortOrder] = useState('newest');
   const [showModal, setShowModal] = useState(false);
   const [editModal, setEditModal] = useState(false);
   const [viewModal, setViewModal] = useState(false);
@@ -35,12 +37,17 @@ const GoalsPage = () => {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return goals.filter((g) => {
+    const list = goals.filter((g) => {
       const matchesSearch = g.name.toLowerCase().includes(q) || g.type.toLowerCase().includes(q);
       const matchesType = typeFilter === 'All' || g.type === typeFilter;
       return matchesSearch && matchesType;
     });
-  }, [goals, search, typeFilter]);
+    return [...list].sort((a, b) => {
+      const aDate = new Date(a.createdAt || 0).getTime();
+      const bDate = new Date(b.createdAt || 0).getTime();
+      return sortOrder === 'newest' ? bDate - aDate : aDate - bDate;
+    });
+  }, [goals, search, typeFilter, sortOrder]);
 
   const submitForm = async (e) => {
     e.preventDefault();
@@ -81,6 +88,21 @@ const GoalsPage = () => {
             ))}
           </div>
         </div>
+        <div className="filter-group">
+          <span className="filter-label">Sort:</span>
+          <div className="pill-switch">
+            {['newest', 'oldest'].map((order) => (
+              <button
+                key={order}
+                type="button"
+                className={`pill small ${sortOrder === order ? 'active' : ''}`}
+                onClick={() => setSortOrder(order)}
+              >
+                {order === 'newest' ? 'Newest' : 'Oldest'}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="search-box card">
           <span>🔍</span>
           <input
@@ -105,7 +127,7 @@ const GoalsPage = () => {
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody className="filter-animated" key={typeFilter}>
+          <tbody className="filter-animated" key={`${typeFilter}-${sortOrder}`}>
             {filtered.map((g) => (
               <tr key={g.id}>
                 <td>
@@ -113,7 +135,7 @@ const GoalsPage = () => {
                 </td>
                 <td>{g.name}</td>
                 <td>
-                  <span className="badge expense">{g.type}</span>
+                  <span className={`badge ${g.type === 'Saving' ? 'income' : 'expense'}`}>{g.type}</span>
                 </td>
                 <td>{formatRupiah(g.amount)}</td>
                 <td>{formatRupiah(g.target)}</td>
@@ -170,7 +192,7 @@ const GoalsPage = () => {
                 key={type}
                 type="button"
                 className={`pill small ${form.type === type ? 'active' : ''}`}
-                onClick={() => setForm({ ...form, type })}
+                onClick={() => setForm({ ...form, type, amount: '', target: '' })}
               >
                 {type}
               </button>
@@ -179,14 +201,12 @@ const GoalsPage = () => {
           <label>Amount</label>
           <div className="number-input">
             <input
-              key={form.amount}
-              className="input number-field value-animate"
+              className="input number-field"
               type="text"
-              value={formatMoney(form.amount)}
-              onChange={(e) => setForm({ ...form, amount: parseMoney(e.target.value) })}
-              required
               inputMode="numeric"
-              pattern="[0-9.]*"
+              value={formatDisplayNumber(form.amount)}
+              onChange={(e) => setForm({ ...form, amount: parseFormattedNumber(e.target.value) })}
+              required
             />
             <div className="number-controls">
               <button type="button" onClick={() => setForm({ ...form, amount: adjustMoney(form.amount, 10000) })}>
@@ -200,14 +220,12 @@ const GoalsPage = () => {
           <label>Your Target</label>
           <div className="number-input">
             <input
-              key={form.target}
-              className="input number-field value-animate"
+              className="input number-field"
               type="text"
-              value={formatMoney(form.target)}
-              onChange={(e) => setForm({ ...form, target: parseMoney(e.target.value) })}
-              required
               inputMode="numeric"
-              pattern="[0-9.]*"
+              value={formatDisplayNumber(form.target)}
+              onChange={(e) => setForm({ ...form, target: parseFormattedNumber(e.target.value) })}
+              required
             />
             <div className="number-controls">
               <button type="button" onClick={() => setForm({ ...form, target: adjustMoney(form.target, 10000) })}>
@@ -219,7 +237,7 @@ const GoalsPage = () => {
             </div>
           </div>
           <div className="modal-actions">
-            <button type="button" className="pill btn-secondary" onClick={() => setShowModal(false)}>
+            <button type="button" className="pill btn-secondary" onClick={() => { setShowModal(false); setForm(emptyForm); }}>
               Cancel
             </button>
             <button type="submit" className="pill btn-primary">
@@ -262,11 +280,10 @@ const GoalsPage = () => {
             <input
               className="input number-field"
               type="text"
-              value={formatMoney(form.amount)}
-              onChange={(e) => setForm({ ...form, amount: parseMoney(e.target.value) })}
-              required
               inputMode="numeric"
-              pattern="[0-9.]*"
+              value={formatDisplayNumber(form.amount)}
+              onChange={(e) => setForm({ ...form, amount: parseFormattedNumber(e.target.value) })}
+              required
             />
             <div className="number-controls">
               <button type="button" onClick={() => setForm({ ...form, amount: adjustMoney(form.amount, 10000) })}>
@@ -282,11 +299,10 @@ const GoalsPage = () => {
             <input
               className="input number-field"
               type="text"
-              value={formatMoney(form.target)}
-              onChange={(e) => setForm({ ...form, target: parseMoney(e.target.value) })}
-              required
               inputMode="numeric"
-              pattern="[0-9.]*"
+              value={formatDisplayNumber(form.target)}
+              onChange={(e) => setForm({ ...form, target: parseFormattedNumber(e.target.value) })}
+              required
             />
             <div className="number-controls">
               <button type="button" onClick={() => setForm({ ...form, target: adjustMoney(form.target, 10000) })}>
@@ -298,7 +314,7 @@ const GoalsPage = () => {
             </div>
           </div>
           <div className="modal-actions">
-            <button type="button" className="pill btn-secondary" onClick={() => setEditModal(false)}>
+            <button type="button" className="pill btn-secondary" onClick={() => { setEditModal(false); setSelected(null); }}>
               Cancel
             </button>
             <button type="submit" className="pill btn-primary">

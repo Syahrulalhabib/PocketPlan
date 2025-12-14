@@ -67,7 +67,7 @@ const ProfilePage = () => {
           {user?.photoURL ? (
             <img src={user.photoURL} alt="avatar" />
           ) : (
-            <img src="/pocket-logo-text.svg" alt="avatar" />
+            <img src="/pocket-logo.svg" alt="avatar" />
           )}
         </div>
         <h2 className="profile-name">{user?.name}</h2>
@@ -125,7 +125,7 @@ const ProfilePage = () => {
       <Modal open={showPhotoModal} onClose={() => setShowPhotoModal(false)} title="Profile Photo">
         <div style={{ display: 'grid', placeItems: 'center', gap: 12 }}>
           <img
-            src={photoURL || user?.photoURL || '/pocket-logo-text.svg'}
+            src={photoURL || user?.photoURL || '/pocket-logo.svg'}
             alt="Profile"
             style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: 16 }}
           />

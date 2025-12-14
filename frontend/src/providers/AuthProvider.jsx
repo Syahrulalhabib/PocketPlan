@@ -9,7 +9,8 @@ import {
   signUpEmail,
   watchAuth,
   updateProfileName,
-  updateProfileData
+  updateProfileData,
+  resetPasswordEmail
 } from '../services/firebase';
 
 const AuthContext = createContext(undefined);
@@ -103,6 +104,15 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const resetPassword = async (email) => {
+    if (!email) throw new Error('Email is required');
+    if (firebaseEnabled) {
+      await resetPasswordEmail(email);
+    } else {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+  };
+
   const updateProfileInfo = useCallback(
     async (payload) => {
       const nextUser = {
@@ -132,7 +142,8 @@ export const AuthProvider = ({ children }) => {
       register,
       googleLogin,
       logout,
-      updateProfileInfo
+      updateProfileInfo,
+      resetPassword
     }),
     [user, loading, updateProfileInfo]
   );

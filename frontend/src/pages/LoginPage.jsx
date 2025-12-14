@@ -12,13 +12,15 @@ const EyeIcon = ({ open }) => (
 );
 
 const LoginPage = () => {
-  const { login, googleLogin } = useAuth();
+  const { login, googleLogin, resetPassword } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
+  const [error, setError] = useState('');
+  const [status, setStatus] = useState('');
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -38,22 +40,65 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    await login(email, password);
-    if (remember) {
-      localStorage.setItem('pp-remember', JSON.stringify({ email, password }));
-    } else {
-      localStorage.removeItem('pp-remember');
+    setError('');
+    setStatus('');
+    if (!email || !password) {
+      setError('Please enter email and password.');
+      return;
     }
-    setLoading(false);
-    navigate('/dashboard');
+    setLoading(true);
+    try {
+      await login(email, password);
+      if (remember) {
+        localStorage.setItem('pp-remember', JSON.stringify({ email, password }));
+      } else {
+        localStorage.removeItem('pp-remember');
+      }
+      navigate('/dashboard');
+    } catch (err) {
+      const msg = err?.message?.toLowerCase().includes('wrong-password') || err?.message?.toLowerCase().includes('user')
+        ? 'Incorrect email or password.'
+        : 'Login failed. Please check your details.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGoogle = async () => {
+    setError('');
+    setStatus('');
     setLoading(true);
-    await googleLogin();
-    setLoading(false);
-    navigate('/dashboard');
+    try {
+      await googleLogin();
+      navigate('/dashboard');
+    } catch (err) {
+      if (err?.code === 'auth/popup-closed-by-user') {
+        setStatus('Google sign-in cancelled.');
+      } else {
+        setError(err?.message || 'Google sign-in failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgot = async () => {
+    setError('');
+    setStatus('');
+    if (!email) {
+      setError('Please enter your email to reset password.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await resetPassword(email);
+      setStatus('Password reset email sent. Please check your inbox or spam folder.');
+    } catch (err) {
+      setError(err?.message || 'Failed to send reset email. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -103,7 +148,7 @@ const LoginPage = () => {
             <label className="remember">
               <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Remember me
             </label>
-            <button type="button" className="mini-link">
+            <button type="button" className="mini-link" onClick={handleForgot} disabled={loading}>
               Forgot password
             </button>
           </div>
@@ -113,6 +158,8 @@ const LoginPage = () => {
           <button type="button" className="pill btn-secondary auth-submit google" onClick={handleGoogle} disabled={loading}>
             <span className="google-icon">G</span> Sign in with Google
           </button>
+          {error && <div className="form-status">{error}</div>}
+          {!error && status && <div className="form-status">{status}</div>}
         </form>
         <div className="auth-footer">
           Don&apos;t have an account? <Link to="/register" className="primary-link">Sign up for free</Link>

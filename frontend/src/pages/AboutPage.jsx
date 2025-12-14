@@ -6,35 +6,10 @@ const features = [
   { key: 'insights', title: 'Gain Insights', text: 'Learn more about PocketPlan and the team behind it.' }
 ];
 
-const FeatureIcon = ({ name }) => {
-  if (name === 'balance') {
-    return (
-      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-        <circle cx="32" cy="32" r="24" />
-        <path d="M22 36h20" />
-        <path d="M22 30h12" />
-        <path d="M30 18v28" />
-      </svg>
-    );
-  }
-  if (name === 'goals') {
-    return (
-      <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-        <circle cx="32" cy="32" r="24" />
-        <circle cx="32" cy="32" r="10" />
-        <path d="M32 12v8" />
-        <path d="M32 44v8" />
-        <path d="M44 32h8" />
-        <path d="M12 32h8" />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-      <path d="M12 42l12-12 10 10 14-18 4 4" />
-      <polyline points="12,50 52,50" />
-    </svg>
-  );
+const featureIcons = {
+  balance: '/feature-balance.svg',
+  goals: '/feature-goals.svg',
+  insights: '/feature-insights.svg'
 };
 
 const AboutPage = () => {
@@ -79,7 +54,7 @@ const AboutPage = () => {
             {features.map((f) => (
               <div className="card feature" key={f.key}>
                 <div className="feature-icon">
-                  <FeatureIcon name={f.key} />
+                  <img src={featureIcons[f.key]} alt={f.title} className="feature-logo" />
                 </div>
                 <div className="feature-title">{f.title}</div>
                 <div className="feature-text">{f.text}</div>
