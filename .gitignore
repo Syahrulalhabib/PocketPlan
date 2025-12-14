@@ -1,0 +1,26 @@
+# Node dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+backend/ServiceAccount.json
+backend/serviceAccount.json
+
+# Build outputs
+frontend/dist
+backend/.vercel
+
+# Vercel local state
+.vercel
+
+# OS/Editor cruft
+.DS_Store
+*.swp
+.vscode/
+.idea/
