@@ -1355,6 +1355,7 @@ input[type='password']::-ms-clear {
 
 .table thead th:last-child {
   border-top-right-radius: var(--radius);
+  text-align: center;
 }
 
 .table thead th:first-child,
@@ -1367,6 +1368,21 @@ input[type='password']::-ms-clear {
 .table thead th:last-child,
 .table tbody td:last-child {
   padding-right: 18px;
+}
+
+.table th,
+.table td {
+  vertical-align: middle;
+}
+
+.table {
+  table-layout: fixed;
+}
+
+.table tbody td.actions {
+  justify-content: center;
+  text-align: center;
+  min-width: 180px;
 }
 
 .table tbody td {
