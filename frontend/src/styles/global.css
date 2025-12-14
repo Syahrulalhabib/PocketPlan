@@ -1358,21 +1358,16 @@ input[type='password']::-ms-clear {
   text-align: center;
 }
 
-.table thead th:first-child,
-.table tbody td:first-child {
-  width: 52px;
-  padding-left: 18px;
-  padding-right: 14px;
-}
-
-.table thead th:last-child,
-.table tbody td:last-child {
-  padding-right: 18px;
-}
-
 .table th,
 .table td {
   vertical-align: middle;
+}
+
+.table thead th:first-child,
+.table tbody td:first-child {
+  padding-left: 20px;
+  padding-right: 14px;
+  text-align: left;
 }
 
 .table {

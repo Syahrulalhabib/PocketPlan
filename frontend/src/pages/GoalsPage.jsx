@@ -120,7 +120,6 @@ const GoalsPage = () => {
           <table className="table">
           <thead>
             <tr>
-              <th />
               <th>Category</th>
               <th>Type</th>
               <th>Amount</th>
@@ -131,9 +130,6 @@ const GoalsPage = () => {
           <tbody className="filter-animated" key={`${typeFilter}-${sortOrder}`}>
             {filtered.map((g) => (
               <tr key={g.id}>
-                <td>
-                  <input type="checkbox" />
-                </td>
                 <td>{g.name}</td>
                 <td>
                   <span className={`badge ${g.type === 'Saving' ? 'income' : 'expense'}`}>{g.type}</span>
