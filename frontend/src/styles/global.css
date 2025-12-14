@@ -447,12 +447,18 @@ button {
 
 .table-card {
   overflow: auto;
+  max-height: 480px;
 }
 
 .table tbody td.actions {
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+.goals-card {
+  max-height: 420px;
+  overflow: auto;
 }
 
 .auth-page {
