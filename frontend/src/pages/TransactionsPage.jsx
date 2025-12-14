@@ -126,7 +126,8 @@ const TransactionsPage = () => {
       </div>
 
       <div className="card table-card">
-        <table className="table">
+        <div className="table-scroll">
+          <table className="table">
           <thead>
             <tr>
               <th />
@@ -192,6 +193,7 @@ const TransactionsPage = () => {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title="Add Transaction">

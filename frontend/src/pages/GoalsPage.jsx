@@ -115,8 +115,9 @@ const GoalsPage = () => {
         </div>
       </div>
 
-      <div className="card table-card">
-        <table className="table">
+      <div className="card table-card goals-table-card">
+        <div className="table-scroll">
+          <table className="table">
           <thead>
             <tr>
               <th />
@@ -179,6 +180,7 @@ const GoalsPage = () => {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title="Add Goal">

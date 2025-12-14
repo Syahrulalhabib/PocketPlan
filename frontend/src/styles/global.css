@@ -446,19 +446,66 @@ button {
 }
 
 .table-card {
-  overflow: auto;
-  max-height: 480px;
+  padding: 0;
+  overflow: hidden; /* Memastikan sudut rounded card memotong sudut tabel */
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  border: 1px solid #e5e7eb;
+  display: flex;       /* Tambahan: memastikan layout flex jika perlu */
+  flex-direction: column;
+}
+
+.table-card {
+  /* Pastikan card menjadi container relative */
+  position: relative; 
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  border: 1px solid #e5e7eb;
+}
+
+.table-card .table-scroll {
+  /* Tentukan tinggi maksimal agar scrollbar muncul jika konten panjang */
+  max-height: 480px; 
+  overflow-y: auto;
+  width: 100%;
+  border-radius: inherit;
+  padding: 0;
+}
+
+.table-card .table-scroll table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+/* Pastikan Header Tabel (th) mengisi penuh */
+.table thead th {
+  position: sticky; /* Opsional: agar header tetap terlihat saat scroll */
+  top: 0;
+  background: #e5e7eb; /* Sesuaikan warna header di sini */
+  z-index: 1;
 }
 
 .table tbody td.actions {
   display: flex;
   gap: 8px;
   align-items: center;
+  justify-content: flex-end; /* Opsional: meratakan tombol aksi ke kanan */
 }
 
 .goals-card {
   max-height: 420px;
-  overflow: auto;
+  overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
+}
+
+.goals-table-card .table-scroll {
+  max-height: 420px;
 }
 
 .auth-page {
@@ -1283,15 +1330,43 @@ input[type='password']::-ms-clear {
 .table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: auto;
+  border-spacing: 0;
+  margin: 0;
 }
 
 .table thead th {
   background: #d1d5db;
   color: #4b5563;
-  padding: 14px 12px;
+  padding: 14px 16px;
   text-align: left;
   font-weight: 700;
+  border-bottom: 1px solid #cbd5e1;
   transition: background-color var(--theme-fade) ease, color var(--theme-fade) ease;
+}
+
+.table tbody td {
+  padding: 14px 16px;
+}
+
+.table thead th:first-child {
+  border-top-left-radius: var(--radius);
+}
+
+.table thead th:last-child {
+  border-top-right-radius: var(--radius);
+}
+
+.table thead th:first-child,
+.table tbody td:first-child {
+  width: 52px;
+  padding-left: 18px;
+  padding-right: 14px;
+}
+
+.table thead th:last-child,
+.table tbody td:last-child {
+  padding-right: 18px;
 }
 
 .table tbody td {
