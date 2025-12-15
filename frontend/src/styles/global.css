@@ -508,6 +508,36 @@ button {
   max-height: 420px;
 }
 
+/* Mobile/tablet adjustments for table width alignment */
+@media (max-width: 600px) {
+  .table-card .table-scroll {
+    overflow-x: auto;
+  }
+
+  .table-card .table-scroll table,
+  .table {
+    width: 100%;
+    min-width: 0;
+    table-layout: auto;
+  }
+
+  .table thead th,
+  .table tbody td {
+    padding: 10px 8px;
+  }
+
+  .table thead th:first-child,
+  .table tbody td:first-child {
+    padding-left: 12px;
+  }
+
+  .table tbody td.actions {
+    min-width: 120px;
+    justify-content: flex-start;
+    text-align: left;
+  }
+}
+
 .auth-page {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -1371,7 +1401,7 @@ input[type='password']::-ms-clear {
 }
 
 .table {
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .table tbody td.actions {
