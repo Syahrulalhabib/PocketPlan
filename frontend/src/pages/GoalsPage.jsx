@@ -26,7 +26,6 @@ const adjustMoney = (current, delta) => {
 const GoalsPage = () => {
   const { goals, addGoal, updateGoal, deleteGoal } = useData();
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('All');
   const [sortOrder, setSortOrder] = useState('newest');
   const [showModal, setShowModal] = useState(false);
   const [editModal, setEditModal] = useState(false);
@@ -38,15 +37,14 @@ const GoalsPage = () => {
     const q = search.toLowerCase();
     const list = goals.filter((g) => {
       const matchesSearch = g.name.toLowerCase().includes(q) || g.type.toLowerCase().includes(q);
-      const matchesType = typeFilter === 'All' || g.type === typeFilter;
-      return matchesSearch && matchesType;
+      return matchesSearch;
     });
     return [...list].sort((a, b) => {
       const aDate = new Date(a.createdAt || 0).getTime();
       const bDate = new Date(b.createdAt || 0).getTime();
       return sortOrder === 'newest' ? bDate - aDate : aDate - bDate;
     });
-  }, [goals, search, typeFilter, sortOrder]);
+  }, [goals, search, sortOrder]);
 
   const submitForm = async (e) => {
     e.preventDefault();
@@ -72,21 +70,6 @@ const GoalsPage = () => {
         <button className="pill btn-secondary shadowed" onClick={() => setShowModal(true)}>
           ➕ Add Goals
         </button>
-        <div className="filter-group">
-          <span className="filter-label">Filter:</span>
-          <div className="pill-switch">
-            {['All', 'Saving'].map((type) => (
-              <button
-                key={type}
-                type="button"
-                className={`pill small ${typeFilter === type ? 'active' : ''}`}
-                onClick={() => setTypeFilter(type)}
-              >
-                {type}
-              </button>
-            ))}
-          </div>
-        </div>
         <div className="filter-group">
           <span className="filter-label">Sort:</span>
           <div className="pill-switch">
@@ -125,7 +108,7 @@ const GoalsPage = () => {
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody className="filter-animated" key={`${typeFilter}-${sortOrder}`}>
+          <tbody className="filter-animated" key={sortOrder}>
             {filtered.map((g) => (
               <tr key={g.id}>
                 <td>{g.name}</td>
