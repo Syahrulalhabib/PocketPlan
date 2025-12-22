@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import LineChart from '../components/LineChart.jsx';
 import { useData } from '../providers/DataProvider.jsx';
 
@@ -6,6 +7,7 @@ const formatRupiah = (value) =>
 
 const DashboardPage = () => {
   const { summary, transactions, goals } = useData();
+  const [chartPeriod, setChartPeriod] = useState('daily');
 
   const progressPercent = (goal) => {
     if (!goal) return 0;
@@ -42,7 +44,22 @@ const DashboardPage = () => {
 
       <div className="grid-2 chart-block">
         <div className="card chart-card">
-          <LineChart transactions={transactions} />
+          <div className="filter-group" style={{ marginBottom: '12px' }}>
+            <span className="filter-label">Filter:</span>
+            <div className="pill-switch">
+              {['daily', 'weekly', 'monthly'].map((period) => (
+                <button
+                  key={period}
+                  type="button"
+                  className={`pill small ${chartPeriod === period ? 'active' : ''}`}
+                  onClick={() => setChartPeriod(period)}
+                >
+                  {period === 'daily' ? 'Harian' : period === 'weekly' ? 'Mingguan' : 'Bulanan'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <LineChart transactions={transactions} period={chartPeriod} />
         </div>
         <div className="card goals-card">
           <div className="label">Saving Goals</div>

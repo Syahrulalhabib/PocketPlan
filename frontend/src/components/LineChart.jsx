@@ -31,7 +31,24 @@ const parseTransactionDate = (value) => {
   return null;
 };
 
-const LineChart = ({ transactions, days }) => {
+const periodLabels = {
+  daily: 'Harian',
+  weekly: 'Mingguan',
+  monthly: 'Bulanan'
+};
+
+const startOfWeek = (date) => {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day; // Monday as first day of week
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+const toMonthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+const LineChart = ({ transactions, days, period = 'daily' }) => {
   const data = useMemo(() => {
     const parsed = transactions
       .map((t) => {
@@ -63,41 +80,78 @@ const LineChart = ({ transactions, days }) => {
       return new Date(end);
     })();
 
-    const incomeByDay = new Map();
-    const expenseByDay = new Map();
+    const bucketIncome = new Map();
+    const bucketExpense = new Map();
 
     for (const t of parsed) {
       const day = new Date(t.__date);
       day.setHours(0, 0, 0, 0);
       if (day < start || day > end) continue;
-      const key = toLocalDayKey(day);
+      let key;
+      if (period === 'weekly') {
+        key = toLocalDayKey(startOfWeek(day));
+      } else if (period === 'monthly') {
+        key = toMonthKey(day);
+      } else {
+        key = toLocalDayKey(day);
+      }
       const amount = Number(t.amount) || 0;
-      if (t.type === 'Income') incomeByDay.set(key, (incomeByDay.get(key) || 0) + amount);
-      if (t.type === 'Expense') expenseByDay.set(key, (expenseByDay.get(key) || 0) + amount);
+      if (t.type === 'Income') bucketIncome.set(key, (bucketIncome.get(key) || 0) + amount);
+      if (t.type === 'Expense') bucketExpense.set(key, (bucketExpense.get(key) || 0) + amount);
     }
 
     const labels = [];
     const incomeData = [];
     const expenseData = [];
     const cursor = new Date(start);
-    while (cursor <= end) {
-      const key = toLocalDayKey(cursor);
-      labels.push(
-        cursor.toLocaleDateString('id-ID', {
-          day: '2-digit',
-          month: 'short'
-        })
-      );
-      incomeData.push(incomeByDay.get(key) || 0);
-      expenseData.push(expenseByDay.get(key) || 0);
-      cursor.setDate(cursor.getDate() + 1);
+    if (period === 'weekly') {
+      cursor.setTime(startOfWeek(cursor).getTime());
+    } else if (period === 'monthly') {
+      cursor.setDate(1);
+      cursor.setHours(0, 0, 0, 0);
     }
 
+    while (cursor <= end) {
+      let key;
+      if (period === 'weekly') {
+        key = toLocalDayKey(cursor);
+        labels.push(
+          `Minggu ${cursor.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'short'
+          })}`
+        );
+        cursor.setDate(cursor.getDate() + 7);
+      } else if (period === 'monthly') {
+        key = toMonthKey(cursor);
+        labels.push(
+          cursor.toLocaleDateString('id-ID', {
+            month: 'short',
+            year: 'numeric'
+          })
+        );
+        cursor.setMonth(cursor.getMonth() + 1);
+      } else {
+        key = toLocalDayKey(cursor);
+        labels.push(
+          cursor.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'short'
+          })
+        );
+        cursor.setDate(cursor.getDate() + 1);
+      }
+
+      incomeData.push(bucketIncome.get(key) || 0);
+      expenseData.push(bucketExpense.get(key) || 0);
+    }
+
+    const periodLabel = periodLabels[period] || periodLabels.daily;
     return {
       labels,
       datasets: [
         {
-          label: 'Pemasukan (Harian)',
+          label: `Pemasukan (${periodLabel})`,
           data: incomeData,
           borderColor: '#5b77ff',
           backgroundColor: '#5b77ff',
@@ -105,7 +159,7 @@ const LineChart = ({ transactions, days }) => {
           pointRadius: 4
         },
         {
-          label: 'Pengeluaran (Harian)',
+          label: `Pengeluaran (${periodLabel})`,
           data: expenseData,
           borderColor: '#e45153',
           backgroundColor: '#e45153',
@@ -114,7 +168,7 @@ const LineChart = ({ transactions, days }) => {
         }
       ]
     };
-  }, [transactions, days]);
+  }, [transactions, days, period]);
 
   const options = {
     responsive: true,
