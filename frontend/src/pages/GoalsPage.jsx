@@ -7,7 +7,6 @@ const formatRupiah = (value) => `Rp. ${Number(value).toLocaleString('id-ID')}`;
 const emptyForm = {
   name: '',
   type: 'Saving',
-  amount: '',
   target: ''
 };
 
@@ -122,7 +121,6 @@ const GoalsPage = () => {
             <tr>
               <th>Category</th>
               <th>Type</th>
-              <th>Amount</th>
               <th>Your Target</th>
               <th>Actions</th>
             </tr>
@@ -134,7 +132,6 @@ const GoalsPage = () => {
                 <td>
                   <span className={`badge ${g.type === 'Saving' ? 'income' : 'expense'}`}>{g.type}</span>
                 </td>
-                <td>{formatRupiah(g.amount)}</td>
                 <td>{formatRupiah(g.target)}</td>
                 <td className="actions">
                   <button
@@ -153,7 +150,6 @@ const GoalsPage = () => {
                       setForm({
                         name: g.name,
                         type: g.type,
-                        amount: g.amount,
                         target: g.target
                       });
                       setEditModal(true);
@@ -169,7 +165,7 @@ const GoalsPage = () => {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan="6" style={{ textAlign: 'center', padding: '16px', color: '#6b7280' }}>
+                <td colSpan="5" style={{ textAlign: 'center', padding: '16px', color: '#6b7280' }}>
                   No goals found
                 </td>
               </tr>
@@ -190,30 +186,11 @@ const GoalsPage = () => {
                 key={type}
                 type="button"
                 className={`pill small ${form.type === type ? 'active' : ''}`}
-                onClick={() => setForm({ ...form, type, amount: '', target: '' })}
+                onClick={() => setForm({ ...form, type, target: '' })}
               >
                 {type}
               </button>
             ))}
-          </div>
-          <label>Amount</label>
-          <div className="number-input">
-            <input
-              className="input number-field"
-              type="text"
-              inputMode="numeric"
-              value={formatDisplayNumber(form.amount)}
-              onChange={(e) => setForm({ ...form, amount: parseFormattedNumber(e.target.value) })}
-              required
-            />
-            <div className="number-controls">
-              <button type="button" onClick={() => setForm({ ...form, amount: adjustMoney(form.amount, 10000) })}>
-                ▲
-              </button>
-              <button type="button" onClick={() => setForm({ ...form, amount: adjustMoney(form.amount, -10000) })}>
-                ▼
-              </button>
-            </div>
           </div>
           <label>Your Target</label>
           <div className="number-input">
@@ -250,7 +227,6 @@ const GoalsPage = () => {
           <div className="modal-form">
             <div><strong>Category:</strong> {selected.name}</div>
             <div><strong>Type:</strong> {selected.type}</div>
-            <div><strong>Amount:</strong> {formatRupiah(selected.amount)}</div>
             <div><strong>Target:</strong> {formatRupiah(selected.target)}</div>
           </div>
         )}
@@ -272,25 +248,6 @@ const GoalsPage = () => {
                 {type}
               </button>
             ))}
-          </div>
-          <label>Amount</label>
-          <div className="number-input">
-            <input
-              className="input number-field"
-              type="text"
-              inputMode="numeric"
-              value={formatDisplayNumber(form.amount)}
-              onChange={(e) => setForm({ ...form, amount: parseFormattedNumber(e.target.value) })}
-              required
-            />
-            <div className="number-controls">
-              <button type="button" onClick={() => setForm({ ...form, amount: adjustMoney(form.amount, 10000) })}>
-                ▲
-              </button>
-              <button type="button" onClick={() => setForm({ ...form, amount: adjustMoney(form.amount, -10000) })}>
-                ▼
-              </button>
-            </div>
           </div>
           <label>Your Target</label>
           <div className="number-input">

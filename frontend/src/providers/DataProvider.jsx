@@ -148,7 +148,6 @@ export const DataProvider = ({ children }) => {
   const addGoal = async (payload) => {
     const entry = {
       ...payload,
-      amount: Number(payload.amount) || 0,
       target: Number(payload.target) || 0,
       createdAt: new Date().toISOString()
     };

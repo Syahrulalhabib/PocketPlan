@@ -7,7 +7,13 @@ const formatRupiah = (value) =>
 const DashboardPage = () => {
   const { summary, transactions, goals } = useData();
 
-  const progressPercent = (goal) => (goal ? Math.min(100, Math.round((goal.amount / goal.target) * 100)) : 0);
+  const progressPercent = (goal) => {
+    if (!goal) return 0;
+    const targetValue = Number(goal.target) || 0;
+    if (!targetValue) return 0;
+    const balanceValue = Number(summary.balance) || 0;
+    return Math.max(0, Math.min(100, Math.round((balanceValue / targetValue) * 100)));
+  };
 
   return (
     <div className="dashboard">
@@ -46,7 +52,7 @@ const DashboardPage = () => {
                 <div className="goal-header">
                   <span className="goal-name">{goal.name}</span>
                   <span className="goal-amount">
-                    {goal.amount.toLocaleString('id-ID')}/{goal.target.toLocaleString('id-ID')}
+                    {summary.balance.toLocaleString('id-ID')}/{goal.target.toLocaleString('id-ID')}
                   </span>
                 </div>
                 <div className="progress-shell">
