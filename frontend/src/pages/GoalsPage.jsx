@@ -26,7 +26,6 @@ const adjustMoney = (current, delta) => {
 const GoalsPage = () => {
   const { goals, addGoal, updateGoal, deleteGoal } = useData();
   const [search, setSearch] = useState('');
-  const [sortOrder, setSortOrder] = useState('newest');
   const [showModal, setShowModal] = useState(false);
   const [editModal, setEditModal] = useState(false);
   const [viewModal, setViewModal] = useState(false);
@@ -39,12 +38,8 @@ const GoalsPage = () => {
       const matchesSearch = g.name.toLowerCase().includes(q) || g.type.toLowerCase().includes(q);
       return matchesSearch;
     });
-    return [...list].sort((a, b) => {
-      const aDate = new Date(a.createdAt || 0).getTime();
-      const bDate = new Date(b.createdAt || 0).getTime();
-      return sortOrder === 'newest' ? bDate - aDate : aDate - bDate;
-    });
-  }, [goals, search, sortOrder]);
+    return list;
+  }, [goals, search]);
 
   const submitForm = async (e) => {
     e.preventDefault();
@@ -70,21 +65,6 @@ const GoalsPage = () => {
         <button className="pill btn-secondary shadowed" onClick={() => setShowModal(true)}>
           ➕ Add Goals
         </button>
-        <div className="filter-group">
-          <span className="filter-label">Sort:</span>
-          <div className="pill-switch">
-            {['newest', 'oldest'].map((order) => (
-              <button
-                key={order}
-                type="button"
-                className={`pill small ${sortOrder === order ? 'active' : ''}`}
-                onClick={() => setSortOrder(order)}
-              >
-                {order === 'newest' ? 'Newest' : 'Oldest'}
-              </button>
-            ))}
-          </div>
-        </div>
         <div className="search-box card">
           <span>🔍</span>
           <input
@@ -108,7 +88,7 @@ const GoalsPage = () => {
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody className="filter-animated" key={sortOrder}>
+          <tbody className="filter-animated">
             {filtered.map((g) => (
               <tr key={g.id}>
                 <td>{g.name}</td>
