@@ -50,7 +50,7 @@ const GoalsPage = () => {
 
   const submitForm = async (e) => {
     e.preventDefault();
-    await addGoal(form);
+    await addGoal({ ...form, type: 'Saving' });
     setForm(emptyForm);
     setShowModal(false);
   };
@@ -58,7 +58,7 @@ const GoalsPage = () => {
   const submitEdit = async (e) => {
     e.preventDefault();
     if (!selected) return;
-    await updateGoal(selected.id, form);
+    await updateGoal(selected.id, { ...form, type: 'Saving' });
     setEditModal(false);
     setSelected(null);
   };
@@ -75,7 +75,7 @@ const GoalsPage = () => {
         <div className="filter-group">
           <span className="filter-label">Filter:</span>
           <div className="pill-switch">
-            {['All', 'Saving', 'Expense'].map((type) => (
+            {['All', 'Saving'].map((type) => (
               <button
                 key={type}
                 type="button"
@@ -181,16 +181,9 @@ const GoalsPage = () => {
           <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <label>Type</label>
           <div className="pill-switch pill-switch-animated plain-switch" key={form.type}>
-            {['Saving', 'Expense'].map((type) => (
-              <button
-                key={type}
-                type="button"
-                className={`pill small ${form.type === type ? 'active' : ''}`}
-                onClick={() => setForm({ ...form, type, target: '' })}
-              >
-                {type}
-              </button>
-            ))}
+            <button type="button" className="pill small active" onClick={() => setForm({ ...form, type: 'Saving' })}>
+              Saving
+            </button>
           </div>
           <label>Your Target</label>
           <div className="number-input">
@@ -238,16 +231,9 @@ const GoalsPage = () => {
           <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <label>Type</label>
           <div className="pill-switch pill-switch-animated plain-switch" key={form.type}>
-            {['Saving', 'Expense'].map((type) => (
-              <button
-                key={type}
-                type="button"
-                className={`pill small ${form.type === type ? 'active' : ''}`}
-                onClick={() => setForm({ ...form, type })}
-              >
-                {type}
-              </button>
-            ))}
+            <button type="button" className="pill small active" onClick={() => setForm({ ...form, type: 'Saving' })}>
+              Saving
+            </button>
           </div>
           <label>Your Target</label>
           <div className="number-input">
