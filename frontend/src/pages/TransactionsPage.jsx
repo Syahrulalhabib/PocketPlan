@@ -211,8 +211,9 @@ const TransactionsPage = () => {
           </div>
           <label>Amount</label>
           <div className="number-input">
+            <span className="currency-prefix">Rp</span>
             <input
-              className="input number-field"
+              className="input number-field has-prefix"
               type="text"
               inputMode="numeric"
               value={formatDisplayNumber(form.amount)}
@@ -285,8 +286,9 @@ const TransactionsPage = () => {
           </div>
           <label>Amount</label>
           <div className="number-input">
+            <span className="currency-prefix">Rp</span>
             <input
-              className="input number-field"
+              className="input number-field has-prefix"
               type="text"
               inputMode="numeric"
               value={formatDisplayNumber(form.amount)}

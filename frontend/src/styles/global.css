@@ -1532,6 +1532,10 @@ input[type='password']::-ms-clear {
   padding-right: 54px;
 }
 
+.number-field.has-prefix {
+  padding-left: 48px;
+}
+
 .number-controls {
   position: absolute;
   right: 8px;
@@ -1565,6 +1569,16 @@ input[type='password']::-ms-clear {
 
 .number-controls button:hover {
   background: #e5e7eb;
+}
+
+.currency-prefix {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: 700;
+  color: #6b7280;
+  pointer-events: none;
 }
 
 .theme-dark input[type='date'] {
