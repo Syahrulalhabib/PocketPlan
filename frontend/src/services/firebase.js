@@ -7,6 +7,7 @@ import {
   signInWithPopup,
   createUserWithEmailAndPassword,
   signOut,
+  sendEmailVerification,
   sendPasswordResetEmail,
   updateProfile
 } from 'firebase/auth';
@@ -53,6 +54,13 @@ export const signInEmail = (email, password) => signInWithEmailAndPassword(auth,
 export const signUpEmail = (email, password) => createUserWithEmailAndPassword(auth, email, password);
 export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
 export const signOutUser = () => signOut(auth);
+export const sendVerificationEmail = (user) => {
+  const target = user || auth?.currentUser;
+  if (!target) {
+    return Promise.reject(new Error('No authenticated user available for verification email.'));
+  }
+  return sendEmailVerification(target);
+};
 export const resetPasswordEmail = (email) => sendPasswordResetEmail(auth, email);
 export const watchAuth = (cb) => onAuthStateChanged(auth, cb);
 export const updateProfileName = (name) => (auth?.currentUser && name ? updateProfile(auth.currentUser, { displayName: name }) : undefined);

@@ -56,9 +56,11 @@ const LoginPage = () => {
       }
       navigate('/dashboard');
     } catch (err) {
-      const msg = err?.message?.toLowerCase().includes('wrong-password') || err?.message?.toLowerCase().includes('user')
-        ? 'Incorrect email or password.'
-        : 'Login failed. Please check your details.';
+      const msg = err?.message?.toLowerCase().includes('email not verified')
+        ? 'Please verify your email before signing in.'
+        : err?.message?.toLowerCase().includes('wrong-password') || err?.message?.toLowerCase().includes('user')
+          ? 'Incorrect email or password.'
+          : 'Login failed. Please check your details.';
       setError(msg);
     } finally {
       setLoading(false);

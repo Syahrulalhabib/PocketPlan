@@ -10,7 +10,8 @@ import {
   watchAuth,
   updateProfileName,
   updateProfileData,
-  resetPasswordEmail
+  resetPasswordEmail,
+  sendVerificationEmail
 } from '../services/firebase';
 
 const AuthContext = createContext(undefined);
@@ -25,6 +26,12 @@ export const AuthProvider = ({ children }) => {
       return;
     }
     const unsubscribe = watchAuth((fbUser) => {
+      if (fbUser && !fbUser.emailVerified) {
+        signOutUser();
+        setUser(null);
+        setLoading(false);
+        return;
+      }
       if (fbUser) {
         setUser({
           id: fbUser.uid,
@@ -43,6 +50,10 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     if (firebaseEnabled) {
       const credentials = await signInEmail(email, password);
+      if (!credentials.user.emailVerified) {
+        await signOutUser();
+        throw new Error('Email not verified. Please check your inbox.');
+      }
       setUser({
         id: credentials.user.uid,
         name: credentials.user.displayName || credentials.user.email || 'User',
@@ -63,11 +74,16 @@ export const AuthProvider = ({ children }) => {
     if (firebaseEnabled) {
       const credentials = await signUpEmail(email, password);
       await updateProfileName(name);
-      setUser({
-        id: credentials.user.uid,
-        name: name || credentials.user.email || 'User',
-        email: credentials.user.email || email
-      });
+      try {
+        await sendVerificationEmail(credentials.user);
+      } catch (err) {
+        await signOutUser();
+        setUser(null);
+        throw err;
+      }
+      await signOutUser();
+      setUser(null);
+      return { needsVerification: true };
     } else {
       await new Promise((resolve) => setTimeout(resolve, 300));
       setUser({
@@ -113,6 +129,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const resendVerification = async (email, password) => {
+    if (!email || !password) throw new Error('Email and password are required');
+    if (firebaseEnabled) {
+      await signInEmail(email, password);
+      await sendVerificationEmail();
+      await signOutUser();
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  };
+
   const updateProfileInfo = useCallback(
     async (payload) => {
       const nextUser = {
@@ -143,7 +170,8 @@ export const AuthProvider = ({ children }) => {
       googleLogin,
       logout,
       updateProfileInfo,
-      resetPassword
+      resetPassword,
+      resendVerification
     }),
     [user, loading, updateProfileInfo]
   );

@@ -8,6 +8,7 @@ import AboutPage from './pages/AboutPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
+import VerificationPage from './pages/VerificationPage.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import LoadingScreen from './components/LoadingScreen.jsx';
 
@@ -24,6 +25,7 @@ const App = () => {
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/verification" element={<VerificationPage />} />
       <Route path="/about" element={<AboutPage />} />
       <Route
         path="/dashboard"

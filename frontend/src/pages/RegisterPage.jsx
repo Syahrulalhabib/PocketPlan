@@ -21,10 +21,12 @@ const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
+  const [status, setStatus] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setStatus('');
     if (!name || !email || !password || !confirm) {
       setError('Please fill in all fields.');
       return;
@@ -35,7 +37,11 @@ const RegisterPage = () => {
     }
     setLoading(true);
     try {
-      await register(name, email, password);
+      const result = await register(name, email, password);
+      if (result?.needsVerification) {
+        setStatus('Verification email sent. Please verify your inbox before signing in.');
+        return;
+      }
       navigate('/dashboard');
     } catch (err) {
       if (err?.code === 'auth/email-already-in-use') {
@@ -107,6 +113,7 @@ const RegisterPage = () => {
             {loading ? 'Signing up...' : 'Sign up'}
           </button>
           {error && <div className="form-status">{error}</div>}
+          {!error && status && <div className="form-status">{status}</div>}
         </form>
         <div className="auth-footer">
           Already have an account? <Link to="/login" className="primary-link">Sign in</Link>
