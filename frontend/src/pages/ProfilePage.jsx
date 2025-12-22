@@ -28,24 +28,24 @@ const ProfilePage = () => {
     e.preventDefault();
     setStatus('');
     if (password !== confirm) {
-      setStatus('Password dan konfirmasi tidak sama.');
+      setStatus('Password and confirmation do not match.');
       return;
     }
     try {
       await updateProfileInfo({ name, email, photoURL });
-      setStatus('Profil berhasil diperbarui.');
+      setStatus('Profile updated successfully.');
     } catch (err) {
-      setStatus(err?.message || 'Gagal memperbarui profil.');
+      setStatus(err?.message || 'Failed to update profile.');
     }
   };
 
   const handlePhotoSubmit = async () => {
     try {
       await updateProfileInfo({ name, email, photoURL });
-      setStatus('Foto profil diperbarui.');
+      setStatus('Profile photo updated.');
       setShowPhotoModal(false);
     } catch (err) {
-      setStatus(err?.message || 'Gagal memperbarui foto profil.');
+      setStatus(err?.message || 'Failed to update profile photo.');
     }
   };
 

@@ -32,9 +32,9 @@ const parseTransactionDate = (value) => {
 };
 
 const periodLabels = {
-  daily: 'Harian',
-  weekly: 'Mingguan',
-  monthly: 'Bulanan'
+  daily: 'Daily',
+  weekly: 'Weekly',
+  monthly: 'Monthly'
 };
 
 const startOfWeek = (date) => {
@@ -116,7 +116,7 @@ const LineChart = ({ transactions, days, period = 'daily' }) => {
       if (period === 'weekly') {
         key = toLocalDayKey(cursor);
         labels.push(
-          `Minggu ${cursor.toLocaleDateString('id-ID', {
+          `Week of ${cursor.toLocaleDateString('en-GB', {
             day: '2-digit',
             month: 'short'
           })}`
@@ -125,7 +125,7 @@ const LineChart = ({ transactions, days, period = 'daily' }) => {
       } else if (period === 'monthly') {
         key = toMonthKey(cursor);
         labels.push(
-          cursor.toLocaleDateString('id-ID', {
+          cursor.toLocaleDateString('en-GB', {
             month: 'short',
             year: 'numeric'
           })
@@ -134,7 +134,7 @@ const LineChart = ({ transactions, days, period = 'daily' }) => {
       } else {
         key = toLocalDayKey(cursor);
         labels.push(
-          cursor.toLocaleDateString('id-ID', {
+          cursor.toLocaleDateString('en-GB', {
             day: '2-digit',
             month: 'short'
           })
@@ -151,7 +151,7 @@ const LineChart = ({ transactions, days, period = 'daily' }) => {
       labels,
       datasets: [
         {
-          label: `Pemasukan (${periodLabel})`,
+          label: `Income (${periodLabel})`,
           data: incomeData,
           borderColor: '#5b77ff',
           backgroundColor: '#5b77ff',
@@ -159,7 +159,7 @@ const LineChart = ({ transactions, days, period = 'daily' }) => {
           pointRadius: 4
         },
         {
-          label: `Pengeluaran (${periodLabel})`,
+          label: `Expense (${periodLabel})`,
           data: expenseData,
           borderColor: '#e45153',
           backgroundColor: '#e45153',

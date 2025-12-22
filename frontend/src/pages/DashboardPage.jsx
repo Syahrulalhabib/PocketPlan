@@ -21,7 +21,7 @@ const DashboardPage = () => {
     <div className="dashboard">
       <div className="hero-title">
         <h1 className="section-title">Dashboard</h1>
-        <p className="subtitle">Ringkasan Pemasukkan, Pengeluaran dan progress goals anda.</p>
+        <p className="subtitle">Summary of your income, expenses, and goal progress.</p>
       </div>
 
       <div className="balance-card card">
@@ -54,7 +54,7 @@ const DashboardPage = () => {
                   className={`pill small ${chartPeriod === period ? 'active' : ''}`}
                   onClick={() => setChartPeriod(period)}
                 >
-                  {period === 'daily' ? 'Harian' : period === 'weekly' ? 'Mingguan' : 'Bulanan'}
+                  {period === 'daily' ? 'Daily' : period === 'weekly' ? 'Weekly' : 'Monthly'}
                 </button>
               ))}
             </div>

@@ -48,11 +48,11 @@ const AboutPage = () => {
           <div className="intro-text">
             <h3 className="about-question">WHAT IS POCKETPLAN?</h3>
             <p className="about-text">
-              PocketPlan membantu anda memantau pemasukan, pengeluaran, dan goals tabungan dengan tampilan sederhana.
-              Catat transaksi, tetapkan tujuan, dan dapatkan insight dari grafik interaktif untuk pengambilan keputusan yang cepat.
+              PocketPlan helps you track income, expenses, and savings goals with a simple interface.
+              Record transactions, set targets, and get insights from interactive charts to support faster decisions.
             </p>
             <p className="about-text">
-              Kami menjaga pengalaman tetap ringan, intuitif, dan fokus pada kebutuhan anda untuk merencanakan keuangan harian.
+              We keep the experience lightweight, intuitive, and focused on your needs for daily financial planning.
             </p>
           </div>
           <div className="intro-logo">

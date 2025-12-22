@@ -77,7 +77,7 @@ const TransactionsPage = () => {
   return (
     <div className="page">
       <h1 className="section-title">Transactions</h1>
-      <div className="subtitle">Kelola transaksi anda</div>
+      <div className="subtitle">Manage your transactions</div>
 
       <div className="toolbar">
         <button className="pill btn-secondary shadowed" onClick={openModal}>

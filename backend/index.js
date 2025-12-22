@@ -15,7 +15,7 @@ app.use(morgan('dev'));
 const PORT = process.env.PORT || 4000;
 
 const demoTransactions = [
-  { id: 't1', category: 'Charity', type: 'Expense', amount: 2000000, date: '2025-11-22', description: 'Sumbangan' }
+  { id: 't1', category: 'Charity', type: 'Expense', amount: 2000000, date: '2025-11-22', description: 'Donation' }
 ];
 const demoGoals = [{ id: 'g1', name: 'Laptop', type: 'Saving', amount: 2340000, target: 15000000 }];
 

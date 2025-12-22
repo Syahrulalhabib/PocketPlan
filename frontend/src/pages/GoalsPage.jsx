@@ -59,7 +59,7 @@ const GoalsPage = () => {
   return (
     <div className="page">
       <h1 className="section-title">Goals</h1>
-      <div className="subtitle">Kelola target tabungan anda</div>
+      <div className="subtitle">Manage your savings goals</div>
 
       <div className="toolbar">
         <button className="pill btn-secondary shadowed" onClick={() => setShowModal(true)}>
