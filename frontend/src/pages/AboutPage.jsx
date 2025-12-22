@@ -1,9 +1,21 @@
 import { useNavigate } from 'react-router-dom';
 
 const features = [
-  { key: 'balance', title: 'Track Balance', text: 'Learn more about PocketPlan and the team behind it.' },
-  { key: 'goals', title: 'Set Your Goals', text: 'Learn more about PocketPlan and the team behind it.' },
-  { key: 'insights', title: 'Gain Insights', text: 'Learn more about PocketPlan and the team behind it.' }
+  {
+    key: 'balance',
+    title: 'Track Balance',
+    text: 'Monitor your income and expenses in real time through a clear and simple view. Stay in control of your daily financial flow with ease.'
+  },
+  {
+    key: 'goals',
+    title: 'Set Your Goals',
+    text: 'Define your financial goals, from saving plans to long-term objectives. PocketPlan helps you stay focused and consistent in achieving them.'
+  },
+  {
+    key: 'insights',
+    title: 'Gain Insights',
+    text: 'Get meaningful insights through easy-to-read charts and summaries. These insights support smarter and more confident financial decisions.'
+  }
 ];
 
 const featureIcons = {
