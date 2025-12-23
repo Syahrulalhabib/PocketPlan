@@ -999,6 +999,15 @@ input[type='password']::-ms-clear {
   font-weight: 800;
 }
 
+.dev-avatar-img {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
 .dev-avatar.red {
   background: #f87171;
 }
