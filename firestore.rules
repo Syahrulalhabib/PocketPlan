@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: Validasi pemilik data
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Koleksi dokumen pengguna
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      // Subkoleksi transaksi
+      match /transactions/{transactionId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Subkoleksi target tabungan (goals)
+      match /goals/{goalId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // Tolak semua akses lain
+    match /{document=**} {
+      allow read, write: false;
+    }
+  }
+}
