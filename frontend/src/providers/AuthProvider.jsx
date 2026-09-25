@@ -1,8 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import {
   firebaseEnabled,
-  getAuthClient,
-  googleProvider,
   signInEmail,
   signInWithGoogle,
   signOutUser,

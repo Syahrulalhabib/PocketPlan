@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from './providers/AuthProvider.jsx';
 import Layout from './components/Layout.jsx';
@@ -13,10 +14,18 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 import LoadingScreen from './components/LoadingScreen.jsx';
 
 const App = () => {
-  const { loading } = useAuth();
+  const { loading: authLoading } = useAuth();
+  const [showLoader, setShowLoader] = useState(true);
   const location = useLocation();
 
-  if (loading) return <LoadingScreen />;
+  useEffect(() => {
+    if (!authLoading) {
+      const timer = setTimeout(() => setShowLoader(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [authLoading]);
+
+  if (showLoader) return <LoadingScreen message="Preparing your financial data..." />;
 
   const withShell = (element) => <Layout>{element}</Layout>;
 

@@ -21,8 +21,7 @@ import {
   query,
   orderBy,
   doc,
-  getDoc,
-  setDoc
+  getDoc
 } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -46,9 +45,8 @@ if (firebaseEnabled) {
   db = getFirestore(app);
 }
 
-export const getAuthClient = () => auth;
 export const getDb = () => db;
-export const googleProvider = firebaseEnabled ? new GoogleAuthProvider() : null;
+const googleProvider = firebaseEnabled ? new GoogleAuthProvider() : null;
 
 export const signInEmail = (email, password) => signInWithEmailAndPassword(auth, email, password);
 export const signUpEmail = (email, password) => createUserWithEmailAndPassword(auth, email, password);
@@ -85,4 +83,3 @@ export const orderedQuery = (ref, field = 'date') => (ref ? query(ref, orderBy(f
 // User doc (for base balance or profile metadata)
 export const getUserDocRef = (uid) => (db ? doc(db, 'users', uid) : null);
 export const readDoc = (ref) => (ref ? getDoc(ref) : Promise.resolve(null));
-export const writeDoc = (ref, data) => (ref ? setDoc(ref, data, { merge: true }) : Promise.resolve());

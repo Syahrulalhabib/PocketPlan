@@ -2,14 +2,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../providers/AuthProvider.jsx';
 import { useTheme } from '../providers/ThemeProvider.jsx';
-
-const EyeIcon = ({ open }) => (
-  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path d="M2 12c2.5-4 6.5-6.5 10-6.5s7.5 2.5 10 6.5c-2.5 4-6.5 6.5-10 6.5S4.5 16 2 12Z" strokeWidth="2" />
-    <circle cx="12" cy="12" r="3" strokeWidth="2" />
-    {!open && <line x1="4" y1="4" x2="20" y2="20" strokeWidth="2" />}
-  </svg>
-);
+import { EyeIcon } from '../components/Icons.jsx';
+import SavingsMascot from '../components/SavingsMascot.jsx';
 
 const LoginPage = () => {
   const { login, googleLogin, resetPassword } = useAuth();
@@ -121,7 +115,7 @@ const LoginPage = () => {
       <div className="auth-panel card">
         <div className="auth-header">
           <h1>WELCOME BACK</h1>
-          <p>Welcome back! Please enter your details.</p>
+          <p>Welcome back! Smart saving starts with one small step.</p>
         </div>
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>Email</label>
@@ -168,10 +162,7 @@ const LoginPage = () => {
         </div>
       </div>
       <div className="auth-hero">
-        <img src="/pocket-logo-text.svg" alt="PocketPlan" className="hero-logo" />
-        <div className="hero-about" onClick={() => navigate('/about')}>
-          <span className="dot" /> ABOUT US
-        </div>
+        <SavingsMascot mode="hero" />
       </div>
     </div>
   );

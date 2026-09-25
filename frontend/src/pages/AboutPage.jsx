@@ -40,7 +40,7 @@ const AboutPage = () => {
         <div className="about-header">
           <div className="about-title-block">
             <h2 className="section-title">ABOUT US</h2>
-            <p className="subtitle about-subtitle">Learn more about PocketPlan and the team behind it</p>
+            <p className="subtitle about-subtitle">Smart Saving, Brighter Future — Master your money with PocketPlan</p>
           </div>
         </div>
 

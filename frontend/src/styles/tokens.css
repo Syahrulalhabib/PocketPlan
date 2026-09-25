@@ -1,0 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --primary: #e45153;
+  --primary-dark: #c93e42;
+  --accent: #fcd34d;
+  --text: #1f1f1f;
+  --muted: #6b7280;
+  --bg: #f8f8f8;
+  --card: #ffffff;
+  --card-border: rgba(0, 0, 0, 0.06);
+  --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+  --card-shadow-hover: 0 14px 28px -6px rgba(0, 0, 0, 0.08);
+  --shadow: 0 18px 30px rgba(0, 0, 0, 0.12);
+  --radius: 20px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --pill: 30px;
+  --page-transition: 260ms;
+  --theme-fade: 260ms;
+}
+
+.theme-dark {
+  --primary: #e45153;
+  --primary-dark: #f87171;
+  --accent: #fcd34d;
+  --text: #e5e7eb;
+  --muted: #cbd5e1;
+  --bg: #0b1220;
+  --card: #0f172a;
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.45);
+  --card-shadow-hover: 0 18px 36px -6px rgba(0, 0, 0, 0.55);
+  --shadow: 0 22px 36px rgba(0, 0, 0, 0.5);
+}
+

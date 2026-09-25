@@ -23,7 +23,15 @@ export const ThemeProvider = ({ children }) => {
     }
   }, [theme]);
 
-  const toggleTheme = () => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  const toggleTheme = () => {
+    if (typeof document !== 'undefined' && document.startViewTransition) {
+      document.startViewTransition(() => {
+        setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+      });
+    } else {
+      setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    }
+  };
 
   const value = useMemo(
     () => ({

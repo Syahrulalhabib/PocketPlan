@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { useAuth } from './AuthProvider.jsx';
 import {
   firebaseEnabled,
@@ -10,10 +10,17 @@ import {
   updateCollectionDoc,
   orderedQuery,
   getUserDocRef,
-  readDoc,
-  writeDoc
+  readDoc
 } from '../services/firebase';
-import { v4 as uuid } from 'uuid';
+
+import { capitalizeWords } from '../utils/formatters.js';
+
+const generateId = () =>
+  typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `id-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+export { capitalizeWords };
 
 const DataContext = createContext(undefined);
 
@@ -29,10 +36,10 @@ export const DataProvider = ({ children }) => {
   const [loading, setLoading] = useState(firebaseEnabled);
   const [toast, setToast] = useState(null);
 
-  const showToast = (message, type = 'success') => {
+  const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 2600);
-  };
+  }, []);
 
   // Sync Firestore per-user collections
   useEffect(() => {
@@ -92,9 +99,11 @@ export const DataProvider = ({ children }) => {
     };
   }, [user]);
 
-  const addTransaction = async (payload) => {
+  const addTransaction = useCallback(async (payload) => {
     const entry = {
       ...payload,
+      description: capitalizeWords(payload.description || ''),
+      category: capitalizeWords(payload.category || ''),
       amount: Number(payload.amount) || 0,
       date: payload.date || new Date().toISOString().slice(0, 10),
       createdAt: new Date().toISOString()
@@ -102,7 +111,7 @@ export const DataProvider = ({ children }) => {
 
     try {
       if (!firebaseEnabled || !user) {
-        setTransactions((prev) => [{ ...entry, id: uuid() }, ...prev]);
+        setTransactions((prev) => [{ ...entry, id: generateId() }, ...prev]);
         showToast('Transaction added (demo mode).');
         return;
       }
@@ -113,24 +122,29 @@ export const DataProvider = ({ children }) => {
       console.error('Add transaction failed', err);
       showToast(err?.message || 'Failed to save transaction', 'error');
     }
-  };
+  }, [user, showToast]);
 
-  const updateTransaction = async (id, updates) => {
+  const updateTransaction = useCallback(async (id, updates) => {
+    const cleanUpdates = { ...updates };
+    if (cleanUpdates.description !== undefined) cleanUpdates.description = capitalizeWords(cleanUpdates.description);
+    if (cleanUpdates.category !== undefined) cleanUpdates.category = capitalizeWords(cleanUpdates.category);
+    if (cleanUpdates.amount !== undefined) cleanUpdates.amount = Number(cleanUpdates.amount) || 0;
+
     try {
       if (!firebaseEnabled || !user) {
-        setTransactions((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
+        setTransactions((prev) => prev.map((t) => (t.id === id ? { ...t, ...cleanUpdates } : t)));
         showToast('Transaction updated (demo mode).');
         return;
       }
-      await updateCollectionDoc(user.id, 'transactions', id, updates);
+      await updateCollectionDoc(user.id, 'transactions', id, cleanUpdates);
       showToast('Transaction updated.');
     } catch (err) {
       console.error('Update transaction failed', err);
       showToast(err?.message || 'Failed to update transaction', 'error');
     }
-  };
+  }, [user, showToast]);
 
-  const deleteTransaction = async (id) => {
+  const deleteTransaction = useCallback(async (id) => {
     try {
       if (!firebaseEnabled || !user) {
         setTransactions((prev) => prev.filter((t) => t.id !== id));
@@ -143,17 +157,19 @@ export const DataProvider = ({ children }) => {
       console.error('Delete transaction failed', err);
       showToast(err?.message || 'Failed to delete transaction', 'error');
     }
-  };
+  }, [user, showToast]);
 
-  const addGoal = async (payload) => {
+  const addGoal = useCallback(async (payload) => {
     const entry = {
       ...payload,
+      name: capitalizeWords(payload.name || ''),
+      category: payload.category ? capitalizeWords(payload.category) : payload.category,
       target: Number(payload.target) || 0,
       createdAt: new Date().toISOString()
     };
     try {
       if (!firebaseEnabled || !user) {
-        setGoals((prev) => [...prev, { ...entry, id: uuid() }]);
+        setGoals((prev) => [...prev, { ...entry, id: generateId() }]);
         showToast('Goal added (demo mode).');
         return;
       }
@@ -164,24 +180,29 @@ export const DataProvider = ({ children }) => {
       console.error('Add goal failed', err);
       showToast(err?.message || 'Failed to save goal', 'error');
     }
-  };
+  }, [user, showToast]);
 
-  const updateGoal = async (id, updates) => {
+  const updateGoal = useCallback(async (id, updates) => {
+    const cleanUpdates = { ...updates };
+    if (cleanUpdates.name !== undefined) cleanUpdates.name = capitalizeWords(cleanUpdates.name);
+    if (cleanUpdates.category !== undefined) cleanUpdates.category = capitalizeWords(cleanUpdates.category);
+    if (cleanUpdates.target !== undefined) cleanUpdates.target = Number(cleanUpdates.target) || 0;
+
     try {
       if (!firebaseEnabled || !user) {
-        setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, ...updates } : g)));
+        setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, ...cleanUpdates } : g)));
         showToast('Goal updated (demo mode).');
         return;
       }
-      await updateCollectionDoc(user.id, 'goals', id, updates);
+      await updateCollectionDoc(user.id, 'goals', id, cleanUpdates);
       showToast('Goal updated.');
     } catch (err) {
       console.error('Update goal failed', err);
       showToast(err?.message || 'Failed to update goal', 'error');
     }
-  };
+  }, [user, showToast]);
 
-  const deleteGoal = async (id) => {
+  const deleteGoal = useCallback(async (id) => {
     try {
       if (!firebaseEnabled || !user) {
         setGoals((prev) => prev.filter((g) => g.id !== id));
@@ -194,7 +215,7 @@ export const DataProvider = ({ children }) => {
       console.error('Delete goal failed', err);
       showToast(err?.message || 'Failed to delete goal', 'error');
     }
-  };
+  }, [user, showToast]);
 
   const summary = useMemo(() => {
     const income = transactions.filter((t) => t.type === 'Income').reduce((acc, t) => acc + Number(t.amount), 0);

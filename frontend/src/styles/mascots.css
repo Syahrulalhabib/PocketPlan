@@ -1,0 +1,1195 @@
+/* ========================================================
+   SAVINGS MASCOT & COIN DROP ANIMATIONS
+   ======================================================== */
+.svg-coin {
+  filter: drop-shadow(0 3px 6px rgba(180, 83, 9, 0.35));
+  transform-origin: center;
+  user-select: none;
+}
+
+.savings-hero-stage {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 10px;
+  user-select: none;
+}
+
+.savings-hero-glow {
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(228, 81, 83, 0.24) 0%, rgba(251, 191, 36, 0.16) 45%, transparent 70%);
+  filter: blur(34px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero-mascot-center {
+  position: relative;
+  width: 350px;
+  height: 310px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.hero-mascot-center:hover {
+  transform: scale(1.04);
+}
+
+.hero-mascot-center:active {
+  transform: scale(0.97);
+}
+
+.hero-mascot-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: mascotFloat 3.8s ease-in-out infinite;
+  will-change: transform;
+}
+
+.hero-mascot-img {
+  width: 300px;
+  height: auto;
+  max-height: 245px;
+  object-fit: contain;
+  filter: drop-shadow(0 20px 32px rgba(228, 81, 83, 0.32));
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.hero-mascot-center.squish .hero-mascot-img,
+.mascot-interactive-area.squish .mascot-pocket-img {
+  animation: mascotSquish 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.hero-mascot-shadow,
+.mascot-shadow {
+  width: 210px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.24) 0%, transparent 75%);
+  margin-top: 2px;
+  animation: mascotShadowPulse 3.8s ease-in-out infinite;
+}
+
+.hero-mascot-hint {
+  position: absolute;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.98);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #e45153;
+  box-shadow: 0 4px 12px rgba(228, 81, 83, 0.2);
+  border: 1px solid rgba(228, 81, 83, 0.25);
+  animation: hintBounce 2.6s ease-in-out infinite;
+  pointer-events: none;
+  white-space: nowrap;
+  will-change: transform;
+}
+
+.theme-dark .hero-mascot-hint {
+  background: rgba(30, 41, 59, 0.98);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* Floating Badges */
+.hero-floating-badge {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(229, 231, 235, 0.9);
+  border-radius: 14px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  z-index: 3;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.theme-dark .hero-floating-badge {
+  background: rgba(30, 41, 59, 0.98);
+  border-color: rgba(51, 65, 85, 0.9);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.hero-floating-badge.badge-left {
+  top: 18%;
+  left: -32px;
+  animation: badgeFloatLeft 4.5s ease-in-out infinite;
+}
+
+.hero-floating-badge.badge-right {
+  top: 36%;
+  right: -32px;
+  animation: badgeFloatRight 4.2s ease-in-out infinite 0.6s;
+}
+
+.hero-floating-badge .badge-icon {
+  font-size: 20px;
+}
+
+.hero-floating-badge .badge-title {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.hero-floating-badge .badge-sub {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #10b981;
+}
+
+.hero-floating-badge.badge-right .badge-sub {
+  color: #e45153;
+}
+/* Looping Dropping Coins */
+.loop-coin {
+  position: absolute;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.loop-coin-1 {
+  top: 15px;
+  left: 48%;
+  animation: loopCoinDrop 3.2s cubic-bezier(0.5, 0, 0.75, 0.25) infinite;
+}
+
+.loop-coin-2 {
+  top: 10px;
+  left: 36%;
+  animation: loopCoinDrop 3.6s cubic-bezier(0.5, 0, 0.75, 0.25) infinite 1.2s;
+}
+
+.loop-coin-3 {
+  top: 12px;
+  left: 60%;
+  animation: loopCoinDrop 3.4s cubic-bezier(0.5, 0, 0.75, 0.25) infinite 2.3s;
+}
+
+/* User Tossed Coin Arc */
+.tossed-coin {
+  position: absolute;
+  top: 55%;
+  left: 50%;
+  pointer-events: none;
+  z-index: 5;
+  animation: tossCoinArc 0.85s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+}
+
+/* Floating Reward Text */
+.floating-reward-text {
+  position: absolute;
+  top: 25%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-weight: 800;
+  font-size: 13.5px;
+  color: #059669;
+  background: #ffffff;
+  padding: 4px 12px;
+  border-radius: 999px;
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+  border: 1.5px solid #10b981;
+  pointer-events: none;
+  z-index: 6;
+  white-space: nowrap;
+  animation: floatRewardUp 1.1s ease-out forwards;
+}
+
+.theme-dark .floating-reward-text {
+  background: #0f172a;
+  color: #34d399;
+  border-color: #059669;
+}
+
+/* Sparkles */
+.hero-sparkles,
+.mascot-sparkles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.sparkle {
+  position: absolute;
+  font-size: 18px;
+  animation: sparkleTwinkle 2.8s ease-in-out infinite;
+}
+
+.sparkle.s1 { top: 25%; left: 16%; animation-delay: 0.2s; }
+.sparkle.s2 { top: 15%; right: 18%; animation-delay: 1.1s; }
+.sparkle.s3 { bottom: 35%; right: 12%; animation-delay: 1.9s; }
+.sparkle.s4 { bottom: 40%; left: 14%; animation-delay: 2.4s; }
+
+/* Hero Footer Ticker */
+.hero-mascot-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  z-index: 2;
+}
+
+.hero-counter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: var(--text);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.theme-dark .hero-counter-pill {
+  background: #1e293b;
+  border-color: rgba(51, 65, 85, 0.7);
+}
+
+.hero-quote-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(254, 243, 199, 0.8);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #92400e;
+  max-width: 380px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.theme-dark .hero-quote-card {
+  background: rgba(69, 26, 3, 0.4);
+  border-color: rgba(180, 83, 9, 0.5);
+  color: #fde68a;
+}
+
+/* ========================================================
+   LUCKY COIN MASCOT ("KOINY") - ANIMATED GOAL COMPANION
+   Lightweight 60fps GPU compositor animations
+   ======================================================== */
+.koiny-svg {
+  filter: drop-shadow(0 6px 14px rgba(217, 119, 6, 0.3));
+  transform-origin: center center;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  user-select: none;
+}
+
+.koiny-floating-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: koinyFloat 3.4s ease-in-out infinite;
+  will-change: transform;
+  overflow: visible !important;
+}
+
+.koiny-ground-shadow {
+  width: 58px;
+  height: 9px;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.22) 0%, transparent 75%);
+  border-radius: 50%;
+  margin: 3px auto 0;
+  animation: koinyShadowPulse 3.4s ease-in-out infinite;
+}
+
+.theme-dark .koiny-ground-shadow {
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.5) 0%, transparent 75%);
+}
+
+.koiny-spinning {
+  animation: koinySpinJump 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+/* Koiny Eye Blinking */
+.koiny-eyes {
+  transform-origin: 60px 55px;
+  animation: koinyEyeBlink 4.2s ease-in-out infinite;
+}
+
+/* Waving Left Hand */
+.koiny-hand-left {
+  transform-origin: 22px 62px;
+  animation: koinyHandWave 2.2s ease-in-out infinite;
+}
+
+/* Twinkling Sparkle Stars */
+.koiny-sparkle-1 {
+  transform-origin: 24px 19px;
+  animation: koinyStarSparkle 2.6s ease-in-out infinite;
+}
+
+.koiny-sparkle-2 {
+  transform-origin: 99px 23px;
+  animation: koinyStarSparkle 3s ease-in-out infinite 0.8s;
+}
+
+/* Floating Encouragement Pop */
+.koiny-heart-pop {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 5px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(244, 63, 94, 0.5), 0 2px 6px rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+  animation: koinyPopHeart 1.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  z-index: 9999 !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.02em;
+}
+
+@keyframes koinyFloat {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -9px, 0);
+  }
+}
+
+@keyframes koinyShadowPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(0.72);
+    opacity: 0.16;
+  }
+}
+
+@keyframes koinyEyeBlink {
+  0%, 93%, 100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.08);
+  }
+}
+
+@keyframes koinyHandWave {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-16deg);
+  }
+}
+
+@keyframes koinyStarSparkle {
+  0%, 100% {
+    transform: scale(0.65) rotate(0deg);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(1.18) rotate(70deg);
+    opacity: 1;
+  }
+}
+
+@keyframes koinySpinJump {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.22) translateY(-14px) rotate(-14deg);
+  }
+  75% {
+    transform: scale(1.1) translateY(-6px) rotate(374deg);
+  }
+  100% {
+    transform: scale(1) translateY(0) rotate(360deg);
+  }
+}
+
+@keyframes koinyPopHeart {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, 8px, 0) scale(0.65);
+  }
+  15% {
+    opacity: 1;
+    transform: translate3d(-50%, -4px, 0) scale(1.08);
+  }
+  70% {
+    opacity: 1;
+    transform: translate3d(-50%, -10px, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-50%, -18px, 0) scale(0.92);
+  }
+}
+
+
+/* ==========================================================
+   Dashboard Mascots, Cute Card Accents & Shimmer
+   ========================================================== */
+
+/* Shimmer Skeleton Wave */
+.dashboard-loading {
+  pointer-events: none;
+}
+
+.card-is-loading {
+  position: relative;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.shimmer-bone {
+  position: relative;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.07);
+  border-radius: 8px;
+  display: block;
+}
+
+.theme-dark .shimmer-bone {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.shimmer-bone::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.65) 50%,
+    transparent 100%
+  );
+  animation: shimmerSweep 1.5s infinite ease-in-out;
+  will-change: transform;
+}
+
+.theme-dark .shimmer-bone::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.12) 50%,
+    transparent 100%
+  );
+}
+
+@keyframes shimmerSweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Stat Card Row Layout with Mascot */
+.stat-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.stat-card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Cute Card Micro Pills */
+.card-cute-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.01em;
+  margin-left: 2px;
+  user-select: none;
+}
+
+.balance-pill {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+}
+
+.theme-dark .balance-pill {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fde047;
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.income-pill {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.28);
+}
+
+.theme-dark .income-pill {
+  background: rgba(16, 185, 129, 0.18);
+  color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.expense-pill {
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.theme-dark .expense-pill {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.chart-pill {
+  background: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.theme-dark .chart-pill {
+  background: rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.goals-pill {
+  background: rgba(168, 85, 247, 0.1);
+  color: #7e22ce;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
+.theme-dark .goals-pill {
+  background: rgba(168, 85, 247, 0.18);
+  color: #d8b4fe;
+  border-color: rgba(168, 85, 247, 0.35);
+}
+
+.chart-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+
+/* Stat Mascot Wrapper & Hover Interactions */
+.stat-mascot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  user-select: none;
+  cursor: pointer;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.08));
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.25s ease;
+}
+
+.stat-mascot:hover {
+  transform: translateY(-3px) scale(1.08);
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.14));
+}
+
+.stat-mascot:active {
+  transform: scale(0.95);
+}
+
+/* "Pundi" Income Mascot Animations */
+.pundi-floating-coin {
+  animation: pundiCoinFloat 2.4s ease-in-out infinite alternate;
+  transform-origin: 32px 11px;
+  will-change: transform;
+}
+
+@keyframes pundiCoinFloat {
+  0% { transform: translateY(0) scale(1); }
+  100% { transform: translateY(-4.5px) scale(1.04); }
+}
+
+.pundi-leaf-left {
+  animation: pundiLeafSwayLeft 3s ease-in-out infinite alternate;
+  transform-origin: 32px 26px;
+  will-change: transform;
+}
+
+@keyframes pundiLeafSwayLeft {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-7deg); }
+}
+
+.pundi-leaf-right {
+  animation: pundiLeafSwayRight 2.7s ease-in-out infinite alternate;
+  transform-origin: 32px 22px;
+  will-change: transform;
+}
+
+@keyframes pundiLeafSwayRight {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(6deg); }
+}
+
+.pundi-shadow {
+  animation: pundiShadowScale 2.4s ease-in-out infinite alternate;
+  transform-origin: 32px 58px;
+  will-change: transform, opacity;
+}
+
+@keyframes pundiShadowScale {
+  0% { transform: scale(1); opacity: 0.12; }
+  100% { transform: scale(0.85); opacity: 0.07; }
+}
+
+/* "Hematy" Expense Mascot Animations */
+.hematy-body-group {
+  animation: hematyBreathe 2.8s ease-in-out infinite alternate;
+  transform-origin: 32px 48px;
+  will-change: transform;
+}
+
+@keyframes hematyBreathe {
+  0% { transform: translateY(0) scale(1, 1); }
+  100% { transform: translateY(-2.5px) scale(1.02, 0.98); }
+}
+
+.hematy-receipt-arm {
+  animation: hematyReceiptWobble 3.2s ease-in-out infinite alternate;
+  transform-origin: 43px 45px;
+  will-change: transform;
+}
+
+@keyframes hematyReceiptWobble {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-5deg); }
+}
+
+.hematy-pupil {
+  animation: hematyBlink 4.5s infinite;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@keyframes hematyBlink {
+  0%, 93%, 97%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.12); }
+}
+
+.hematy-shadow {
+  animation: hematyShadowScale 2.8s ease-in-out infinite alternate;
+  transform-origin: 32px 58px;
+  will-change: transform, opacity;
+}
+
+@keyframes hematyShadowScale {
+  0% { transform: scale(1); opacity: 0.12; }
+  100% { transform: scale(0.88); opacity: 0.07; }
+}
+
+
+/* ========================================================
+   FLOATING COMPANION MASCOT: "POCKY" (BOTTOM-RIGHT)
+   ======================================================== */
+.floating-mascot-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  user-select: none;
+}
+
+.pocky-trigger-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 8px 16px rgba(16, 185, 129, 0.28));
+}
+
+.pocky-trigger-btn:hover {
+  transform: scale(1.08) translateY(-2px);
+  filter: drop-shadow(0 12px 22px rgba(16, 185, 129, 0.4));
+}
+
+.pocky-trigger-btn:active {
+  transform: scale(0.94);
+}
+
+.pocky-svg {
+  overflow: visible;
+  display: block;
+}
+
+.pocky-float-group {
+  animation: pockyFloat 3.2s ease-in-out infinite;
+  transform-origin: 34px 50px;
+  will-change: transform;
+}
+
+@keyframes pockyFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+.pocky-shadow {
+  animation: pockyShadowScale 3.2s ease-in-out infinite;
+  transform-origin: 34px 68px;
+  will-change: transform, opacity;
+}
+
+@keyframes pockyShadowScale {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.16;
+  }
+  50% {
+    transform: scale(0.8);
+    opacity: 0.08;
+  }
+}
+
+.pocky-pupil {
+  animation: pockyBlink 4.2s infinite;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@keyframes pockyBlink {
+  0%, 92%, 96%, 100% {
+    transform: scaleY(1);
+  }
+  94% {
+    transform: scaleY(0.1);
+  }
+}
+
+.pocky-arm-right.is-waving {
+  animation: pockyWave 1.2s ease-in-out;
+  transform-origin: 52px 36px;
+  will-change: transform;
+}
+
+@keyframes pockyWave {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-24deg);
+  }
+  50% {
+    transform: rotate(14deg);
+  }
+  75% {
+    transform: rotate(-16deg);
+  }
+}
+
+.pocky-svg.squish .pocky-float-group {
+  animation: pockySquish 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes pockySquish {
+  0% {
+    transform: scale(1, 1);
+  }
+  35% {
+    transform: scale(1.18, 0.82) translateY(2px);
+  }
+  70% {
+    transform: scale(0.92, 1.08) translateY(-4px);
+  }
+  100% {
+    transform: scale(1, 1) translateY(0);
+  }
+}
+
+.pocky-sparkle-1 {
+  animation: pockyTwinkle 2.4s ease-in-out infinite alternate;
+}
+
+.pocky-sparkle-2 {
+  animation: pockyTwinkle 2.8s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes pockyTwinkle {
+  0% {
+    opacity: 0.3;
+    transform: scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+
+/* Pocky Speech Bubble */
+.pocky-speech-bubble {
+  position: relative;
+  background: var(--card, #ffffff);
+  color: var(--text, #0f172a);
+  padding: 8px 14px;
+  border-radius: 18px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px solid rgba(16, 185, 129, 0.35);
+  animation: pockyBubblePop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  white-space: nowrap;
+}
+
+.pocky-speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  right: 24px;
+  width: 10px;
+  height: 10px;
+  background: var(--card, #ffffff);
+  border-right: 1.5px solid rgba(16, 185, 129, 0.35);
+  border-bottom: 1.5px solid rgba(16, 185, 129, 0.35);
+  transform: rotate(45deg);
+}
+
+.pocky-bubble-close {
+  background: none;
+  border: none;
+  color: var(--muted, #64748b);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.pocky-bubble-close:hover {
+  opacity: 1;
+  color: var(--text, #0f172a);
+}
+
+@keyframes pockyBubblePop {
+  0% {
+    opacity: 0;
+    transform: scale(0.7) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Pocky Popover Card */
+.pocky-popover-card {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  width: 290px;
+  max-width: calc(100vw - 32px);
+  padding: 16px;
+  border-radius: 20px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.16);
+  border: 1px solid var(--border);
+  background: var(--card);
+  animation: pockyCardPop 0.26s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 85;
+}
+
+@keyframes pockyCardPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.85) translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.pocky-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pocky-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pocky-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+  animation: pockyPulse 2s infinite;
+}
+
+@keyframes pockyPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+.pocky-name {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.pocky-tag {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.pocky-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pocky-icon-btn {
+  background: rgba(0, 0, 0, 0.04);
+  border: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.pocky-icon-btn:hover {
+  background: rgba(0, 0, 0, 0.09);
+  color: var(--text);
+}
+
+body.theme-dark .pocky-icon-btn {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+body.theme-dark .pocky-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.pocky-popover-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pocky-tip-box {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.pocky-tip-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  color: #059669;
+  margin-bottom: 6px;
+}
+
+body.theme-dark .pocky-tip-badge {
+  color: #34d399;
+}
+
+.pocky-tip-counter {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.pocky-tip-text {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text);
+  margin: 0;
+  font-weight: 500;
+}
+
+.pocky-quick-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pocky-action-btn {
+  flex: 1;
+  font-size: 12px !important;
+  padding: 7px 12px !important;
+  justify-content: center;
+}
+
+.pocky-popover-footer {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+  text-align: center;
+  font-size: 10.5px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* Burst Particles */
+.pocky-burst-particle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: 18px;
+  pointer-events: none;
+  z-index: 90;
+  animation: pockyBurstFloat 1.1s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes pockyBurstFloat {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--burst-x), var(--burst-y)) scale(1.2);
+  }
+}
+
+/* Collapsed Pill */
+.pocky-collapsed-pill {
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.36);
+  font-weight: 700;
+  font-size: 12.5px;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pocky-collapsed-pill:hover {
+  transform: scale(1.06) translateY(-2px);
+  box-shadow: 0 8px 22px rgba(16, 185, 129, 0.48);
+}
+
+.pocky-collapsed-pill:active {
+  transform: scale(0.96);
+}
+
+.pocky-collapsed-icon {
+  font-size: 14px;
+}
+
+.pocky-collapsed-sparkle {
+  font-size: 12px;
+  animation: pockyTwinkle 1.8s infinite;
+}
+
+/* Responsive Position */
+@media (max-width: 768px) {
+  .floating-mascot-container {
+    bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+    right: 14px;
+  }
+  .pocky-popover-card {
+    right: 0;
+    width: 280px;
+    max-width: calc(100vw - 28px);
+  }
+}
+
+/* Accessibility: Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .pocky-float-group,
+  .pocky-shadow,
+  .pocky-pupil,
+  .pocky-arm-right.is-waving,
+  .pocky-sparkle-1,
+  .pocky-sparkle-2,
+  .pocky-status-dot {
+    animation: none !important;
+  }
+}

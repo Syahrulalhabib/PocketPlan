@@ -1,17 +1,14 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../providers/AuthProvider.jsx';
+import { useTheme } from '../providers/ThemeProvider.jsx';
 import { useState } from 'react';
-
-const EyeIcon = ({ open }) => (
-  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path d="M2 12c2.5-4 6.5-6.5 10-6.5s7.5 2.5 10 6.5c-2.5 4-6.5 6.5-10 6.5S4.5 16 2 12Z" strokeWidth="2" />
-    <circle cx="12" cy="12" r="3" strokeWidth="2" />
-    {!open && <line x1="4" y1="4" x2="20" y2="20" strokeWidth="2" />}
-  </svg>
-);
+import { EyeIcon } from '../components/Icons.jsx';
+import SavingsMascot from '../components/SavingsMascot.jsx';
 
 const RegisterPage = () => {
   const { register } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -55,14 +52,27 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="auth-page">
+    <div className={`auth-page ${isDark ? 'theme-dark' : ''}`}>
+      <button
+        type="button"
+        className={`theme-toggle ${isDark ? 'active' : ''}`}
+        onClick={toggleTheme}
+        aria-pressed={isDark}
+        aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+      >
+        <span className="toggle-thumb" />
+        <span className="toggle-labels">
+          <span className="sun">☀</span>
+          <span className="moon">☾</span>
+        </span>
+      </button>
       <div className="auth-hero left">
-        <img src="/pocket-logo-text.svg" alt="PocketPlan" className="hero-logo" />
+        <SavingsMascot mode="hero" />
       </div>
       <div className="auth-panel card">
         <div className="auth-header">
           <h1>REGISTRATION</h1>
-          <p>Please enter your details.</p>
+          <p>Start your journey to smart saving and a brighter future.</p>
         </div>
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>Fullname</label>

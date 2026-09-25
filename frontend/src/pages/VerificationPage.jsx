@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../providers/AuthProvider.jsx';
+import { useTheme } from '../providers/ThemeProvider.jsx';
+import SavingsMascot from '../components/SavingsMascot.jsx';
 
 const VerificationPage = () => {
   const { resendVerification } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,9 +35,22 @@ const VerificationPage = () => {
   };
 
   return (
-    <div className="auth-page">
+    <div className={`auth-page ${isDark ? 'theme-dark' : ''}`}>
+      <button
+        type="button"
+        className={`theme-toggle ${isDark ? 'active' : ''}`}
+        onClick={toggleTheme}
+        aria-pressed={isDark}
+        aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+      >
+        <span className="toggle-thumb" />
+        <span className="toggle-labels">
+          <span className="sun">☀</span>
+          <span className="moon">☾</span>
+        </span>
+      </button>
       <div className="auth-hero left">
-        <img src="/pocket-logo-text.svg" alt="PocketPlan" className="hero-logo" />
+        <SavingsMascot mode="hero" />
       </div>
       <div className="auth-panel card">
         <div className="auth-header">

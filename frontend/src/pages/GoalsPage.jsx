@@ -1,8 +1,16 @@
 import { useMemo, useState } from 'react';
 import { useData } from '../providers/DataProvider.jsx';
+import {
+  formatRupiah,
+  formatDisplayNumber,
+  parseFormattedNumber,
+  adjustMoney,
+  capitalizeWords
+} from '../utils/formatters.js';
 import Modal from '../components/Modal.jsx';
-
-const formatRupiah = (value) => `Rp. ${Number(value).toLocaleString('id-ID')}`;
+import GoalFormModal from '../components/GoalFormModal.jsx';
+import { PlusIcon, SearchIcon, ViewIcon, EditIcon, TrashIcon, TargetIcon, CloseIcon, ProgressCoinIcon, SmilingCoinIcon } from '../components/Icons.jsx';
+import LuckyCoinMascot from '../components/LuckyCoinMascot.jsx';
 
 const emptyForm = {
   name: '',
@@ -10,25 +18,13 @@ const emptyForm = {
   target: ''
 };
 
-const parseFormattedNumber = (value) => {
-  const digits = String(value || '').replace(/\D/g, '');
-  return digits === '' ? '' : Number(digits);
-};
-
-const formatDisplayNumber = (value) =>
-  value === '' || value === null || value === undefined ? '' : Number(value).toLocaleString('id-ID');
-
-const adjustMoney = (current, delta) => {
-  const next = Math.max(0, (Number(current) || 0) + delta);
-  return next;
-};
-
 const GoalsPage = () => {
-  const { goals, addGoal, updateGoal, deleteGoal } = useData();
+  const { goals, addGoal, updateGoal, deleteGoal, summary } = useData();
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editModal, setEditModal] = useState(false);
   const [viewModal, setViewModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [selected, setSelected] = useState(null);
 
@@ -43,7 +39,7 @@ const GoalsPage = () => {
 
   const submitForm = async (e) => {
     e.preventDefault();
-    await addGoal({ ...form, type: 'Saving' });
+    await addGoal({ ...form, name: capitalizeWords(form.name), type: 'Saving' });
     setForm(emptyForm);
     setShowModal(false);
   };
@@ -51,183 +47,261 @@ const GoalsPage = () => {
   const submitEdit = async (e) => {
     e.preventDefault();
     if (!selected) return;
-    await updateGoal(selected.id, { ...form, type: 'Saving' });
+    await updateGoal(selected.id, { ...form, name: capitalizeWords(form.name), type: 'Saving' });
     setEditModal(false);
     setSelected(null);
   };
 
   return (
     <div className="page">
-      <h1 className="section-title">Goals</h1>
-      <div className="subtitle">Manage your savings goals</div>
-
-      <div className="toolbar">
-        <button className="pill btn-secondary shadowed" onClick={() => setShowModal(true)}>
-          ➕ Add Goals
+      <div className="page-header-row">
+        <div>
+          <h1 className="section-title">Goals</h1>
+          <div className="subtitle">Manage your savings goals</div>
+        </div>
+        <button type="button" className="pill btn-primary btn-add shadowed" onClick={() => setShowModal(true)}>
+          <PlusIcon size={16} />
+          <span>Add Goal</span>
         </button>
+      </div>
+
+      <LuckyCoinMascot
+        mode="banner"
+        goals={goals}
+        balance={summary?.balance}
+      />
+
+      <div className="toolbar goals-toolbar">
         <div className="search-box card">
-          <span>🔍</span>
+          <SearchIcon size={16} className="search-icon" />
           <input
             className="pill-input"
-            placeholder="Search"
+            type="text"
+            placeholder="Search savings goals..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search goals"
           />
-          <span>⚙</span>
+          {search && (
+            <button
+              type="button"
+              className="search-clear-btn"
+              onClick={() => setSearch('')}
+              aria-label="Clear search input"
+            >
+              <CloseIcon size={13} />
+            </button>
+          )}
         </div>
       </div>
 
       <div className="card table-card goals-table-card">
         <div className="table-scroll">
           <table className="table">
-          <thead>
-            <tr>
-              <th>Category</th>
-              <th>Type</th>
-              <th>Your Target</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody className="filter-animated">
-            {filtered.map((g) => (
-              <tr key={g.id}>
-                <td>{g.name}</td>
-                <td>
-                  <span className={`badge ${g.type === 'Saving' ? 'income' : 'expense'}`}>{g.type}</span>
-                </td>
-                <td>{formatRupiah(g.target)}</td>
-                <td className="actions">
-                  <button
-                    className="mini-link"
-                    onClick={() => {
-                      setSelected(g);
-                      setViewModal(true);
-                    }}
-                  >
-                    👁 View
-                  </button>
-                  <button
-                    className="mini-link"
-                    onClick={() => {
-                      setSelected(g);
-                      setForm({
-                        name: g.name,
-                        type: g.type,
-                        target: g.target
-                      });
-                      setEditModal(true);
-                    }}
-                  >
-                    ✏ Edit
-                  </button>
-                  <button className="mini-link" onClick={() => deleteGoal(g.id)}>
-                    🗑 Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {filtered.length === 0 && (
+            <thead>
               <tr>
-                <td colSpan="5" style={{ textAlign: 'center', padding: '16px', color: '#6b7280' }}>
-                  No goals found
-                </td>
+                <th>Category</th>
+                <th>Type</th>
+                <th>Target Amount</th>
+                <th className="actions-header">Actions</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="filter-animated">
+              {filtered.map((g) => (
+                <tr key={g.id} className="table-card-row">
+                  <td className="cell-category" data-label="Category">
+                    <span className="table-cell-bold">{capitalizeWords(g.name)}</span>
+                  </td>
+                  <td className="cell-type" data-label="Type">
+                    <span className={`badge ${g.type === 'Saving' ? 'income' : 'expense'}`}>
+                      {g.type}
+                    </span>
+                  </td>
+                  <td className="cell-amount" data-label="Target Amount">
+                    <div className="goal-table-target-wrap">
+                      <span className="goal-target-val">{formatRupiah(g.target)}</span>
+                      {(() => {
+                        const bal = Number(summary?.balance) || 0;
+                        const tgt = Number(g.target) || 1;
+                        const p = Math.max(0, Math.min(100, Math.round((bal / tgt) * 100)));
+                        return (
+                          <span className={`goal-table-pct ${p >= 100 ? 'done' : ''}`}>
+                            {p >= 100 ? '100% 🎯' : `${p}%`}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                  </td>
+                  <td className="cell-actions actions">
+                    <button
+                      type="button"
+                      className="table-action-btn view"
+                      title="View goal details"
+                      aria-label="View goal"
+                      onClick={() => {
+                        setSelected(g);
+                        setViewModal(true);
+                      }}
+                    >
+                      <ViewIcon size={15} />
+                      <span>View</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="table-action-btn edit"
+                      title="Edit goal"
+                      aria-label="Edit goal"
+                      onClick={() => {
+                        setSelected(g);
+                        setForm({
+                          name: g.name,
+                          type: g.type,
+                          target: g.target
+                        });
+                        setEditModal(true);
+                      }}
+                    >
+                      <EditIcon size={15} />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="table-action-btn delete"
+                      title="Delete goal"
+                      aria-label="Delete goal"
+                      onClick={() => setDeleteTarget(g)}
+                    >
+                      <TrashIcon size={15} />
+                      <span>Delete</span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr className="empty-row">
+                  <td colSpan="4" className="empty-table-cell">
+                    <LuckyCoinMascot
+                      mode="empty"
+                      message={search ? 'No savings goals match your search keywords.' : 'No savings goals added yet!'}
+                    />
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <Modal open={showModal} onClose={() => setShowModal(false)} title="Add Goal">
-        <form className="modal-form" onSubmit={submitForm}>
-          <label>Category</label>
-          <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-          <label>Type</label>
-          <div className="pill-switch pill-switch-animated plain-switch" key={form.type}>
-            <button type="button" className="pill small active" onClick={() => setForm({ ...form, type: 'Saving' })}>
-              Saving
-            </button>
-          </div>
-          <label>Your Target</label>
-          <div className="number-input">
-            <span className="currency-prefix">Rp</span>
-            <input
-              className="input number-field has-prefix"
-              type="text"
-              inputMode="numeric"
-              value={formatDisplayNumber(form.target)}
-              onChange={(e) => setForm({ ...form, target: parseFormattedNumber(e.target.value) })}
-              required
-            />
-            <div className="number-controls">
-              <button type="button" onClick={() => setForm({ ...form, target: adjustMoney(form.target, 10000) })}>
-                ▲
-              </button>
-              <button type="button" onClick={() => setForm({ ...form, target: adjustMoney(form.target, -10000) })}>
-                ▼
-              </button>
-            </div>
-          </div>
-          <div className="modal-actions">
-            <button type="button" className="pill btn-secondary" onClick={() => { setShowModal(false); setForm(emptyForm); }}>
-              Cancel
-            </button>
-            <button type="submit" className="pill btn-primary">
-              Save
-            </button>
-          </div>
-        </form>
-      </Modal>
+      <GoalFormModal
+        open={showModal}
+        onClose={() => {
+          setShowModal(false);
+          setForm(emptyForm);
+        }}
+        onSubmit={submitForm}
+        form={form}
+        setForm={setForm}
+      />
 
       <Modal open={viewModal} onClose={() => setViewModal(false)} title="Goal Detail">
-        {selected && (
-          <div className="modal-form">
-            <div><strong>Category:</strong> {selected.name}</div>
-            <div><strong>Type:</strong> {selected.type}</div>
-            <div><strong>Target:</strong> {formatRupiah(selected.target)}</div>
-          </div>
-        )}
+        {selected && (() => {
+          const balance = Number(summary?.balance) || 0;
+          const target = Number(selected.target) || 1;
+          const pct = Math.max(0, Math.min(100, Math.round((balance / target) * 100)));
+          const isAchieved = pct >= 100;
+          return (
+            <div className="detail-modal-body">
+              <div className="detail-hero">
+                <span className="detail-hero-badge income">{selected.type || 'Saving'}</span>
+                <div className="detail-hero-amount income-text">
+                  {formatRupiah(selected.target)}
+                </div>
+                <div className="detail-hero-sub">Target Amount</div>
+              </div>
+              <div className="detail-progress-card">
+                <div className="detail-progress-header">
+                  <span>Current Balance: <strong>{formatRupiah(balance)}</strong></span>
+                  <span className={`detail-progress-pct ${isAchieved ? 'achieved' : ''}`}>
+                    {isAchieved ? '🎉 100% Reached!' : `${pct}%`}
+                  </span>
+                </div>
+                <div className="progress-shell" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+                  <div className={`fill ${isAchieved ? 'completed' : ''}`} style={{ width: `${pct}%` }} />
+                  <div
+                    className={`progress-coin-marker ${isAchieved ? 'is-achieved' : ''}`}
+                    style={{ left: `clamp(11px, ${pct}%, calc(100% - 11px))` }}
+                    aria-hidden="true"
+                  >
+                    {isAchieved ? <SmilingCoinIcon size={24} /> : <ProgressCoinIcon size={22} />}
+                  </div>
+                </div>
+              </div>
+              <div className="detail-list">
+                <div className="detail-item">
+                  <span className="detail-item-label">Goal Name</span>
+                  <span className="detail-item-value">{capitalizeWords(selected.name)}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-item-label">Status</span>
+                  <span className="detail-item-value">{isAchieved ? 'Achieved 🎯' : 'In Progress'}</span>
+                </div>
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="pill btn-secondary" onClick={() => setViewModal(false)}>
+                  Close
+                </button>
+              </div>
+            </div>
+          );
+        })()}
       </Modal>
 
-      <Modal open={editModal} onClose={() => setEditModal(false)} title="Edit Goal">
-        <form className="modal-form" onSubmit={submitEdit}>
-          <label>Category</label>
-          <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-          <label>Type</label>
-          <div className="pill-switch pill-switch-animated plain-switch" key={form.type}>
-            <button type="button" className="pill small active" onClick={() => setForm({ ...form, type: 'Saving' })}>
-              Saving
-            </button>
-          </div>
-          <label>Your Target</label>
-          <div className="number-input">
-            <span className="currency-prefix">Rp</span>
-            <input
-              className="input number-field has-prefix"
-              type="text"
-              inputMode="numeric"
-              value={formatDisplayNumber(form.target)}
-              onChange={(e) => setForm({ ...form, target: parseFormattedNumber(e.target.value) })}
-              required
-            />
-            <div className="number-controls">
-              <button type="button" onClick={() => setForm({ ...form, target: adjustMoney(form.target, 10000) })}>
-                ▲
+      <GoalFormModal
+        open={editModal}
+        onClose={() => {
+          setEditModal(false);
+          setSelected(null);
+        }}
+        onSubmit={submitEdit}
+        form={form}
+        setForm={setForm}
+        isEdit
+      />
+
+      <Modal open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} title="Confirm Delete">
+        {deleteTarget && (
+          <div className="modal-form">
+            <p className="delete-confirm-text">
+              Are you sure you want to delete this savings goal?
+            </p>
+            <div className="delete-preview-card">
+              <div className="delete-preview-header">
+                <span className="table-cell-bold">{deleteTarget.name}</span>
+                <span className="badge income">
+                  {deleteTarget.type || 'Saving'}
+                </span>
+              </div>
+              <div className="delete-preview-amount income-text">
+                Target: {formatRupiah(deleteTarget.target)}
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="pill btn-secondary" onClick={() => setDeleteTarget(null)}>
+                Cancel
               </button>
-              <button type="button" onClick={() => setForm({ ...form, target: adjustMoney(form.target, -10000) })}>
-                ▼
+              <button
+                type="button"
+                className="pill btn-danger"
+                onClick={async () => {
+                  await deleteGoal(deleteTarget.id);
+                  setDeleteTarget(null);
+                }}
+              >
+                Delete
               </button>
             </div>
           </div>
-          <div className="modal-actions">
-            <button type="button" className="pill btn-secondary" onClick={() => { setEditModal(false); setSelected(null); }}>
-              Cancel
-            </button>
-            <button type="submit" className="pill btn-primary">
-              Update
-            </button>
-          </div>
-        </form>
+        )}
       </Modal>
     </div>
   );

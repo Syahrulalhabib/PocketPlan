@@ -5,5 +5,16 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+          'vendor-chart': ['chart.js', 'react-chartjs-2']
+        }
+      }
+    }
   }
 });

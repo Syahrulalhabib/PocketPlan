@@ -1,0 +1,662 @@
+/* ========================================================
+   KEYFRAME ANIMATIONS
+   ======================================================== */
+@keyframes loopCoinDrop {
+  0% {
+    transform: translate3d(0, -50px, 0) rotate(0deg) scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+    transform: translate3d(0, -20px, 0) rotate(90deg) scale(0.9);
+  }
+  65% {
+    opacity: 1;
+    transform: translate3d(0, 22px, 0) rotate(220deg) scale(1);
+  }
+  85% {
+    opacity: 0.8;
+    transform: translate3d(0, 48px, 0) rotate(320deg) scale(0.55);
+  }
+  100% {
+    transform: translate3d(0, 65px, 0) rotate(360deg) scale(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes tossCoinArc {
+  0% {
+    transform: translate3d(calc(-50% + var(--coin-offset, 0px)), 20px, 0) scale(0.5) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  45% {
+    transform: translate3d(calc(-50% + var(--coin-offset, 0px) * 0.5), -75px, 0) scale(1.15) rotate(180deg);
+    opacity: 1;
+  }
+  80% {
+    transform: translate3d(-50%, 10px, 0) scale(0.85) rotate(320deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(-50%, 35px, 0) scale(0.2) rotate(420deg);
+    opacity: 0;
+  }
+}
+
+@keyframes mascotFloat {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(0, -7px, 0) rotate(-1.5deg);
+  }
+}
+
+@keyframes mascotSquish {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.16, 0.84) translateY(6px);
+  }
+  60% {
+    transform: scale(0.92, 1.08) translateY(-4px);
+  }
+  80% {
+    transform: scale(1.04, 0.98) translateY(1px);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes mascotShadowPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.24;
+  }
+  50% {
+    transform: scale(0.82);
+    opacity: 0.14;
+  }
+}
+
+@keyframes hintBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(4px);
+  }
+}
+
+@keyframes floatRewardUp {
+  0% {
+    transform: translate3d(calc(-50% + var(--text-offset, 0px)), 12px, 0) scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    transform: translate3d(calc(-50% + var(--text-offset, 0px)), -15px, 0) scale(1.15);
+    opacity: 1;
+  }
+  75% {
+    transform: translate3d(calc(-50% + var(--text-offset, 0px)), -45px, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(calc(-50% + var(--text-offset, 0px)), -65px, 0) scale(0.85);
+    opacity: 0;
+  }
+}
+
+@keyframes sparkleTwinkle {
+  0%, 100% {
+    transform: scale(0.3) rotate(0deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2) rotate(45deg);
+    opacity: 1;
+  }
+}
+
+@keyframes badgeFloatLeft {
+  0%, 100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(-1deg);
+  }
+}
+
+@keyframes badgeFloatRight {
+  0%, 100% {
+    transform: translateY(0) rotate(2deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(1deg);
+  }
+}
+
+
+
+.theme-toggle {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: 76px;
+  height: 38px;
+  border-radius: 999px;
+  border: none;
+  background: #e5e7eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  transition: background 0.28s ease, box-shadow 0.28s ease, transform 0.28s ease;
+}
+
+.theme-toggle .toggle-labels {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 800;
+  font-size: 14px;
+  color: #4b5563;
+  pointer-events: none;
+}
+
+.theme-toggle .toggle-thumb {
+  position: absolute;
+  left: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+  transform: translate3d(0, 0, 0);
+  transition: transform 0.28s cubic-bezier(0.34, 1.35, 0.64, 1), background 0.28s ease, box-shadow 0.28s ease;
+}
+
+.theme-toggle.active {
+  background: #111827;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+.theme-toggle.active .toggle-thumb {
+  transform: translate3d(32px, 0, 0);
+  background: #f9fafb;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+.theme-toggle .sun {
+  color: #fbbf24;
+}
+
+.theme-toggle .moon {
+  color: #cbd5e1;
+}
+
+.theme-toggle {
+  z-index: 10;
+}
+
+.auth-page.theme-dark {
+  background: transparent;
+  color: #e5e7eb;
+}
+
+.auth-page.theme-dark .card {
+  background: #0b1323;
+  border: 1px solid #1f2937;
+  box-shadow: 0 16px 26px rgba(0, 0, 0, 0.35);
+}
+
+.auth-page.theme-dark .auth-header h1 {
+  color: #fcd34d;
+}
+
+.auth-page.theme-dark .auth-header p,
+.auth-page.theme-dark .auth-footer,
+.auth-page.theme-dark .remember,
+.auth-page.theme-dark .auth-row {
+  color: #cbd5e1;
+}
+
+.auth-page.theme-dark .input {
+  background: #111827;
+  border-color: #1f2937;
+  color: #e5e7eb;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.auth-page.theme-dark .input::placeholder {
+  color: #94a3b8;
+}
+
+.auth-page.theme-dark .mini-link {
+  color: #fcd34d;
+}
+
+.auth-page.theme-dark .btn-secondary {
+  background: #0f172a;
+  border-color: #1f2937;
+  color: #e5e7eb;
+}
+
+.auth-page.theme-dark .btn-secondary:hover {
+  background: #0b1020;
+}
+
+.user-menu {
+  position: absolute;
+  top: 52px;
+  right: 0;
+  min-width: 190px;
+  padding: 6px;
+  z-index: 999;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+  animation: fadeSlide 0.18s ease;
+}
+
+.theme-dark .user-menu {
+  background: #1e293b;
+  border: 1px solid #334155;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+.user-menu-profile {
+  padding: 8px 12px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.user-menu-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-menu-email {
+  font-size: 11.5px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-menu-divider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.08);
+  margin: 4px 4px 6px;
+}
+
+.theme-dark .user-menu-divider {
+  background: #334155;
+}
+
+.user-menu .menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease, color 0.15s ease;
+}
+
+.user-menu .menu-item:hover {
+  background: #f3f4f6;
+  transform: translate3d(4px, 0, 0);
+}
+
+.theme-dark .user-menu .menu-item:hover {
+  background: #27354a;
+}
+
+.user-menu .logout {
+  color: #e45153;
+}
+
+.user-menu .logout:hover {
+  background: rgba(228, 81, 83, 0.1);
+  color: #dc2626;
+  transform: translate3d(4px, 0, 0);
+}
+
+/* Tactile Bouncy Press & Micro-Interactions */
+.pill,
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.btn-add,
+.chip-btn,
+.table-action-btn,
+.tab-item,
+.balance-visibility-btn,
+.modal-close-btn,
+.search-clear-btn {
+  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, background-color 0.18s ease;
+  will-change: transform;
+}
+
+.pill:active,
+.btn-primary:active,
+.btn-secondary:active,
+.btn-danger:active,
+.btn-add:active,
+.chip-btn:active,
+.table-action-btn:active,
+.tab-item:active,
+.balance-visibility-btn:active,
+.modal-close-btn:active,
+.search-clear-btn:active {
+  transform: scale(0.92, 0.88) translate3d(0, 1px, 0) !important;
+  transition-duration: 0.08s;
+}
+
+/* Card Elevation & Hover Depth */
+.balance-card,
+.stat-card,
+.chart-card,
+.goals-card,
+.table-card {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+}
+
+.balance-card:hover,
+.stat-card:hover,
+.chart-card:hover,
+.goals-card:hover {
+  transform: translate3d(0, -3px, 0);
+  box-shadow: 0 14px 28px -6px rgba(0, 0, 0, 0.09);
+}
+
+.theme-dark .balance-card:hover,
+.theme-dark .stat-card:hover,
+.theme-dark .chart-card:hover,
+.theme-dark .goals-card:hover {
+  transform: translate3d(0, -3px, 0);
+  box-shadow: 0 16px 32px -6px rgba(0, 0, 0, 0.5);
+}
+
+.card-icon-badge {
+  transition: transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease;
+}
+
+.balance-card:hover .card-icon-badge,
+.stat-card:hover .card-icon-badge,
+.chart-card:hover .card-icon-badge,
+.goals-card:hover .card-icon-badge {
+  transform: scale(1.12) rotate(4deg);
+}
+
+.income-card:hover {
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 12px 24px -4px rgba(16, 185, 129, 0.12);
+}
+
+.income-card:hover .card-icon-badge {
+  transform: scale(1.12) rotate(-4deg);
+}
+
+.expense-card:hover {
+  border-color: rgba(228, 81, 83, 0.35);
+  box-shadow: 0 12px 24px -4px rgba(228, 81, 83, 0.12);
+}
+
+.expense-card:hover .card-icon-badge {
+  transform: scale(1.12) rotate(4deg);
+}
+
+.stat-card .value {
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: inline-block;
+  transform-origin: left center;
+  will-change: transform;
+}
+
+.stat-card:hover .value {
+  transform: scale(1.025);
+}
+
+/* Balance Card Header & Visibility Toggle */
+.balance-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.balance-visibility-btn {
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.balance-visibility-btn svg {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.balance-visibility-btn:hover {
+  background: rgba(228, 81, 83, 0.08);
+  border-color: rgba(228, 81, 83, 0.25);
+  color: var(--primary);
+  transform: translate3d(0, -1.5px, 0) scale(1.08);
+  box-shadow: 0 4px 10px rgba(228, 81, 83, 0.12);
+}
+
+.balance-visibility-btn:hover svg {
+  transform: scale(1.2);
+}
+
+.balance-visibility-btn.is-hidden {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.25);
+  color: #d97706;
+}
+
+.balance-visibility-btn.is-hidden:hover {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #b45309;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+}
+
+.theme-dark .balance-visibility-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+}
+
+.theme-dark .balance-visibility-btn:hover {
+  background: rgba(248, 113, 113, 0.14);
+  border-color: rgba(248, 113, 113, 0.28);
+  color: #f87171;
+  box-shadow: 0 4px 12px rgba(248, 113, 113, 0.2);
+}
+
+.theme-dark .balance-visibility-btn.is-hidden {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.25);
+  color: #fbbf24;
+}
+
+.theme-dark .balance-visibility-btn.is-hidden:hover {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: rgba(251, 191, 36, 0.45);
+  color: #fde68a;
+  box-shadow: 0 4px 14px rgba(251, 191, 36, 0.22);
+}
+/* Balance Card Mascot Integration */
+.balance-card.balance-mascot-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  overflow: hidden;
+  position: relative;
+  background-color: var(--card) !important;
+  box-shadow: var(--card-shadow, var(--shadow));
+}
+
+.theme-dark .balance-card.balance-mascot-card {
+  background-color: #0f172a !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+
+
+.card-badge-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.balance-visibility-btn.inline-btn {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  border-radius: 8px;
+  padding: 0;
+  margin-left: 4px;
+}
+
+.balance-card-left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.balance-savings-motto {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.balance-savings-motto .sparkle-icon {
+  color: #f59e0b;
+  display: inline-block;
+  animation: sparkleTwinkle 2.8s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes sparkleTwinkle {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.25) rotate(14deg);
+    opacity: 1;
+  }
+}
+
+
+.balance-mascot-widget {
+  position: relative;
+  width: 110px;
+  height: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  user-select: none;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.balance-mascot-widget:hover {
+  transform: scale(1.06);
+}
+
+.balance-mascot-widget:active {
+  transform: scale(0.96);
+}
+
+.balance-mascot-widget.squish .mascot-pocket-img {
+  animation: mascotSquish 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.balance-mascot-widget .mascot-pocket-img {
+  width: 82px;
+  height: auto;
+  max-height: 68px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 16px rgba(228, 81, 83, 0.28));
+}
+
+.balance-mascot-widget .mascot-shadow {
+  width: 68px;
+  height: 9px;
+}
+
+.balance-mascot-counter-pill {
+  position: absolute;
+  bottom: -4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(254, 243, 199, 0.95);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  font-size: 11px;
+  font-weight: 800;
+  color: #92400e;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.theme-dark .balance-mascot-counter-pill {
+  background: rgba(45, 26, 12, 0.9);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fde68a;
+}
+
+
+.balance-visibility-btn .icon-eye {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.balance-visibility-btn:hover .icon-eye {
+  transform: scale(1.08);
+}
+

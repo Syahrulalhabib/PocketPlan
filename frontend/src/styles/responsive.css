@@ -1,0 +1,1110 @@
+/* =========================================
+   Mobile & Responsive Layout System
+   ========================================= */
+
+@media (max-width: 992px) {
+  .page-shell {
+    padding: 16px 20px 48px;
+  }
+
+  .topbar-inner {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Layout Shell */
+  .page-shell {
+    padding: 12px 14px 36px;
+  }
+
+  .page {
+    padding: 2px 0 16px;
+  }
+
+  .hero-title {
+    margin-bottom: 10px;
+  }
+
+  .section-title {
+    font-size: 20px;
+    letter-spacing: -0.01em;
+    margin-bottom: 2px;
+  }
+
+  .subtitle {
+    font-size: 12.5px;
+    margin-bottom: 12px;
+  }
+
+  /* Responsive Topbar Header */
+  .topbar {
+    position: relative;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    border-radius: 14px;
+    background: #e45153;
+    color: #fff;
+    box-shadow: var(--shadow);
+  }
+
+  .theme-dark .topbar {
+    background: linear-gradient(135deg, #111827 0%, #0b1220 60%, #0f172a 100%);
+  }
+
+  .topbar-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    row-gap: 10px;
+    width: 100%;
+  }
+
+  .brand {
+    order: 1;
+    margin-right: 0;
+    gap: 4px;
+  }
+
+  .brand-logo {
+    width: 38px;
+    height: 30px;
+    display: block;
+    margin-right: 0;
+  }
+
+  .brand-title {
+    font-size: 17px;
+    color: #fff;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .topbar-actions {
+    order: 2;
+    margin-left: auto;
+    gap: 8px;
+  }
+
+  .theme-btn-topbar {
+    width: 34px;
+    height: 34px;
+  }
+
+  .user-pill {
+    padding: 3px 8px 3px 3px;
+    gap: 6px;
+  }
+
+  .user-pill .avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .user-name {
+    font-size: 12.5px;
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .user-menu {
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 200px;
+    max-width: calc(100vw - 28px);
+    z-index: 1000;
+  }
+
+  /* Responsive Navigation inside Topbar */
+  .tab-nav {
+    order: 3;
+    position: static;
+    transform: none;
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    padding: 4px;
+    gap: 6px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.16);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+
+  .theme-dark .tab-nav {
+    background: rgba(15, 23, 42, 0.6);
+  }
+
+  .tab-item {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+    padding: 7px 10px;
+    font-size: 12.5px;
+    font-weight: 700;
+    border-radius: 999px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.9);
+    border: none;
+    transition: all 0.15s ease;
+  }
+
+  .tab-item.active {
+    background: #fff !important;
+    color: #e45153 !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+    transform: none !important;
+  }
+
+  .theme-dark .tab-item.active {
+    background: #0f172a !important;
+    color: #f8fafc !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35) !important;
+  }
+
+  /* Dashboard Cards Layout */
+  .dashboard .balance-card {
+    padding: 14px;
+    margin-bottom: 10px;
+    border-radius: 14px;
+  }
+
+  .dashboard .balance-card .value {
+    font-size: 22px;
+    word-break: break-word;
+    letter-spacing: -0.02em;
+  }
+  .dashboard .balance-card.balance-mascot-card {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+
+  /* Consistent Card Accent Sizing on Mobile */
+  .balance-card::before,
+  .stat-card.income-card::before,
+  .stat-card.expense-card::before,
+  .chart-card::before,
+  .goals-card::before,
+  .table-card::before,
+  .profile-identity-card::before,
+  .profile-settings-card::before {
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    height: 2.5px;
+  }
+
+  .balance-mascot-widget {
+    width: 88px;
+    height: 80px;
+  }
+
+  .balance-mascot-widget .mascot-pocket-img {
+    width: 68px;
+    max-height: 56px;
+  }
+
+  .balance-mascot-widget .mascot-shadow {
+    width: 56px;
+    height: 8px;
+  }
+
+  .balance-savings-motto {
+    font-size: 11px;
+  }
+
+
+  .grid-2 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  /* Side-by-side 2-col Income & Expense Overview on Mobile */
+  .dashboard > .grid-2:first-of-type {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .stat-card {
+    padding: 12px 10px;
+    border-radius: 14px;
+  }
+
+  .stat-card .card-badge-row {
+    margin-bottom: 6px;
+    gap: 6px;
+  }
+
+  .stat-card .card-icon-badge {
+    width: 28px;
+    height: 28px;
+  }
+
+  .stat-card .card-icon-badge svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .stat-card .label {
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+
+  .stat-card .value {
+    font-size: 15.5px;
+    font-weight: 700;
+    margin-bottom: 2px;
+    word-break: break-word;
+    letter-spacing: -0.01em;
+  }
+
+  .stat-card .muted {
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Chart & Goals Cards */
+  .chart-card {
+    padding: 14px 12px;
+    border-radius: 14px;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .chart-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 10px;
+    gap: 8px;
+  }
+
+  .chart-toolbar .pill-switch {
+    flex: 1;
+    display: flex;
+    gap: 4px;
+    padding: 3px;
+  }
+
+  .chart-canvas-wrap {
+    height: 230px;
+    min-height: 190px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .chart-legend-kpi {
+    padding: 6px 8px;
+    gap: 6px 8px;
+    font-size: 11px;
+  }
+
+  .chart-kpi-chip {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+
+  .chart-controls-group {
+    gap: 6px;
+  }
+
+  .chart-net-pill {
+    padding: 2px 8px;
+    font-size: 11px;
+  }
+
+  .chart-shape-switch {
+    padding: 2px;
+  }
+
+  .chart-shape-btn {
+    padding: 3px 7px;
+    font-size: 10.5px;
+    gap: 3px;
+  }
+
+  .goals-card {
+    padding: 14px 12px;
+    border-radius: 14px;
+    max-height: 380px;
+  }
+
+  .balance-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  /* Page Header Row & Toolbar on Mobile */
+  .page-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .page-header-row .section-title {
+    font-size: 20px;
+    margin: 0;
+  }
+
+  .page-header-row .subtitle {
+    font-size: 12px;
+    margin: 2px 0 0;
+  }
+
+  .page-header-row .btn-add {
+    padding: 8px 14px;
+    font-size: 12.5px;
+    border-radius: 999px;
+    flex-shrink: 0;
+    box-shadow: 0 3px 10px rgba(228, 81, 83, 0.3);
+  }
+  /* Koiny Banner on Mobile & Tablet */
+  .koiny-goals-banner {
+    flex-direction: column;
+    text-align: center;
+    padding: 16px 14px;
+    gap: 12px;
+  }
+
+  .koiny-banner-content {
+    align-items: center;
+  }
+
+  .koiny-banner-actions {
+    justify-content: center;
+  }
+
+
+  .toolbar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin: 8px 0 14px;
+  }
+
+  .toolbar .search-box {
+    width: 100%;
+    max-width: 100%;
+    padding: 6px 12px;
+  }
+
+  .toolbar-filters {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .toolbar-filters .filter-group {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .toolbar-filters .filter-group .pill-switch {
+    flex: 1;
+    display: flex;
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .toolbar-filters .filter-group .pill.small {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+    padding: 6px 4px;
+    font-size: 11.5px;
+  }
+
+  .filter-label {
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  /* Mobile Responsive Table Cards (Transactions & Goals) */
+  .table-card {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .table-card .table-scroll {
+    overflow: visible;
+    max-height: none;
+  }
+
+  .table-card .table-scroll table,
+  .table {
+    display: block;
+    min-width: 0 !important;
+    width: 100% !important;
+    border-collapse: separate;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+  }
+
+  /* Each Row is a Card matching Image 1 */
+  .table tbody tr.table-card-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 16px 18px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
+    box-sizing: border-box;
+    width: 100%;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .theme-dark .table tbody tr.table-card-row {
+    background: #1e293b;
+    border-color: #334155;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.28);
+  }
+
+  /* 1. Header Left: Amount */
+  .table tbody tr.table-card-row .cell-amount {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 0 0 12px 0;
+    border: none;
+    background: transparent;
+  }
+
+  .table tbody tr.table-card-row .cell-amount::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+  }
+
+  .table tbody tr.table-card-row .cell-amount .income-text,
+  .table tbody tr.table-card-row .cell-amount .expense-text,
+  .table tbody tr.table-card-row .cell-amount .goal-target-val {
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    line-height: 1.2;
+  }
+
+  .table tbody tr.table-card-row .cell-amount .goal-table-target-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* 2. Header Right: Status Badge */
+  .table tbody tr.table-card-row .cell-type {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 0 12px 0;
+    border: none;
+    background: transparent;
+  }
+
+  .table tbody tr.table-card-row .cell-type::before {
+    display: none;
+  }
+
+  .table tbody tr.table-card-row .cell-type .badge {
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+
+  /* 3. Detail Key-Value Rows with Dividers */
+  .table tbody tr.table-card-row .cell-category,
+  .table tbody tr.table-card-row .cell-date,
+  .table tbody tr.table-card-row .cell-desc {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 11px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: none;
+    border-left: none;
+    border-right: none;
+    font-size: 13.5px;
+    background: transparent;
+  }
+
+  .table tbody tr.table-card-row .cell-category::before,
+  .table tbody tr.table-card-row .cell-date::before,
+  .table tbody tr.table-card-row .cell-desc::before {
+    content: attr(data-label);
+    display: inline-block;
+    color: var(--text-muted);
+    font-size: 12.5px;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  .table tbody tr.table-card-row .cell-category span,
+  .table tbody tr.table-card-row .cell-date span,
+  .table tbody tr.table-card-row .cell-desc span {
+    text-align: right;
+    font-weight: 600;
+    color: var(--text);
+    max-width: 65%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 4. Action Buttons Footer */
+  .table tbody tr.table-card-row .cell-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 0 0 0;
+    margin-top: 2px;
+    border-top: 1px solid var(--border);
+    border-bottom: none;
+    border-left: none;
+    border-right: none;
+    background: transparent;
+  }
+
+  .table tbody tr.table-card-row .cell-actions .table-action-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+
+  .theme-dark .table tbody tr.table-card-row .cell-actions .table-action-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: #334155;
+    color: #e2e8f0;
+  }
+
+  /* Empty Row State */
+  .table tbody tr.empty-row {
+    display: block;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 28px 16px;
+  }
+
+  .table tbody tr.empty-row .empty-table-cell {
+    display: block;
+    padding: 0;
+    border: none;
+    text-align: center;
+  }
+
+  /* Mobile Sheet Modal */
+  .modal-backdrop {
+    padding: 0;
+    align-items: flex-end;
+    z-index: 1000;
+  }
+
+  .modal-card {
+    width: 100%;
+    max-width: 100%;
+    max-height: 88dvh;
+    padding: 18px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    border-radius: 20px 20px 0 0;
+    animation: modalSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .modal-header h3 {
+    font-size: 16px;
+  }
+
+  .input,
+  select,
+  textarea {
+    font-size: 16px !important;
+    padding: 10px 12px;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .modal-actions button {
+    flex: 1;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .quick-amounts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .chip-btn {
+    flex: 1;
+    min-width: 58px;
+    padding: 6px 4px;
+    font-size: 11.5px;
+    text-align: center;
+  }
+
+  /* Auth Pages Mobile Layout */
+  .auth-page {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    min-height: 100dvh;
+    padding: 16px 14px 32px;
+    gap: 10px;
+  }
+
+  .auth-hero {
+    order: -1 !important;
+    margin: 0 auto;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .savings-hero-stage {
+    padding: 0;
+    gap: 6px;
+    max-width: 100%;
+  }
+
+  .savings-hero-glow {
+    width: 160px;
+    height: 160px;
+    filter: blur(22px);
+  }
+
+  .hero-mascot-center {
+    width: 120px;
+    height: 100px;
+  }
+
+  .hero-mascot-img {
+    width: 95px;
+    max-height: 80px;
+  }
+
+  .hero-mascot-shadow {
+    width: 75px;
+    height: 10px;
+    margin-top: -2px;
+  }
+
+  .hero-floating-badge {
+    display: none !important;
+  }
+
+  .hero-mascot-hint {
+    display: none !important;
+  }
+
+  .hero-quote-card {
+    display: none !important;
+  }
+
+  .hero-counter-pill {
+    font-size: 11px;
+    padding: 3px 10px;
+    margin-top: -2px;
+  }
+
+  .hero-logo {
+    width: min(120px, 35vw);
+    height: auto;
+    max-height: 80px;
+  }
+
+  .auth-panel {
+    width: 100%;
+    max-width: 440px;
+    padding: 22px 18px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.07);
+  }
+
+  .auth-header h1 {
+    font-size: 21px;
+    margin-bottom: 2px;
+  }
+
+  .auth-header p {
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+
+  .auth-form {
+    gap: 10px;
+  }
+
+  .auth-form label {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .auth-form .input {
+    min-height: 44px;
+    border-radius: 12px;
+    font-size: 15px !important;
+  }
+
+  .auth-submit {
+    min-height: 44px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 14.5px;
+    margin-top: 6px;
+  }
+
+  .auth-submit.google {
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  .password-wrap .eye {
+    min-width: 40px;
+    min-height: 40px;
+    right: 4px;
+  }
+
+  .auth-row {
+    font-size: 12.5px;
+  }
+
+  .theme-toggle {
+    top: 10px;
+    right: 12px;
+    left: auto;
+  }
+
+  /* Profile Page Mobile */
+  .profile-hero-banner {
+    min-height: 180px;
+    padding: 16px 0 60px;
+  }
+
+  .profile-top-nav {
+    padding: 0 16px;
+  }
+
+  .profile-content-container {
+    margin-top: -45px;
+    padding: 0 16px;
+  }
+
+  .profile-identity-card {
+    padding: 18px 14px;
+    border-radius: 18px;
+  }
+
+  .profile-identity-top {
+    flex-direction: column;
+    text-align: center;
+    gap: 14px;
+  }
+
+  .profile-badges-row {
+    justify-content: center;
+  }
+
+  .profile-avatar-wrapper {
+    width: 90px;
+    height: 90px;
+  }
+
+  .profile-stats-strip {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding-top: 14px;
+  }
+
+  .profile-stat-divider {
+    display: none;
+  }
+
+  .profile-stat-item {
+    justify-content: flex-start;
+  }
+
+  .profile-settings-card {
+    padding: 16px 12px;
+    border-radius: 18px;
+  }
+
+  .avatar-presets-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@keyframes modalSlideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-shell {
+    padding: 10px 12px 32px;
+  }
+
+  .section-title {
+    font-size: 18px;
+  }
+
+  .subtitle {
+    font-size: 12px;
+  }
+
+  .topbar {
+    padding: 8px 10px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+  }
+
+  .brand {
+    gap: 3px;
+  }
+
+  .brand-logo {
+    width: 32px;
+    height: 25px;
+    display: block;
+    margin-right: 0;
+  }
+
+  .brand-title {
+    font-size: 15px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .user-name {
+    display: none;
+  }
+
+  .user-pill-chevron {
+    display: none;
+  }
+
+  .user-pill {
+    padding: 2px;
+    border-radius: 50%;
+  }
+
+  .user-pill .avatar {
+    width: 30px;
+    height: 30px;
+  }
+
+  .theme-btn-topbar {
+    width: 30px;
+    height: 30px;
+  }
+
+  .tab-item {
+    font-size: 11.5px;
+    padding: 6px 4px;
+  }
+
+  .page-header-row .btn-add {
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+  .koiny-goals-banner {
+    padding: 14px 12px;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .koiny-banner-title {
+    font-size: 16px;
+  }
+
+  .koiny-banner-desc {
+    font-size: 12px;
+  }
+
+
+  .toolbar-filters {
+    gap: 6px;
+  }
+
+  .toolbar-filters .filter-label {
+    display: none;
+  }
+
+  .toolbar-filters .filter-group:first-child {
+    flex: 1.3;
+  }
+
+  .toolbar-filters .filter-group:last-child {
+    flex: 1;
+  }
+
+  .dashboard .balance-card .value {
+    font-size: 20px;
+  }
+  .dashboard .balance-card.balance-mascot-card {
+    padding: 12px 14px;
+    gap: 8px;
+  }
+
+  .balance-mascot-widget {
+    width: 74px;
+    height: 72px;
+  }
+
+  .balance-mascot-widget .mascot-pocket-img {
+    width: 58px;
+    max-height: 48px;
+  }
+
+  .balance-savings-motto {
+    display: none;
+  }
+
+
+  .stat-card .value {
+    font-size: 14.5px;
+  }
+
+  .savings-mascot-card {
+    padding: 14px 12px;
+    gap: 10px;
+  }
+
+  .mascot-widget-body {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .mascot-interactive-area {
+    margin: 0 auto;
+  }
+
+  .mascot-widget-info {
+    width: 100%;
+    align-items: center;
+    text-align: center;
+  }
+
+  .mascot-toss-btn {
+    align-self: center;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .chart-card {
+    padding: 12px 10px;
+  }
+
+  .chart-canvas-wrap {
+    height: 200px;
+    min-height: 180px;
+  }
+
+  .table tbody tr.table-card-row .cell-actions .table-action-btn {
+    padding: 7px 6px;
+    font-size: 11px;
+    gap: 4px;
+  }
+}
+
+@media (max-width: 360px) {
+  .tab-item {
+    font-size: 10.5px;
+    padding: 5px 2px;
+    gap: 2px;
+  }
+
+  .brand-title {
+    font-size: 14px;
+  }
+}
+
+
+/* Mobile Responsiveness for Cute Stat Cards & Mascots */
+@media (max-width: 640px) {
+  .stat-mascot {
+    transform: scale(0.8);
+    transform-origin: right center;
+    margin-right: -4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-mascot {
+    transform: scale(0.68);
+    margin-right: -8px;
+  }
+  .card-cute-pill {
+    display: none;
+  }
+}
