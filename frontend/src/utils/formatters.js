@@ -40,3 +40,11 @@ export const evaluatePasswordStrength = (password = '') => {
   if (score === 2) return { score: 2, label: 'Fair', color: '#f59e0b' };
   return { score: 3, label: 'Strong', color: '#10b981' };
 };
+
+
+export const stripUndefined = (obj) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  return Object.fromEntries(
+    Object.entries(obj).filter(([_, v]) => v !== undefined)
+  );
+};

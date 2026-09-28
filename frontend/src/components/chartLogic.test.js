@@ -42,4 +42,13 @@ SMART_TIPS.forEach((tip) => {
   assert.ok(tip.length > 10, 'Each tip must be a meaningful non-empty advice string');
 });
 
+// 6. Verify stripUndefined removes undefined values to satisfy Firestore constraints
+import { stripUndefined } from '../utils/formatters.js';
+const testData = { name: 'Trip', category: undefined, target: 5000000 };
+const cleaned = stripUndefined(testData);
+assert.strictEqual('category' in cleaned, false);
+assert.strictEqual(cleaned.name, 'Trip');
+assert.strictEqual(cleaned.target, 5000000);
+
+
 console.log('All logic tests including FloatingMascot passed successfully.');

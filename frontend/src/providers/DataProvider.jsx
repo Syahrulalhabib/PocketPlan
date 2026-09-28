@@ -163,10 +163,16 @@ export const DataProvider = ({ children }) => {
     const entry = {
       ...payload,
       name: capitalizeWords(payload.name || ''),
-      category: payload.category ? capitalizeWords(payload.category) : payload.category,
       target: Number(payload.target) || 0,
+      amount: Number(payload.amount) || 0,
+      type: payload.type || 'Saving',
       createdAt: new Date().toISOString()
     };
+    if (payload.category) {
+      entry.category = capitalizeWords(payload.category);
+    } else {
+      delete entry.category;
+    }
     try {
       if (!firebaseEnabled || !user) {
         setGoals((prev) => [...prev, { ...entry, id: generateId() }]);
@@ -185,7 +191,13 @@ export const DataProvider = ({ children }) => {
   const updateGoal = useCallback(async (id, updates) => {
     const cleanUpdates = { ...updates };
     if (cleanUpdates.name !== undefined) cleanUpdates.name = capitalizeWords(cleanUpdates.name);
-    if (cleanUpdates.category !== undefined) cleanUpdates.category = capitalizeWords(cleanUpdates.category);
+    if (cleanUpdates.category !== undefined) {
+      if (cleanUpdates.category) {
+        cleanUpdates.category = capitalizeWords(cleanUpdates.category);
+      } else {
+        delete cleanUpdates.category;
+      }
+    }
     if (cleanUpdates.target !== undefined) cleanUpdates.target = Number(cleanUpdates.target) || 0;
 
     try {
