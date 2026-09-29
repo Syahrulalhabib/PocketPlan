@@ -1090,21 +1090,652 @@
 }
 
 
-/* Mobile Responsiveness for Cute Stat Cards & Mascots */
-@media (max-width: 640px) {
+/* ==========================================================
+   UNIFIED MOBILE MASCOT COMPOSITION SYSTEM (Neither Too Big Nor Too Small)
+   Harmonious scaling, touch-friendly, balanced with typography & cards
+   ========================================================== */
+
+/* --- 1. Tablet & Large Mobile (<= 768px) --- */
+@media (max-width: 768px) {
+  /* Floating Mascot Pocky */
+  .floating-mascot-container {
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    right: 14px;
+  }
+
+  .pocky-svg {
+    width: 54px !important;
+    height: 57px !important;
+  }
+
+  .pocky-speech-bubble {
+    font-size: 11px;
+    padding: 6px 11px;
+    max-width: min(250px, calc(100vw - 84px));
+    white-space: normal;
+    line-height: 1.35;
+    border-radius: 14px;
+    margin-bottom: 6px;
+  }
+
+  .pocky-speech-bubble::after {
+    right: 18px;
+  }
+
+  .pocky-popover-card {
+    width: min(290px, calc(100vw - 28px));
+    right: 0;
+    padding: 14px 12px;
+    border-radius: 16px;
+  }
+
+  .pocky-collapsed-pill {
+    padding: 5px 12px;
+    font-size: 11.5px;
+    gap: 5px;
+  }
+
+  /* Stat Card Mascots (Pundi & Hematy) */
   .stat-mascot {
-    transform: scale(0.8);
-    transform-origin: right center;
-    margin-right: -4px;
+    width: 52px;
+    height: 52px;
+    transform: none !important;
+    margin: 0 !important;
+    flex-shrink: 0;
+  }
+
+  .stat-mascot .stat-mascot-svg {
+    width: 52px !important;
+    height: 52px !important;
+  }
+
+  /* Balance Card Mascot */
+  .balance-mascot-widget {
+    width: 82px;
+    height: 76px;
+    flex-shrink: 0;
+  }
+
+  .balance-mascot-widget .mascot-pocket-img {
+    width: 64px;
+    max-height: 52px;
+  }
+
+  .balance-mascot-widget .mascot-shadow {
+    width: 52px;
+    height: 8px;
+  }
+
+  .balance-mascot-counter-pill {
+    bottom: -2px;
+    font-size: 10.5px;
+    padding: 2px 7px;
+  }
+
+  .balance-mascot-widget .stream-coin .svg-coin {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  .balance-mascot-widget .tossed-coin .svg-coin {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  /* Lucky Coin Mascot (Koiny) */
+  .koiny-banner-character-stage {
+    width: 86px;
+    flex-shrink: 0;
+  }
+
+  .koiny-banner-character-stage .koiny-svg {
+    width: 72px !important;
+    height: 72px !important;
+  }
+
+  .koiny-banner-character-stage .koiny-ground-shadow {
+    width: 48px;
+    height: 7px;
+  }
+
+  .koiny-click-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    margin-top: 3px;
+  }
+
+  .koiny-empty-state {
+    padding: 24px 14px;
+    gap: 8px;
+  }
+
+  .koiny-empty-mascot-wrap .koiny-svg {
+    width: 64px !important;
+    height: 64px !important;
+  }
+
+  .koiny-empty-mascot-wrap .koiny-ground-shadow {
+    width: 44px;
+    height: 7px;
+  }
+
+  .koiny-mascot-wrapper .koiny-svg {
+    width: 66px !important;
+    height: 66px !important;
+  }
+
+  /* Auth Hero Mascot */
+  .savings-hero-stage {
+    padding: 0;
+    gap: 6px;
+    max-width: 100%;
+  }
+
+  .savings-hero-glow {
+    width: 150px;
+    height: 150px;
+    filter: blur(20px);
+  }
+
+  .hero-mascot-center {
+    width: 115px;
+    height: 95px;
+  }
+
+  .hero-mascot-img {
+    width: 88px;
+    max-height: 74px;
+  }
+
+  .hero-mascot-shadow {
+    width: 70px;
+    height: 9px;
+    margin-top: -2px;
+  }
+
+  .savings-hero-stage .loop-coin .svg-coin {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .savings-hero-stage .tossed-coin .svg-coin {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  .hero-counter-pill {
+    font-size: 11px;
+    padding: 3px 9px;
+    margin-top: -2px;
+  }
+
+  .hero-counter-pill .svg-coin {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  .floating-reward-text {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  /* Mascot Widget Card */
+  .mascot-interactive-area {
+    width: 86px;
+    height: 80px;
+  }
+
+  .mascot-interactive-area .mascot-pocket-img {
+    width: 70px;
+    max-height: 58px;
+  }
+
+  .mascot-interactive-area .mascot-shadow {
+    width: 58px;
+    height: 8px;
+  }
+
+  .mascot-interactive-area .stream-coin .svg-coin {
+    width: 16px !important;
+    height: 16px !important;
   }
 }
 
-@media (max-width: 480px) {
+/* --- 2. Medium Mobile (<= 640px) --- */
+@media (max-width: 640px) {
+  /* Stat Card Mascots */
   .stat-mascot {
-    transform: scale(0.68);
-    margin-right: -8px;
+    width: 48px;
+    height: 48px;
+    transform: none !important;
+    margin: 0 !important;
+    flex-shrink: 0;
   }
+
+  .stat-mascot .stat-mascot-svg {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  /* Koiny */
+  .koiny-banner-character-stage {
+    width: 80px;
+  }
+
+  .koiny-banner-character-stage .koiny-svg {
+    width: 66px !important;
+    height: 66px !important;
+  }
+
+  .koiny-banner-character-stage .koiny-ground-shadow {
+    width: 44px;
+    height: 7px;
+  }
+
+  .koiny-empty-mascot-wrap .koiny-svg {
+    width: 58px !important;
+    height: 58px !important;
+  }
+
+  .koiny-empty-mascot-wrap .koiny-ground-shadow {
+    width: 40px;
+    height: 6px;
+  }
+}
+
+
+/* --- 3. Standard Mobile (<= 480px) --- */
+@media (max-width: 480px) {
+  /* Floating Mascot Pocky */
+  .floating-mascot-container {
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    right: 10px;
+  }
+
+  .pocky-svg {
+    width: 48px !important;
+    height: 51px !important;
+  }
+
+  .pocky-speech-bubble {
+    font-size: 10.5px;
+    padding: 5px 9px;
+    max-width: calc(100vw - 72px);
+    line-height: 1.3;
+  }
+
+  .pocky-speech-bubble::after {
+    right: 15px;
+  }
+
+  .pocky-popover-card {
+    width: min(280px, calc(100vw - 20px));
+    padding: 12px 10px;
+  }
+
+  .pocky-name {
+    font-size: 13px;
+  }
+
+  .pocky-tag {
+    font-size: 10px;
+  }
+
+  .pocky-tip-text {
+    font-size: 11.5px;
+  }
+
+  .pocky-action-btn {
+    font-size: 11px !important;
+    padding: 5px 8px !important;
+  }
+
+  .pocky-collapsed-pill {
+    padding: 4px 9px;
+    font-size: 11px;
+    gap: 4px;
+  }
+
+  /* Stat Card Mascots & Row */
+  .stat-card-row {
+    gap: 6px;
+    align-items: center;
+  }
+
+  .stat-mascot {
+    width: 42px;
+    height: 42px;
+    transform: none !important;
+    margin: 0 !important;
+    flex-shrink: 0;
+  }
+
+  .stat-mascot .stat-mascot-svg {
+    width: 42px !important;
+    height: 42px !important;
+  }
+
   .card-cute-pill {
     display: none;
+  }
+
+  /* Balance Card Mascot */
+  .balance-mascot-widget {
+    width: 68px;
+    height: 66px;
+    flex-shrink: 0;
+  }
+
+  .balance-mascot-widget .mascot-pocket-img {
+    width: 54px;
+    max-height: 44px;
+  }
+
+  .balance-mascot-widget .mascot-shadow {
+    width: 44px;
+    height: 7px;
+  }
+
+  .balance-mascot-counter-pill {
+    bottom: -1px;
+    font-size: 9.5px;
+    padding: 1.5px 6px;
+    gap: 2.5px;
+  }
+
+  .balance-mascot-counter-pill .svg-coin {
+    width: 11px !important;
+    height: 11px !important;
+  }
+
+  .balance-mascot-widget .stream-coin .svg-coin {
+    width: 13px !important;
+    height: 13px !important;
+  }
+
+  .balance-mascot-widget .tossed-coin .svg-coin {
+    width: 15px !important;
+    height: 15px !important;
+  }
+
+  /* Lucky Coin Mascot (Koiny) */
+  .koiny-banner-character-stage {
+    width: 72px;
+  }
+
+  .koiny-banner-character-stage .koiny-svg {
+    width: 58px !important;
+    height: 58px !important;
+  }
+
+  .koiny-banner-character-stage .koiny-ground-shadow {
+    width: 40px;
+    height: 6px;
+  }
+
+  .koiny-click-tag {
+    font-size: 9.5px;
+    padding: 1.5px 7px;
+  }
+
+  .koiny-heart-pop {
+    font-size: 10.5px;
+    padding: 3px 8px;
+  }
+
+  .koiny-empty-state {
+    padding: 18px 10px;
+    gap: 6px;
+  }
+
+  .koiny-empty-mascot-wrap .koiny-svg {
+    width: 52px !important;
+    height: 52px !important;
+  }
+
+  .koiny-empty-mascot-wrap .koiny-ground-shadow {
+    width: 36px;
+    height: 6px;
+  }
+
+  .koiny-empty-state .empty-text {
+    font-size: 12.5px;
+    margin: 0;
+  }
+
+  .koiny-empty-state .empty-sub {
+    font-size: 11px;
+    margin: 0;
+  }
+
+  .koiny-mascot-wrapper .koiny-svg {
+    width: 52px !important;
+    height: 52px !important;
+  }
+
+  /* Auth Hero Mascot */
+  .savings-hero-glow {
+    width: 130px;
+    height: 130px;
+    filter: blur(18px);
+  }
+
+  .hero-mascot-center {
+    width: 100px;
+    height: 84px;
+  }
+
+  .hero-mascot-img {
+    width: 78px;
+    max-height: 66px;
+  }
+
+  .hero-mascot-shadow {
+    width: 62px;
+    height: 8px;
+  }
+
+  .savings-hero-stage .loop-coin .svg-coin {
+    width: 15px !important;
+    height: 15px !important;
+  }
+
+  .savings-hero-stage .tossed-coin .svg-coin {
+    width: 17px !important;
+    height: 17px !important;
+  }
+
+  .hero-counter-pill {
+    font-size: 10px;
+    padding: 2px 8px;
+  }
+
+  /* Mascot Widget Card */
+  .mascot-interactive-area {
+    width: 74px;
+    height: 68px;
+  }
+
+  .mascot-interactive-area .mascot-pocket-img {
+    width: 60px;
+    max-height: 50px;
+  }
+
+  .mascot-interactive-area .mascot-shadow {
+    width: 50px;
+    height: 7px;
+  }
+
+  .mascot-interactive-area .stream-coin .svg-coin {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  /* Goal Progress Bar Coin Mascot Markers */
+  .progress-shell {
+    height: 12px;
+  }
+
+  .progress-coin-marker .progress-coin-svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  /* Loading Screen Mascot */
+  .loading-card {
+    padding: 24px 20px;
+  }
+
+  .loading-mascot-box {
+    width: 72px;
+    height: 72px;
+    margin-bottom: 6px;
+  }
+
+  .loading-mascot-logo {
+    width: 56px;
+    height: 56px;
+  }
+
+  .loading-mascot-shadow {
+    width: 44px;
+    height: 6px;
+  }
+
+  .loading-mascot-coin {
+    width: 20px;
+    height: 20px;
+    margin-left: -10px;
+  }
+
+  .loading-mascot-coin svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Avatar Presets in Modal */
+  .avatar-preset-card {
+    padding: 8px 4px;
+    gap: 4px;
+  }
+
+  .preset-avatar-thumb {
+    width: 38px;
+    height: 38px;
+  }
+
+  .avatar-preset-name {
+    font-size: 11px;
+  }
+}
+
+
+/* --- 4. Extra Small Mobile (<= 360px) --- */
+@media (max-width: 360px) {
+  /* Floating Mascot Pocky */
+  .floating-mascot-container {
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    right: 8px;
+  }
+
+  .pocky-svg {
+    width: 44px !important;
+    height: 47px !important;
+  }
+
+  .pocky-speech-bubble {
+    font-size: 10px;
+    padding: 4px 8px;
+    max-width: calc(100vw - 64px);
+  }
+
+  /* Stat Card Mascots */
+  .stat-mascot {
+    width: 36px;
+    height: 36px;
+    transform: none !important;
+    margin: 0 !important;
+  }
+
+  .stat-mascot .stat-mascot-svg {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  /* Balance Card Mascot */
+  .balance-mascot-widget {
+    width: 58px;
+    height: 58px;
+  }
+
+  .balance-mascot-widget .mascot-pocket-img {
+    width: 46px;
+    max-height: 38px;
+  }
+
+  .balance-mascot-widget .mascot-shadow {
+    width: 36px;
+    height: 6px;
+  }
+
+  .balance-mascot-counter-pill {
+    font-size: 9px;
+    padding: 1px 5px;
+  }
+
+  /* Koiny */
+  .koiny-banner-character-stage {
+    width: 64px;
+  }
+
+  .koiny-banner-character-stage .koiny-svg {
+    width: 50px !important;
+    height: 50px !important;
+  }
+
+  .koiny-banner-character-stage .koiny-ground-shadow {
+    width: 34px;
+    height: 5px;
+  }
+
+  .koiny-empty-mascot-wrap .koiny-svg {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .koiny-empty-mascot-wrap .koiny-ground-shadow {
+    width: 30px;
+    height: 5px;
+  }
+
+  .koiny-mascot-wrapper .koiny-svg {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  /* Auth Hero Mascot */
+  .hero-mascot-center {
+    width: 88px;
+    height: 74px;
+  }
+
+  .hero-mascot-img {
+    width: 68px;
+    max-height: 58px;
+  }
+
+  .hero-mascot-shadow {
+    width: 54px;
+    height: 7px;
+  }
+
+  /* Progress Marker */
+  .progress-shell {
+    height: 11px;
+  }
+
+  .progress-coin-marker .progress-coin-svg {
+    width: 16px !important;
+    height: 16px !important;
   }
 }
