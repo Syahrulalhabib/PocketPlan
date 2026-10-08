@@ -1,7 +1,8 @@
 <div align="center">
-  <img src="frontend/public/pocket-logo.svg" alt="PocketPlan Logo" width="80" height="80" />
+  <img src="frontend/public/pocket-logo.svg" alt="PocketPlan Logo" width="84" height="84" />
   <h1>PocketPlan</h1>
   <p><strong>Smart Saving, Brighter Future — Master your money with PocketPlan</strong></p>
+  <p>An intuitive, gamified personal finance and savings web app designed to make budgeting enjoyable, effortless, and stress-free.</p>
 
   <p>
     <img src="https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=black" alt="React" />
@@ -15,23 +16,45 @@
 
 ---
 
-## 📌 Overview
+## 💡 What is PocketPlan?
 
-**PocketPlan** is a modern, responsive personal finance and savings web application. Built for effortless daily budgeting, expense tracking, and goal achievement, PocketPlan combines financial analytics with delightful, interactive mascot assistants (**Pocky**, **Koiny**, **Pundi**, and **Hematy**) to make money management engaging and intuitive.
+Managing personal finances often feels intimidating, tedious, or dry. Spreadsheets are complex, and traditional banking apps lack personality. 
+
+**PocketPlan** bridges this gap as a modern, lightweight web application that combines **core financial tracking tools** with an **interactive, friendly mascot system**. Whether you are a student budgeting daily allowances, a young professional tracking cash flow, or someone striving to save up for a dream goal, PocketPlan gives you a complete, clear picture of your finances in real time.
+
+### 🎯 Key Problems PocketPlan Solves:
+1. **Unconscious Spending**: Pinpoint exactly where your money leaks with categorized expense tracking and instant charts.
+2. **Abandoned Savings Goals**: Break down intimidating savings targets into bite-sized milestones with visual progress indicators.
+3. **Boring Budgeting**: Stay motivated using gamified mascot companions (**Pocky**, **Koiny**, **Pundi**, and **Hematy**) that provide timely tips, encouragement, and milestone celebrations.
+4. **Friction to Start**: Jump right in using **Demo Mode** without mandatory registration, or connect your Firebase account for real-time cloud persistence.
 
 ---
 
-## ✨ Features
+## 🌟 Core Features & Modules
 
-- **💰 Balance & Cash Flow Tracking**: Real-time income and expense monitoring with quick transaction logging and category filtering.
-- **🎯 Smart Savings Goals**: Set target budgets, track milestones, and visualize goal progression with interactive coin markers.
-- **📊 Interactive Analytics**: Clean visual summaries and spending breakdowns powered by Chart.js.
-- **🧸 Gamified Mascot Assistants**:
-  - **Pocky**: Floating interactive assistant offering smart financial tips and instant actions.
-  - **Koiny**: Celebrates savings milestones and luck interactions.
-  - **Pundi & Hematy**: Dashboard stat card companion mascots.
-- **📱 Responsive & Touch-Optimized**: Tailored scaling and proportions across desktop, tablet, and mobile (down to 360px).
-- **🔒 Dual Mode Architecture**: Seamless fallback between Cloud Firestore/Firebase Auth and local offline demo mode.
+### 1. 📊 Financial Dashboard
+- **Real-Time Balance Overview**: Live snapshot of total net balance, monthly income, and monthly expenses.
+- **Visual Analytics**: Interactive charts powered by Chart.js displaying expense breakdown and monthly comparisons.
+- **Companion Status**: Quick balance-health indicators brought to life by animated mascots (*Pundi* & *Hematy*).
+
+### 2. 💸 Cash Flow & Transaction Management
+- **Quick Logging**: Add income and expense entries in seconds with custom titles, amounts, and categories (Food, Transport, Bills, Shopping, etc.).
+- **Filtering & Search**: Quickly find past transactions by type or date.
+- **Total Control**: Safely delete or revise transaction records with immediate balance recalculation.
+
+### 3. 🎯 Savings Goals & Milestones
+- **Target Tracking**: Set targets with custom amounts, deadlines, and categories.
+- **Interactive Progress Bars**: Watch savings grow step-by-step with coin-marker milestone checkpoints.
+- **Celebration Feedback**: Hit savings milestones and receive cheerful celebrations from *Koiny*.
+
+### 4. 🧸 Interactive Mascot Companions
+- **Pocky (Floating Assistant)**: A friendly, floating companion docked on your screen. Tap Pocky for contextual budgeting tips, shortcuts, or to celebrate your financial discipline.
+- **Koiny (Lucky Mascot)**: Rewards savings habits and brings fun interactions across goal tracking.
+- **Responsive Proportions**: Mascots automatically adapt their size across mobile phones, tablets, and desktops without layout overflow.
+
+### 5. ⚡ Dual-Mode Persistence (Cloud & Offline)
+- **Cloud Mode**: Full authentication and cloud database sync powered by Firebase Auth and Google Cloud Firestore.
+- **Offline / Guest Demo Mode**: If no Firebase credentials are configured, PocketPlan seamlessly falls back to local storage and mock data—no setup or account required to test.
 
 ---
 
@@ -138,19 +161,7 @@ Base URL: `http://localhost:5000`
 
 ---
 
-## 👥 Development Team
-
-Developed as part of Praktikum Pemrograman Berbasis Web (PBW):
-
-| Member | Role |
-|---|---|
-| **Mochammad Gendry Afriansyah** | UI/UX Designer |
-| **Syahrul Al Habib** | Backend Engineer |
-| **Tedy Fachrudin** | Frontend Engineer |
-
----
-
 ## 📄 License
 
-This project is open-source and available under the [MIT License](LICENSE).
+This project is licensed under the [MIT License](LICENSE).
 
