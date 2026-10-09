@@ -80,7 +80,7 @@ export async function findLinkedUid(chatId, db) {
 
 export async function linkChatWithCode(chatId, code, userFrom, db) {
   const strId = String(chatId);
-  const cleanCode = code.trim().toUpperCase();
+  const cleanCode = String(code || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
 
   if (db) {
     let uid = null;

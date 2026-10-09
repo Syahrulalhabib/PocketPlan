@@ -1,8 +1,13 @@
 import admin from 'firebase-admin';
 import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 let initialized = false;
 let db = null;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export const initFirebaseAdmin = () => {
   if (initialized) return db;
@@ -15,8 +20,20 @@ export const initFirebaseAdmin = () => {
     if (serviceAccountBase64) {
       const json = JSON.parse(Buffer.from(serviceAccountBase64, 'base64').toString('utf8'));
       credential = admin.credential.cert(json);
-    } else if (serviceAccountPath && fs.existsSync(serviceAccountPath)) {
-      credential = admin.credential.cert(serviceAccountPath);
+    } else {
+      const candidates = [
+        serviceAccountPath,
+        serviceAccountPath && path.resolve(process.cwd(), serviceAccountPath),
+        serviceAccountPath && path.resolve(__dirname, '..', serviceAccountPath),
+        path.resolve(__dirname, '../ServiceAccount.json'),
+        path.resolve(process.cwd(), 'backend/ServiceAccount.json'),
+        path.resolve(process.cwd(), 'ServiceAccount.json')
+      ].filter(Boolean);
+
+      const foundPath = candidates.find((p) => fs.existsSync(p));
+      if (foundPath) {
+        credential = admin.credential.cert(foundPath);
+      }
     }
 
     if (credential) {
@@ -35,3 +52,4 @@ export const initFirebaseAdmin = () => {
 };
 
 export const getDb = () => db;
+

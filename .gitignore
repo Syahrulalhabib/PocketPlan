@@ -9,6 +9,10 @@ pnpm-debug.log*
 .env
 .env.*
 !.env.example
+# Service Account
+ServiceAccount.json
+serviceAccount.json
+*ServiceAccount*.json
 backend/ServiceAccount.json
 backend/serviceAccount.json
 
