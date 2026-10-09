@@ -87,6 +87,18 @@ export const updateCollectionDoc = (uid, collectionName, id, updates) => {
   const ref = doc(db, 'users', uid, collectionName, id);
   return updateDoc(ref, stripUndefined(updates));
 };
+export const updateUserDoc = (uid, updates) => {
+  if (!db) return Promise.resolve();
+  const ref = doc(db, 'users', uid);
+  return updateDoc(ref, stripUndefined(updates));
+};
+export const getUserDocData = async (uid) => {
+  if (!db) return null;
+  const ref = doc(db, 'users', uid);
+  const snap = await getDoc(ref);
+  return snap.exists() ? snap.data() : null;
+};
+export const getAuthUser = () => auth?.currentUser || null;
 export const orderedQuery = (ref, field = 'date') => (ref ? query(ref, orderBy(field, 'desc')) : null);
 
 // User doc (for base balance or profile metadata)

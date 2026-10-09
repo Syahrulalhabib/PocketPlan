@@ -83,15 +83,32 @@ export async function linkChatWithCode(chatId, code, userFrom, db) {
   const cleanCode = code.trim().toUpperCase();
 
   if (db) {
+    let uid = null;
     const codeDoc = await db.collection('telegram_codes').doc(cleanCode).get();
-    if (!codeDoc.exists) return null;
-    const data = codeDoc.data();
-    if (new Date(data.expiresAt).getTime() < Date.now()) {
+    if (codeDoc.exists) {
+      const data = codeDoc.data();
+      if (new Date(data.expiresAt).getTime() < Date.now()) {
+        await codeDoc.ref.delete();
+        return 'EXPIRED';
+      }
+      uid = data.uid;
       await codeDoc.ref.delete();
-      return 'EXPIRED';
+    } else {
+      // Fallback: check users collection where telegramLinkCode is stored directly from web client
+      const userSnap = await db.collection('users').where('telegramLinkCode', '==', cleanCode).limit(1).get();
+      if (!userSnap.empty) {
+        const uDoc = userSnap.docs[0];
+        const uData = uDoc.data();
+        if (uData.telegramCodeExpiresAt && new Date(uData.telegramCodeExpiresAt).getTime() < Date.now()) {
+          await uDoc.ref.update({ telegramLinkCode: null, telegramCodeExpiresAt: null });
+          return 'EXPIRED';
+        }
+        uid = uDoc.id;
+        await uDoc.ref.update({ telegramLinkCode: null, telegramCodeExpiresAt: null });
+      }
     }
-    const uid = data.uid;
-    await codeDoc.ref.delete();
+
+    if (!uid) return null;
 
     await db.collection('telegram_links').doc(strId).set({
       uid,

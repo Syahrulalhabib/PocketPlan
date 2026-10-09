@@ -3,10 +3,14 @@
   "private": true,
   "workspaces": ["frontend", "backend"],
   "scripts": {
+    "dev": "npm --workspace frontend run dev",
     "dev:frontend": "npm --workspace frontend run dev",
     "dev:backend": "npm --workspace backend run dev",
     "build": "npm --workspace frontend run build",
     "test": "npm --workspace backend run test && npm --workspace frontend run test",
     "telegram:poll": "npm --workspace backend run telegram:poll"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "4.53.3"
   }
 }
