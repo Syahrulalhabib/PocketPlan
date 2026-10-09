@@ -69,10 +69,13 @@ export const watchAuth = (cb) => onAuthStateChanged(auth, cb);
 export const updateProfileName = (name) => (auth?.currentUser && name ? updateProfile(auth.currentUser, { displayName: name }) : undefined);
 export const updateProfileData = (data) => (auth?.currentUser ? updateProfile(auth.currentUser, data) : undefined);
 
+export const getAuthToken = () => (auth?.currentUser ? auth.currentUser.getIdToken() : Promise.resolve(null));
+
 // Firestore helpers (per-user subcollections)
 
 export const getUserCollection = (uid, name) => (db ? collection(db, 'users', uid, name) : null);
 export const listenCollection = (ref, onData, onError) => (ref ? onSnapshot(ref, onData, onError) : () => {});
+export const listenDoc = (ref, onData, onError) => (ref ? onSnapshot(ref, onData, onError) : () => {});
 export const addCollectionDoc = (ref, data) => (ref ? addDoc(ref, stripUndefined(data)) : Promise.resolve());
 export const deleteCollectionDoc = (uid, collectionName, id) => {
   if (!db) return Promise.resolve();

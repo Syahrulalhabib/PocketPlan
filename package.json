@@ -3,6 +3,10 @@
   "private": true,
   "workspaces": ["frontend", "backend"],
   "scripts": {
-    "build": "npm --workspace frontend run build"
+    "dev:frontend": "npm --workspace frontend run dev",
+    "dev:backend": "npm --workspace backend run dev",
+    "build": "npm --workspace frontend run build",
+    "test": "npm --workspace backend run test && npm --workspace frontend run test",
+    "telegram:poll": "npm --workspace backend run telegram:poll"
   }
 }

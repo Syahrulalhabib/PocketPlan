@@ -11,6 +11,7 @@ import {
   resetPasswordEmail,
   sendVerificationEmail
 } from '../services/firebase';
+import { telegramWebLogin } from '../services/telegramApi';
 
 const AuthContext = createContext(undefined);
 
@@ -20,6 +21,10 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     if (!firebaseEnabled) {
+      const savedTg = localStorage.getItem('pocketplan_tg_user');
+      if (savedTg) {
+        try { setUser(JSON.parse(savedTg)); } catch {}
+      }
       setLoading(false);
       return;
     }
@@ -38,7 +43,12 @@ export const AuthProvider = ({ children }) => {
           photoURL: fbUser.photoURL || undefined
         });
       } else {
-        setUser(null);
+        const savedTg = localStorage.getItem('pocketplan_tg_user');
+        if (savedTg) {
+          try { setUser(JSON.parse(savedTg)); } catch { setUser(null); }
+        } else {
+          setUser(null);
+        }
       }
       setLoading(false);
     });
@@ -111,7 +121,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginWithTelegram = async (code) => {
+    const tgUser = await telegramWebLogin(code);
+    const resolvedUser = {
+      id: tgUser.uid || tgUser.id,
+      name: tgUser.name || 'Telegram User',
+      email: tgUser.email || `${tgUser.uid || 'user'}@telegram.pocketplan`,
+      photoURL: tgUser.photoURL || undefined,
+      isTelegramUser: true
+    };
+    setUser(resolvedUser);
+    localStorage.setItem('pocketplan_tg_user', JSON.stringify(resolvedUser));
+    return resolvedUser;
+  };
+
   const logout = async () => {
+    localStorage.removeItem('pocketplan_tg_user');
     if (firebaseEnabled) {
       await signOutUser();
     }
@@ -166,6 +191,7 @@ export const AuthProvider = ({ children }) => {
       login,
       register,
       googleLogin,
+      loginWithTelegram,
       logout,
       updateProfileInfo,
       resetPassword,

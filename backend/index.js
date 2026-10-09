@@ -3,6 +3,13 @@ import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { initFirebaseAdmin, getDb } from './lib/firebaseAdmin.js';
+import {
+  handleTelegramUpdate,
+  generateLinkCode,
+  getLinkStatus,
+  unlinkAccount
+} from './lib/telegramBot.js';
+import { verifyWebLoginCode } from './lib/telegramBotCore.js';
 
 dotenv.config();
 initFirebaseAdmin();
@@ -23,12 +30,16 @@ const useFirestore = Boolean(getDb());
 
 // Middleware to verify Firebase token when admin is configured
 const requireAuth = async (req, res, next) => {
-  if (!useFirestore) return next();
+  if (!useFirestore) {
+    req.user = { uid: 'demo-user' };
+    return next();
+  }
   const authHeader = req.headers.authorization || '';
   const token = authHeader.replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'Missing token' });
   try {
-    await import('firebase-admin').then(({ auth }) => auth().verifyIdToken(token));
+    const decoded = await import('firebase-admin').then(({ auth }) => auth().verifyIdToken(token));
+    req.user = { uid: decoded.uid };
     next();
   } catch (err) {
     res.status(401).json({ error: 'Invalid token' });
@@ -37,7 +48,66 @@ const requireAuth = async (req, res, next) => {
 
 app.get('/health', (_, res) => res.json({ ok: true, useFirestore }));
 
+// Telegram Webhook
+app.post('/api/telegram-webhook', async (req, res) => {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) return res.status(500).json({ error: 'TELEGRAM_BOT_TOKEN not configured' });
+  try {
+    await handleTelegramUpdate(req.body, getDb(), token);
+    res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error('Telegram webhook error:', err);
+    res.status(200).json({ ok: false, error: err.message });
+  }
+});
+
+// Telegram Link endpoints
+app.post('/api/telegram/link-code', requireAuth, async (req, res) => {
+  const uid = req.user?.uid || 'demo-user';
+  const botUsername = process.env.TELEGRAM_BOT_USERNAME || '';
+  try {
+    const result = await generateLinkCode(uid, getDb(), botUsername);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/telegram/status', requireAuth, async (req, res) => {
+  const uid = req.user?.uid || 'demo-user';
+  try {
+    const status = await getLinkStatus(uid, getDb());
+    res.json({ ...status, botUsername: process.env.TELEGRAM_BOT_USERNAME || '' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/telegram/unlink', requireAuth, async (req, res) => {
+  const uid = req.user?.uid || 'demo-user';
+  try {
+    const result = await unlinkAccount(uid, getDb());
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/telegram/web-login', async (req, res) => {
+  const { code } = req.body || {};
+  if (!code) return res.status(400).json({ error: 'Kode login diperlukan' });
+  try {
+    const result = await verifyWebLoginCode(code, getDb());
+    if (!result) return res.status(404).json({ error: 'Kode login tidak ditemukan atau salah' });
+    if (result === 'EXPIRED') return res.status(400).json({ error: 'Kode login telah kedaluwarsa' });
+    res.json({ ok: true, user: result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/transactions', requireAuth, async (req, res) => {
+
   if (!useFirestore) return res.json(demoTransactions);
   const db = getDb();
   const snapshot = await db.collection('transactions').get();

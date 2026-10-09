@@ -74,39 +74,6 @@ const AboutPage = () => {
             ))}
           </div>
         </div>
-
-        <div className="devs">
-          <h3 className="about-question">Developers</h3>
-          <div className="dev-grid">
-            <div className="card dev-card">
-              <img
-                src="/mochammad-gendry-afriansyah.png"
-                alt="Mochammad Gendry Afriansyah"
-                className="dev-avatar-img"
-              />
-              <div className="dev-name">Mochammad Gendry Afriansyah</div>
-              <div className="dev-role">UI/UX Designer</div>
-            </div>
-            <div className="card dev-card">
-              <img
-                src="/syahrul-al-habib.png"
-                alt="Syahrul Al Habib"
-                className="dev-avatar-img"
-              />
-              <div className="dev-name">Syahrul Al Habib</div>
-              <div className="dev-role">Backend Engineer</div>
-            </div>
-            <div className="card dev-card">
-              <img
-                src="/tedy-fachrudin.png"
-                alt="Tedy Fachrudin"
-                className="dev-avatar-img"
-              />
-              <div className="dev-name">Tedy Fachrudin</div>
-              <div className="dev-role">Frontend Engineer</div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -6,7 +6,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "node index.js"
+    "dev": "node index.js",
+    "test": "node lib/telegram.test.js",
+    "telegram:poll": "node scripts/pollTelegram.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

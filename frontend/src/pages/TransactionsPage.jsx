@@ -22,7 +22,7 @@ const emptyForm = {
 };
 
 const TransactionsPage = () => {
-  const { transactions, addTransaction, updateTransaction, deleteTransaction } = useData();
+  const { transactions, addTransaction, updateTransaction, deleteTransaction, goals, deleteGoal } = useData();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
   const [sortOrder, setSortOrder] = useState('newest');
@@ -57,6 +57,9 @@ const TransactionsPage = () => {
       category: capitalizeWords(form.category),
       description: capitalizeWords(form.description)
     });
+    if (form.completedGoalId) {
+      await deleteGoal(form.completedGoalId);
+    }
     setForm(emptyForm);
     setShowModal(false);
   };
@@ -264,6 +267,7 @@ const TransactionsPage = () => {
         onSubmit={submitForm}
         form={form}
         setForm={setForm}
+        goals={goals}
       />
 
       <Modal open={viewModal} onClose={() => setViewModal(false)} title="Transaction Detail">

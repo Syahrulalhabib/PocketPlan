@@ -6,6 +6,7 @@ import { useData } from '../providers/DataProvider.jsx';
 import AvatarPickerModal from '../components/AvatarPickerModal.jsx';
 import ProfileGeneralTab from '../components/ProfileGeneralTab.jsx';
 import ProfileSecurityTab from '../components/ProfileSecurityTab.jsx';
+import ProfileTelegramTab from '../components/ProfileTelegramTab.jsx';
 import {
   ArrowLeftIcon,
   SunIcon,
@@ -18,7 +19,8 @@ import {
   CheckIcon,
   WalletIcon,
   TargetIcon,
-  ReceiptIcon
+  ReceiptIcon,
+  TelegramIcon
 } from '../components/Icons.jsx';
 import { formatRupiah, evaluatePasswordStrength } from '../utils/formatters.js';
 
@@ -289,6 +291,18 @@ const ProfilePage = () => {
               <LockIcon size={16} />
               <span>Security & Password</span>
             </button>
+
+            <button
+              type="button"
+              className={`profile-tab-btn ${activeTab === 'telegram' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('telegram');
+                setStatus(null);
+              }}
+            >
+              <TelegramIcon size={16} />
+              <span>Telegram Bot</span>
+            </button>
           </div>
 
           <div className="profile-tab-content">
@@ -301,7 +315,7 @@ const ProfilePage = () => {
                 onSubmit={handleGeneralSubmit}
                 isSubmitting={isSubmitting}
               />
-            ) : (
+            ) : activeTab === 'security' ? (
               <ProfileSecurityTab
                 password={password}
                 setPassword={setPassword}
@@ -316,6 +330,8 @@ const ProfilePage = () => {
                 onSubmit={handleSecuritySubmit}
                 isSubmitting={isSubmitting}
               />
+            ) : (
+              <ProfileTelegramTab user={user} setStatusMessage={setStatus} />
             )}
           </div>
         </div>

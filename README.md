@@ -136,6 +136,8 @@ Create `.env` in `backend/`:
 PORT=5000
 GOOGLE_APPLICATION_CREDENTIALS=path/to/serviceAccount.json
 # Or use base64: GOOGLE_SERVICE_ACCOUNT_BASE64=
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token_from_botfather
+TELEGRAM_BOT_USERNAME=your_bot_username
 ```
 
 Start backend server:
@@ -147,17 +149,45 @@ npm run dev
 
 ## 📡 API Reference
 
-Base URL: `http://localhost:5000`
+Base URL: `http://localhost:4000`
 
 | Method | Endpoint | Description | Auth Required |
 |---|---|---|---|
 | `GET` | `/health` | Health check endpoint | No |
+| `POST` | `/api/telegram-webhook` | Incoming Telegram webhook updates | No (Telegram Secret) |
+| `POST` | `/api/telegram/link-code` | Generate 6-char link code for account pairing | Yes (Bearer Token) |
+| `GET` | `/api/telegram/status` | Check Telegram link status | Yes (Bearer Token) |
+| `POST` | `/api/telegram/unlink` | Disconnect Telegram from user account | Yes (Bearer Token) |
+| `POST` | `/api/telegram/web-login` | Exchange 6-char bot code for web session | No |
 | `GET` | `/api/transactions` | Fetch user transactions | Optional (Token) |
 | `POST` | `/api/transactions` | Create new transaction | Optional (Token) |
 | `DELETE` | `/api/transactions/:id` | Remove transaction | Optional (Token) |
 | `GET` | `/api/goals` | Fetch user savings goals | Optional (Token) |
 | `POST` | `/api/goals` | Create new savings goal | Optional (Token) |
 | `DELETE` | `/api/goals/:id` | Remove savings goal | Optional (Token) |
+
+---
+
+## 🤖 Telegram Bot Integration & Dual-Way Onboarding
+
+PocketPlan comes with native Telegram Bot integration (`@yourpocketplan_bot`):
+
+### 1. Daftar di Website -> Akses Telegram
+1. Buka halaman **Profile** di website -> Tab **Telegram Bot**.
+2. Klik tombol **Hubungkan Telegram Sekarang** (mendapatkan kode 6 karakter atau klik langsung deep link).
+3. Bot Telegram terbuka, tekan **Start** (atau ketik `/link KODE`).
+4. Akun tersambung otomatis secara real-time!
+
+### 2. Pengguna Baru dari Telegram -> Akses Website
+1. Langsung chat `@yourpocketplan_bot` di Telegram dan tekan `/start`.
+2. Akun langsung otomatis dibuatkan (`tg_<chatId>`). Kamu bisa langsung catat transaksi & goals via Telegram!
+3. Untuk membuka akun tersebut di website: ketik `/web` di bot Telegram untuk mendapatkan **Kode Akses 6 Digit**.
+4. Buka website PocketPlan, di halaman Login pilih tab **"Masuk dengan Telegram"** dan masukkan kodenya.
+5. Website langsung masuk ke dashboard dengan data transaksi yang sama persis!
+
+### 🎯 Fitur Realisasi & Pembelian Goals (Achieved Goals)
+- **Di Website**: Goal yang telah tercapai (`balance >= target`) akan memunculkan tombol **"🛍️ Beli"**. Saat diklik, pengeluaran otomatis dicatat dan goal otomatis diselesaikan (dihapus dari daftar aktif). Saat membuat transaksi pengeluaran baru di menu Transaksi, tersedia juga dropdown opsi untuk menautkan goal tercapai.
+- **Di Telegram Bot**: Ketik `/goals` untuk melihat visual progress bar. Jika goal tercapai, bot menampilkan tombol inline interaktif `[🛍️ Beli Goal: Nama]` (atau ketik `/beligoal [nama]`). Sistem langsung mencatat pengeluaran dan menyelesaikan goal dengan notifikasi perayaan!
 
 ---
 

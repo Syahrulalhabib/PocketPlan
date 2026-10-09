@@ -19,14 +19,29 @@ const emptyForm = {
 };
 
 const GoalsPage = () => {
-  const { goals, addGoal, updateGoal, deleteGoal, summary } = useData();
+  const { goals, addGoal, updateGoal, deleteGoal, addTransaction, summary } = useData();
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editModal, setEditModal] = useState(false);
   const [viewModal, setViewModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [buyTarget, setBuyTarget] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [selected, setSelected] = useState(null);
+
+  const confirmBuyGoal = async () => {
+    if (!buyTarget) return;
+    await addTransaction({
+      category: 'Shopping',
+      type: 'Expense',
+      amount: Number(buyTarget.target),
+      date: new Date().toISOString().split('T')[0],
+      description: `Pembelian Goal: ${buyTarget.name}`
+    });
+    await deleteGoal(buyTarget.id);
+    setBuyTarget(null);
+    setViewModal(false);
+  };
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -133,6 +148,24 @@ const GoalsPage = () => {
                     </div>
                   </td>
                   <td className="cell-actions actions">
+                    {(() => {
+                      const bal = Number(summary?.balance) || 0;
+                      const tgt = Number(g.target) || 1;
+                      if (bal >= tgt) {
+                        return (
+                          <button
+                            type="button"
+                            className="table-action-btn buy"
+                            title="Beli & Realisasikan Goal Ini"
+                            onClick={() => setBuyTarget(g)}
+                            style={{ color: '#10b981', fontWeight: 600 }}
+                          >
+                            <span>🛍️ Beli</span>
+                          </button>
+                        );
+                      }
+                      return null;
+                    })()}
                     <button
                       type="button"
                       className="table-action-btn view"
@@ -247,6 +280,18 @@ const GoalsPage = () => {
                 </div>
               </div>
               <div className="modal-actions">
+                {isAchieved && (
+                  <button
+                    type="button"
+                    className="pill btn-primary"
+                    onClick={() => {
+                      setBuyTarget(selected);
+                      setViewModal(false);
+                    }}
+                  >
+                    🛍️ Beli Goal Ini Sekarang
+                  </button>
+                )}
                 <button type="button" className="pill btn-secondary" onClick={() => setViewModal(false)}>
                   Close
                 </button>
@@ -298,6 +343,39 @@ const GoalsPage = () => {
                 }}
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+      <Modal open={Boolean(buyTarget)} onClose={() => setBuyTarget(null)} title="Beli & Realisasikan Goal">
+        {buyTarget && (
+          <div className="modal-form">
+            <p style={{ margin: 0, fontSize: '0.95rem', lineHeight: '1.5' }}>
+              Selamat! Saldo tabunganmu sudah mencukupi. Beli target <strong>{buyTarget.name}</strong> sekarang?
+            </p>
+            <div className="delete-preview-card" style={{ borderColor: '#10b981' }}>
+              <div className="delete-preview-header">
+                <span className="table-cell-bold">{buyTarget.name}</span>
+                <span className="badge income">🎯 Siap Dibeli</span>
+              </div>
+              <div className="delete-preview-amount income-text">
+                Target: {formatRupiah(buyTarget.target)}
+              </div>
+            </div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+              Sistem akan otomatis mencatat pengeluaran sebesar <strong>{formatRupiah(buyTarget.target)}</strong> dan menyelesaikan target ini (menghapus dari daftar aktif).
+            </p>
+            <div className="modal-actions">
+              <button type="button" className="pill btn-secondary" onClick={() => setBuyTarget(null)}>
+                Batal
+              </button>
+              <button
+                type="button"
+                className="pill btn-primary"
+                onClick={confirmBuyGoal}
+              >
+                🛍️ Ya, Beli Sekarang
               </button>
             </div>
           </div>
