@@ -17,6 +17,7 @@ import {
   addDoc,
   deleteDoc,
   updateDoc,
+  setDoc,
   onSnapshot,
   query,
   orderBy,
@@ -90,7 +91,7 @@ export const updateCollectionDoc = (uid, collectionName, id, updates) => {
 export const updateUserDoc = (uid, updates) => {
   if (!db) return Promise.resolve();
   const ref = doc(db, 'users', uid);
-  return updateDoc(ref, stripUndefined(updates));
+  return setDoc(ref, stripUndefined(updates), { merge: true });
 };
 export const getUserDocData = async (uid) => {
   if (!db) return null;
