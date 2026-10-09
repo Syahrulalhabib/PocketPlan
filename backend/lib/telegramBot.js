@@ -55,7 +55,8 @@ export async function handleTelegramUpdate(update, db, botToken) {
             amount: amt,
             description: `Pembelian Goal: ${g.name}`,
             date: new Date().toISOString().split('T')[0],
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            goalBackup: { name: g.name, target: g.target, amount: g.amount || 0, type: g.type || 'Saving', createdAt: g.createdAt || new Date().toISOString() }
           });
           await ref.delete();
           await answerTelegramCallback(botToken, cb.id, '🎉 Impian terbeli!');
@@ -108,7 +109,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
     return sendTelegramMessage(
       botToken,
       chatId,
-      `👋 *Hai, ${userName}!* Aku *Pocky* 🪙✨\nTeman pintar buat atur keuangan & wujudkan impianmu!\n\n💡 *Cara cepat catat uang:*\n• \`35k makan bakso\` *(langsung dicatat!)*\n• \`/masuk 2jt gaji bulanan\`\n• \`/saldo\` — intip sisa uang\n• \`/goals\` — cek target impian\n• \`/web\` — kode login website\n\nYuk mulai, mau catat apa hari ini? 👇`,
+      `🪙 *Halo ${userName}! Aku Pocky,* asisten keuangan pribadimu! 🎉\n\nAku bisa bantu kamu:\n💸 Catat pengeluaran & pemasukan\n🎯 Buat target impian & pantau progres\n📊 Cek saldo & riwayat kapan saja\n\n*Cara pakai gampang banget:*\n• Ketik langsung → \`kopi susu 25k\`\n• Pengeluaran → \`/catat bensin 50k\`\n• Pemasukan → \`/masuk gaji 2jt\`\n• Target baru → \`/goal Laptop 10jt\`\n• Cek saldo → \`/saldo\`\n\nKetik /help untuk panduan lengkap 📖\nYuk mulai catat keuanganmu! 🚀`,
       { reply_markup: KEYBOARD }
     );
   }
@@ -206,7 +207,8 @@ export async function handleTelegramUpdate(update, db, botToken) {
         amount: amt,
         description: `Pembelian Goal: ${g.name}`,
         date: new Date().toISOString().split('T')[0],
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        goalBackup: { name: g.name, target: g.target, amount: g.amount || 0, type: g.type || 'Saving', createdAt: g.createdAt || new Date().toISOString() }
       });
       await match.ref.delete();
       return sendTelegramMessage(
@@ -222,7 +224,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
     return sendTelegramMessage(
       botToken,
       chatId,
-      '📖 *PANDUAN SINGKAT POCKY* 🪙\n\n• `makan siang 35k` — catat keluar kilat\n• `/catat bensin 50k` — catat pengeluaran\n• `/masuk gaji 2jt` — catat pemasukan\n• `/saldo` — cek sisa saldo\n• `/goals` — lihat target impian\n• `/goal Motor 10jt` — buat target baru\n• `/beligoal [nama]` — beli target tercapai\n• `/web` — kode login website\n• `/riwayat` — 5 transaksi terakhir\n• `/batal` — hapus transaksi terakhir',
+      '📖 *PANDUAN LENGKAP POCKY* 🪙\n\n*📝 CATAT PENGELUARAN*\n• `kopi susu 25k` — ketik langsung\n• `25k kopi susu` — nominal duluan juga bisa\n• `/catat bensin 50k` — pakai perintah\n• `/keluar makan siang 35k`\n\n*💰 CATAT PEMASUKAN*\n• `/masuk gaji 2jt`\n• `/masuk freelance 500k`\n\n*🎯 TARGET IMPIAN*\n• `/goal Laptop Baru 10jt` — buat target\n• `/goals` — lihat semua target & progres\n• `/beligoal Laptop` — beli target tercapai\n\n*📊 INFO KEUANGAN*\n• `/saldo` — cek sisa saldo\n• `/riwayat` — 5 transaksi terakhir\n• `/batal` — batalkan transaksi terakhir\n\n*🔗 LAINNYA*\n• `/web` — kode login website\n• `/link KODE` — hubungkan akun website\n• `/menu` — tampilkan keyboard menu\n\n💡 _Nominal bisa ditulis: 50k, 50rb, 50.000, 1.5jt, Rp50000_',
       { reply_markup: KEYBOARD }
     );
   }
@@ -256,9 +258,39 @@ export async function handleTelegramUpdate(update, db, botToken) {
       const d = snap.docs[0];
       const data = d.data();
       await d.ref.delete();
+      // Restore goal if this was a goal-purchase transaction
+      if (data.goalBackup) {
+        const gb = data.goalBackup;
+        await db.collection('users').doc(uid).collection('goals').add({
+          name: gb.name,
+          target: gb.target,
+          amount: gb.amount || 0,
+          type: gb.type || 'Saving',
+          createdAt: gb.createdAt || new Date().toISOString()
+        });
+        return sendTelegramMessage(botToken, chatId, `🗑️ *Dibatalkan!*\nTransaksi *${data.description}* (${formatRupiah(data.amount)}) telah dihapus.\n\n🎯 Target *${gb.name}* telah dikembalikan ke daftar goal.`);
+      }
       return sendTelegramMessage(botToken, chatId, `🗑️ *Dibatalkan!*\nTransaksi *${data.description}* (${formatRupiah(data.amount)}) telah dihapus.`);
     }
     return sendTelegramMessage(botToken, chatId, 'Dibatalkan.');
+  }
+
+  // Bare commands without arguments → friendly guidance
+  const bareCmd = text.toLowerCase().replace(/@\S+/, '');
+  if (['/catat', '/keluar', '/expense'].includes(bareCmd)) {
+    return sendTelegramMessage(botToken, chatId,
+      `📝 *Cara catat pengeluaran:*\n\n\`/catat 25k kopi susu\`\n\`/catat makan siang 35rb\`\n\`kopi 15k\` _(tanpa command juga bisa!)_\n\nFormat: \`/catat [nominal] [keterangan]\` atau sebaliknya`,
+      { reply_markup: KEYBOARD });
+  }
+  if (['/masuk', '/income'].includes(bareCmd)) {
+    return sendTelegramMessage(botToken, chatId,
+      `💰 *Cara catat pemasukan:*\n\n\`/masuk 2.5jt gaji bulanan\`\n\`/masuk freelance 500k\`\n\nFormat: \`/masuk [nominal] [keterangan]\` atau sebaliknya`,
+      { reply_markup: KEYBOARD });
+  }
+  if (bareCmd === '/goal') {
+    return sendTelegramMessage(botToken, chatId,
+      `🎯 *Cara buat target impian:*\n\n\`/goal Laptop Baru 10jt\`\n\`/goal Sepatu Lari 500k\`\n\nFormat: \`/goal [nama target] [nominal]\``,
+      { reply_markup: KEYBOARD });
   }
 
   const parsed = parseTransactionCommand(text);
@@ -281,7 +313,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
   return sendTelegramMessage(
     botToken,
     chatId,
-    '💡 *Pocky bingung nih...*\nCoba ketik langsung seperti ini:\n👉 `25k es kopi`\n👉 `/masuk 1jt gaji`\n\nAtau pilih menu di bawah ya! 👇',
+    `🤔 *Hmm, Pocky belum ngerti nih...*\n\nCoba format ini ya:\n📝 \`kopi susu 25k\` — catat pengeluaran\n💰 \`/masuk gaji 2jt\` — catat pemasukan\n🎯 \`/goal Laptop 10jt\` — buat target\n\nKetik /help untuk panduan lengkap 📖`,
     { reply_markup: KEYBOARD }
   );
 }

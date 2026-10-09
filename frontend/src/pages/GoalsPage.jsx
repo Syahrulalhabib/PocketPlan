@@ -36,7 +36,14 @@ const GoalsPage = () => {
       type: 'Expense',
       amount: Number(buyTarget.target),
       date: new Date().toISOString().split('T')[0],
-      description: `Pembelian Goal: ${buyTarget.name}`
+      description: `Pembelian Goal: ${buyTarget.name}`,
+      goalBackup: {
+        name: buyTarget.name,
+        target: buyTarget.target,
+        amount: buyTarget.amount || 0,
+        type: buyTarget.type || 'Saving',
+        createdAt: buyTarget.createdAt || new Date().toISOString()
+      }
     });
     await deleteGoal(buyTarget.id);
     setBuyTarget(null);

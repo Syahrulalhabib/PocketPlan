@@ -144,21 +144,6 @@ export const DataProvider = ({ children }) => {
     }
   }, [user, showToast]);
 
-  const deleteTransaction = useCallback(async (id) => {
-    try {
-      if (!firebaseEnabled || !user) {
-        setTransactions((prev) => prev.filter((t) => t.id !== id));
-        showToast('Transaction deleted (demo mode).');
-        return;
-      }
-      await deleteCollectionDoc(user.id, 'transactions', id);
-      showToast('Transaction deleted.');
-    } catch (err) {
-      console.error('Delete transaction failed', err);
-      showToast(err?.message || 'Failed to delete transaction', 'error');
-    }
-  }, [user, showToast]);
-
   const addGoal = useCallback(async (payload) => {
     const entry = {
       ...payload,
@@ -187,6 +172,40 @@ export const DataProvider = ({ children }) => {
       showToast(err?.message || 'Failed to save goal', 'error');
     }
   }, [user, showToast]);
+
+  const deleteTransaction = useCallback(async (id) => {
+    // Find the transaction before deleting — check for goalBackup
+    const tx = transactions.find((t) => t.id === id);
+    try {
+      if (!firebaseEnabled || !user) {
+        setTransactions((prev) => prev.filter((t) => t.id !== id));
+        if (tx?.goalBackup) {
+          await addGoal(tx.goalBackup);
+          showToast('Transaction deleted & goal restored (demo mode).');
+        } else {
+          showToast('Transaction deleted (demo mode).');
+        }
+        return;
+      }
+      await deleteCollectionDoc(user.id, 'transactions', id);
+      if (tx?.goalBackup) {
+        const ref = getUserCollection(user.id, 'goals');
+        await addCollectionDoc(ref, {
+          name: tx.goalBackup.name,
+          target: tx.goalBackup.target,
+          amount: tx.goalBackup.amount || 0,
+          type: tx.goalBackup.type || 'Saving',
+          createdAt: tx.goalBackup.createdAt || new Date().toISOString()
+        });
+        showToast('Transaction deleted & goal restored.');
+      } else {
+        showToast('Transaction deleted.');
+      }
+    } catch (err) {
+      console.error('Delete transaction failed', err);
+      showToast(err?.message || 'Failed to delete transaction', 'error');
+    }
+  }, [user, transactions, showToast, addGoal]);
 
   const updateGoal = useCallback(async (id, updates) => {
     const cleanUpdates = { ...updates };

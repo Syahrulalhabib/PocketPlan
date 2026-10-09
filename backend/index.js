@@ -21,10 +21,26 @@ app.use(morgan('dev'));
 
 const PORT = process.env.PORT || 4000;
 
-const demoTransactions = [
-  { id: 't1', category: 'Charity', type: 'Expense', amount: 2000000, date: '2025-11-22', description: 'Donation' }
-];
-const demoGoals = [{ id: 'g1', name: 'Laptop', type: 'Saving', amount: 2340000, target: 15000000 }];
+const demoTransactionsByUser = new Map();
+const demoGoalsByUser = new Map();
+
+function getDemoTransactions(uid) {
+  if (!demoTransactionsByUser.has(uid)) {
+    demoTransactionsByUser.set(uid, [
+      { id: 't1', category: 'Charity', type: 'Expense', amount: 2000000, date: '2025-11-22', description: 'Donation' }
+    ]);
+  }
+  return demoTransactionsByUser.get(uid);
+}
+
+function getDemoGoals(uid) {
+  if (!demoGoalsByUser.has(uid)) {
+    demoGoalsByUser.set(uid, [
+      { id: 'g1', name: 'Laptop', type: 'Saving', amount: 2340000, target: 15000000 }
+    ]);
+  }
+  return demoGoalsByUser.get(uid);
+}
 
 const useFirestore = Boolean(getDb());
 
@@ -107,66 +123,99 @@ app.post('/api/telegram/web-login', async (req, res) => {
 });
 
 app.get('/api/transactions', requireAuth, async (req, res) => {
-
-  if (!useFirestore) return res.json(demoTransactions);
-  const db = getDb();
-  const snapshot = await db.collection('transactions').get();
-  const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-  res.json(items);
+  const uid = req.user.uid;
+  if (!useFirestore) return res.json(getDemoTransactions(uid));
+  try {
+    const db = getDb();
+    const snapshot = await db.collection('users').doc(uid).collection('transactions').get();
+    const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post('/api/transactions', requireAuth, async (req, res) => {
+  const uid = req.user.uid;
   const payload = req.body;
   if (!useFirestore) {
-    demoTransactions.unshift({ ...payload, id: `t-${Date.now()}` });
+    const list = getDemoTransactions(uid);
+    list.unshift({ ...payload, id: `t-${Date.now()}` });
     return res.status(201).json({ ok: true });
   }
-  const db = getDb();
-  const docRef = await db.collection('transactions').add(payload);
-  res.status(201).json({ id: docRef.id });
+  try {
+    const db = getDb();
+    const docRef = await db.collection('users').doc(uid).collection('transactions').add(payload);
+    res.status(201).json({ id: docRef.id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.delete('/api/transactions/:id', requireAuth, async (req, res) => {
+  const uid = req.user.uid;
   const id = req.params.id;
   if (!useFirestore) {
-    const idx = demoTransactions.findIndex((t) => t.id === id);
-    if (idx >= 0) demoTransactions.splice(idx, 1);
+    const list = getDemoTransactions(uid);
+    const idx = list.findIndex((t) => t.id === id);
+    if (idx >= 0) list.splice(idx, 1);
     return res.json({ ok: true });
   }
-  const db = getDb();
-  await db.collection('transactions').doc(id).delete();
-  res.json({ ok: true });
+  try {
+    const db = getDb();
+    await db.collection('users').doc(uid).collection('transactions').doc(id).delete();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/api/goals', requireAuth, async (req, res) => {
-  if (!useFirestore) return res.json(demoGoals);
-  const db = getDb();
-  const snapshot = await db.collection('goals').get();
-  const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-  res.json(items);
+  const uid = req.user.uid;
+  if (!useFirestore) return res.json(getDemoGoals(uid));
+  try {
+    const db = getDb();
+    const snapshot = await db.collection('users').doc(uid).collection('goals').get();
+    const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post('/api/goals', requireAuth, async (req, res) => {
+  const uid = req.user.uid;
   const payload = req.body;
   if (!useFirestore) {
-    demoGoals.push({ ...payload, id: `g-${Date.now()}` });
+    const list = getDemoGoals(uid);
+    list.push({ ...payload, id: `g-${Date.now()}` });
     return res.status(201).json({ ok: true });
   }
-  const db = getDb();
-  const docRef = await db.collection('goals').add(payload);
-  res.status(201).json({ id: docRef.id });
+  try {
+    const db = getDb();
+    const docRef = await db.collection('users').doc(uid).collection('goals').add(payload);
+    res.status(201).json({ id: docRef.id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.delete('/api/goals/:id', requireAuth, async (req, res) => {
+  const uid = req.user.uid;
   const id = req.params.id;
   if (!useFirestore) {
-    const idx = demoGoals.findIndex((g) => g.id === id);
-    if (idx >= 0) demoGoals.splice(idx, 1);
+    const list = getDemoGoals(uid);
+    const idx = list.findIndex((g) => g.id === id);
+    if (idx >= 0) list.splice(idx, 1);
     return res.json({ ok: true });
   }
-  const db = getDb();
-  await db.collection('goals').doc(id).delete();
-  res.json({ ok: true });
+  try {
+    const db = getDb();
+    await db.collection('users').doc(uid).collection('goals').doc(id).delete();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Export for Vercel serverless. When running locally (npm run dev/start), still listen on PORT.

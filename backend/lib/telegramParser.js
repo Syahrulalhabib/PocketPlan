@@ -131,7 +131,9 @@ const INFERRED_KEYWORDS = {
 export function parseAmount(raw) {
   if (!raw) return 0;
   let clean = String(raw).trim().toLowerCase();
-  clean = clean.replace(/^rp\.?\s*/i, '');
+  clean = clean.replace(/^[([{\s'":\-]+|[)\]}\s'":,\-]+$/g, '');
+  clean = clean.replace(/^(rp\.?|idr)\s*/i, '');
+  clean = clean.trim();
 
   let multiplier = 1;
   if (/([0-9.,]+)\s*(jt|juta|m)\b/.test(clean)) {
@@ -144,12 +146,15 @@ export function parseAmount(raw) {
     clean = match[1];
   }
 
+  clean = clean.replace(/^[.,]+|[.,]+$/g, '');
+
   if (multiplier > 1 && clean.includes(',')) {
     clean = clean.replace(',', '.');
   } else if (multiplier === 1) {
     clean = clean.replace(/[.,]/g, '');
   }
 
+  clean = clean.replace(/[^0-9.]/g, '');
   const num = parseFloat(clean) * multiplier;
   return isNaN(num) || num <= 0 ? 0 : Math.round(num);
 }
