@@ -42,7 +42,11 @@ const RegisterPage = () => {
       navigate('/dashboard');
     } catch (err) {
       if (err?.code === 'auth/email-already-in-use') {
-        setError('Email already in use. Please sign in or use a different email.');
+        setError('Email already in use. If you signed up with Google, use Google Sign-in on the login page.');
+      } else if (err?.code === 'auth/weak-password') {
+        setError('Password too weak. Please use at least 6 characters.');
+      } else if (err?.code === 'auth/invalid-email') {
+        setError('Invalid email address.');
       } else {
         setError(err?.message || 'Registration failed. Please try again.');
       }

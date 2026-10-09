@@ -59,12 +59,17 @@ const LoginPage = () => {
       }
       navigate('/dashboard');
     } catch (err) {
-      const msg = err?.message?.toLowerCase().includes('email not verified')
-        ? 'Please verify your email before signing in.'
-        : err?.message?.toLowerCase().includes('wrong-password') || err?.message?.toLowerCase().includes('user')
-          ? 'Incorrect email or password.'
-          : 'Login failed. Please check your details.';
-      setError(msg);
+      const code = err?.code || '';
+      const msg = err?.message?.toLowerCase() || '';
+      if (msg.includes('email not verified')) {
+        setError('Please verify your email before signing in.');
+      } else if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
+        setError('Incorrect email or password. If you signed up with Google, use the Google button.');
+      } else if (code === 'auth/too-many-requests') {
+        setError('Too many attempts. Please try again later.');
+      } else {
+        setError('Login failed. Please check your details.');
+      }
     } finally {
       setLoading(false);
     }
@@ -80,6 +85,8 @@ const LoginPage = () => {
     } catch (err) {
       if (err?.code === 'auth/popup-closed-by-user') {
         setStatus('Google sign-in cancelled.');
+      } else if (err?.code === 'auth/account-exists-with-different-credential') {
+        setError('This email is already registered with email/password. Please sign in with your password.');
       } else {
         setError(err?.message || 'Google sign-in failed. Please try again.');
       }

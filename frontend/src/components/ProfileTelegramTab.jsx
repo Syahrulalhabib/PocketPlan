@@ -1,16 +1,46 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { TelegramIcon, CheckIcon } from './Icons.jsx';
 import { getTelegramStatus, requestLinkCode, requestUnlink } from '../services/telegramApi.js';
 import { getUserDocRef, listenDoc, firebaseEnabled } from '../services/firebase.js';
+
+const formatTimer = (ms) => {
+  if (ms <= 0) return '00:00';
+  const m = Math.floor(ms / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+};
 
 const ProfileTelegramTab = ({ user, setStatusMessage }) => {
   const [loading, setLoading] = useState(true);
   const [linkInfo, setLinkInfo] = useState({ linked: false, chatId: null, username: null });
   const [generatedCode, setGeneratedCode] = useState(null);
   const [deepLink, setDeepLink] = useState(null);
+  const [expiresAt, setExpiresAt] = useState(null);
+  const [remaining, setRemaining] = useState(0);
   const [requestingCode, setRequestingCode] = useState(false);
   const [copied, setCopied] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
+  const timerRef = useRef(null);
+
+  const startTimer = useCallback((expiry) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    const exp = typeof expiry === 'number' ? expiry : new Date(expiry).getTime();
+    setExpiresAt(exp);
+    setRemaining(Math.max(0, exp - Date.now()));
+    timerRef.current = setInterval(() => {
+      const left = Math.max(0, exp - Date.now());
+      setRemaining(left);
+      if (left <= 0) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+        setGeneratedCode(null);
+        setDeepLink(null);
+        setExpiresAt(null);
+      }
+    }, 1000);
+  }, []);
+
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -50,6 +80,7 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
       const res = await requestLinkCode();
       setGeneratedCode(res.code);
       setDeepLink(res.deepLink);
+      if (res.expiresAt) startTimer(res.expiresAt);
     } catch (err) {
       setStatusMessage?.({ type: 'error', text: err?.message || 'Gagal membuat kode' });
     } finally {
@@ -125,7 +156,7 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
             </button>
           ) : (
             <div className="telegram-code-card">
-              <p className="code-instruction">Kode Integrasi Kamu (15 Menit):</p>
+              <p className="code-instruction">Kode Integrasi Kamu:</p>
               <div className="code-display-wrap">
                 <span className="secret-link-code">{generatedCode}</span>
                 <button type="button" className="pill btn-secondary copy-code-btn" onClick={handleCopyCode}>
@@ -133,6 +164,9 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
                   <span>{copied ? 'Tersalin' : 'Salin'}</span>
                 </button>
               </div>
+              <p className="code-timer" style={{ fontSize: '0.85rem', color: remaining < 60000 ? 'var(--danger)' : 'var(--text-muted)', margin: '0.35rem 0 0.5rem', fontVariantNumeric: 'tabular-nums' }}>
+                ⏱️ Berlaku {formatTimer(remaining)}
+              </p>
               <p className="code-hint-text">Kirim perintah berikut ke bot di Telegram:</p>
               <div className="code-cmd-preview"><code>/link {generatedCode}</code></div>
               {deepLink && (
