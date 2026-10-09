@@ -141,11 +141,11 @@ export async function handleTelegramUpdate(update, db, botToken) {
   if (text === '/menu') return sendTelegramMessage(botToken, chatId, '📱 *Menu PocketPlan:*', { reply_markup: KEYBOARD });
 
   if (text === '💸 Catat Keluar' || text === '💸 Catat Pengeluaran') {
-    return sendTelegramMessage(botToken, chatId, '💸 *Catat Pengeluaran*\nLangsung ketik nominal & keterangannya:\n👉 `25k kopi susu`\n👉 `/catat 50k bensin pertalite`');
+    return sendTelegramMessage(botToken, chatId, '💸 *Catat Pengeluaran*\nLangsung ketik nominal & keterangannya, atau sebaliknya:\n👉 `25k kopi susu`\n👉 `kopi susu 25k`\n👉 `/catat makan siang 50k`');
   }
 
   if (text === '💰 Catat Masuk' || text === '💰 Tambah Pemasukan') {
-    return sendTelegramMessage(botToken, chatId, '💰 *Catat Pemasukan*\nKetik nominal & sumber pemasukannya:\n👉 `/masuk 2.5jt gaji bulanan`\n👉 `/masuk 300k freelance design`');
+    return sendTelegramMessage(botToken, chatId, '💰 *Catat Pemasukan*\nKetik keterangan & sumber pemasukannya:\n👉 `/masuk gaji bulanan 2.5jt`\n👉 `/masuk 300k freelance`');
   }
 
   if (text === '/goals' || text === '🎯 Target Impian' || text === '🎯 Target Goals') {
@@ -158,11 +158,25 @@ export async function handleTelegramUpdate(update, db, botToken) {
 
   if (text.startsWith('/goal')) {
     const raw = text.replace('/goal', '').trim();
-    if (!raw) return sendTelegramMessage(botToken, chatId, '🎯 *Format Buat Target:*\nKetik: `/goal [nominal] [nama]`\nContoh: `/goal 15jt Motor Matic`');
-    const first = raw.split(/\s+/)[0];
-    const amt = parseAmount(first);
-    const name = raw.substring(first.length).trim() || 'Tabungan Impian';
-    if (!amt) return sendTelegramMessage(botToken, chatId, '⚠️ Nominal belum benar.\nContoh: `/goal 10jt Laptop Baru`');
+    if (!raw) return sendTelegramMessage(botToken, chatId, '🎯 *Format Buat Target:*\nKetik: `/goal [nama] [nominal]` atau `/goal [nominal] [nama]`\nContoh: `/goal Motor Matic 15jt`');
+    const rawWords = raw.split(/\s+/);
+    let amt = 0;
+    let name = '';
+
+    const firstAmt = parseAmount(rawWords[0]);
+    if (firstAmt > 0) {
+      amt = firstAmt;
+      name = rawWords.slice(1).join(' ').trim();
+    } else {
+      const lastAmt = parseAmount(rawWords[rawWords.length - 1]);
+      if (lastAmt > 0) {
+        amt = lastAmt;
+        name = rawWords.slice(0, -1).join(' ').trim();
+      }
+    }
+
+    if (!name) name = 'Tabungan Impian';
+    if (!amt) return sendTelegramMessage(botToken, chatId, '⚠️ Nominal belum benar.\nContoh:\n👉 `/goal Laptop Baru 10jt`\n👉 `/goal 10jt Laptop Baru`');
     if (db) {
       await db.collection('users').doc(uid).collection('goals').add({
         name,
@@ -208,7 +222,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
     return sendTelegramMessage(
       botToken,
       chatId,
-      '📖 *PANDUAN SINGKAT POCKY* 🪙\n\n• `35k makan siang` — catat keluar kilat\n• `/catat 50k bensin` — catat pengeluaran\n• `/masuk 2jt gaji` — catat pemasukan\n• `/saldo` — cek sisa saldo\n• `/goals` — lihat target impian\n• `/goal 10jt Motor` — buat target baru\n• `/beligoal [nama]` — beli target tercapai\n• `/web` — kode login website\n• `/riwayat` — 5 transaksi terakhir\n• `/batal` — hapus transaksi terakhir',
+      '📖 *PANDUAN SINGKAT POCKY* 🪙\n\n• `makan siang 35k` — catat keluar kilat\n• `/catat bensin 50k` — catat pengeluaran\n• `/masuk gaji 2jt` — catat pemasukan\n• `/saldo` — cek sisa saldo\n• `/goals` — lihat target impian\n• `/goal Motor 10jt` — buat target baru\n• `/beligoal [nama]` — beli target tercapai\n• `/web` — kode login website\n• `/riwayat` — 5 transaksi terakhir\n• `/batal` — hapus transaksi terakhir',
       { reply_markup: KEYBOARD }
     );
   }
@@ -314,7 +328,7 @@ async function sendGoals(chatId, uid, db, botToken) {
     return sendTelegramMessage(
       botToken,
       chatId,
-      '🎯 *Belum ada target impian nih!*\n\nBikin target yuk biar makin semangat nabung:\n👉 `/goal 10jt Laptop Baru`\n👉 `/goal 500k Sepatu Lari`'
+      '🎯 *Belum ada target impian nih!*\n\nBikin target yuk biar makin semangat nabung:\n👉 `/goal Laptop Baru 10jt`\n👉 `/goal Sepatu Lari 500k`'
     );
   }
 

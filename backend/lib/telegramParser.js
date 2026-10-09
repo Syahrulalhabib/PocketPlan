@@ -175,31 +175,55 @@ export function parseTransactionCommand(text, defaultType = 'Expense') {
   let amountStr = '';
   let remaining = [];
 
-  if (first.startsWith('/masuk') || first.startsWith('/income') || first === 'masuk') {
-    type = 'Income';
+  const isCommand = (cmd, ...matches) => matches.some((m) => cmd.startsWith(m) || cmd === m.replace('/', ''));
+  const isIncome = isCommand(first, '/masuk', '/income');
+  const isExpense = isCommand(first, '/catat', '/keluar', '/expense');
+
+  if (isIncome || isExpense) {
+    type = isIncome ? 'Income' : 'Expense';
     if (words.length < 2) return null;
-    amountStr = words[1];
-    remaining = words.slice(2);
-  } else if (first.startsWith('/catat') || first.startsWith('/keluar') || first.startsWith('/expense') || first === 'catat' || first === 'keluar') {
-    type = 'Expense';
-    if (words.length < 2) return null;
-    amountStr = words[1];
-    remaining = words.slice(2);
-  } else if (first.startsWith('+')) {
-    type = 'Income';
-    amountStr = first.slice(1) || (words[1] || '');
-    remaining = first.slice(1) ? words.slice(1) : words.slice(2);
-  } else if (first.startsWith('-')) {
-    type = 'Expense';
-    amountStr = first.slice(1) || (words[1] || '');
-    remaining = first.slice(1) ? words.slice(1) : words.slice(2);
+    
+    // Check if amount is immediately after the command (e.g., /catat 50k kopi)
+    if (parseAmount(words[1]) > 0) {
+      amountStr = words[1];
+      remaining = words.slice(2);
+    } 
+    // Check if amount is at the end (e.g., /catat kopi 50k)
+    else if (parseAmount(words[words.length - 1]) > 0) {
+      amountStr = words[words.length - 1];
+      remaining = words.slice(1, -1);
+    } 
+    else {
+      return null;
+    }
+  } else if (first.startsWith('+') || first.startsWith('-')) {
+    type = first.startsWith('+') ? 'Income' : 'Expense';
+    const restOfFirst = first.slice(1);
+    const subWords = restOfFirst ? [restOfFirst, ...words.slice(1)] : words.slice(1);
+    
+    if (subWords.length < 1) return null;
+    if (parseAmount(subWords[0]) > 0) {
+      amountStr = subWords[0];
+      remaining = subWords.slice(1);
+    } else if (parseAmount(subWords[subWords.length - 1]) > 0) {
+      amountStr = subWords[subWords.length - 1];
+      remaining = subWords.slice(0, -1);
+    } else {
+      return null;
+    }
   } else {
-    // Check if the very first word is an amount (e.g. "50k kopi", "25000 bensin")
-    const testAmt = parseAmount(first);
-    if (testAmt > 0 && words.length >= 2) {
+    // Direct shorthand without command
+    // Check if first word is amount (e.g., "50k kopi")
+    if (parseAmount(first) > 0 && words.length >= 2) {
       type = 'Expense';
       amountStr = first;
       remaining = words.slice(1);
+    } 
+    // Check if last word is amount (e.g., "kopi 50k")
+    else if (parseAmount(words[words.length - 1]) > 0 && words.length >= 2) {
+      type = 'Expense';
+      amountStr = words[words.length - 1];
+      remaining = words.slice(0, -1);
     } else {
       return null;
     }
@@ -217,7 +241,7 @@ export function parseTransactionCommand(text, defaultType = 'Expense') {
     // Check if user specified explicit category first (e.g. /catat 50000 makan nasi padang)
     if (EXPLICIT_CATEGORIES[firstRemainingKey]) {
       category = EXPLICIT_CATEGORIES[firstRemainingKey];
-      description = remaining.slice(1).join(' ').trim();
+      description = remaining.slice(1).join(' ').trim() || remaining[0];
     } else {
       // User didn't give category prefix (e.g. /catat 15000 kopi kenangan)
       description = remaining.join(' ').trim();

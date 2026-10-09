@@ -130,9 +130,10 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
           <div className="telegram-commands-box">
             <h4>💡 Perintah Bot:</h4>
             <ul>
-              <li><code>/catat 50000 makan nasi</code> Pengeluaran</li>
-              <li><code>/catat 20k bensin</code> Format k, rb, jt didukung</li>
-              <li><code>/masuk 2.5jt gaji</code> Pemasukan</li>
+              <li><code>/catat makan nasi 50k</code> Catat pengeluaran</li>
+              <li><code>/masuk gaji 2.5jt</code> Catat pemasukan</li>
+              <li><code>kopi susu 25k</code> Catat kilat (keterangan + nominal)</li>
+              <li><code>/goal Motor Matic 15jt</code> Buat target impian</li>
               <li><code>/saldo</code> Ringkasan saldo</li>
               <li><code>/riwayat</code> 5 transaksi terakhir</li>
               <li><code>/batal</code> Batalkan catatan terakhir</li>

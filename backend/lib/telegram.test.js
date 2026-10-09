@@ -24,6 +24,21 @@ assert.strictEqual(tx2.type, 'Income');
 assert.strictEqual(tx2.amount, 2500000);
 assert.strictEqual(tx2.category, 'Salary');
 
+const tx3 = parseTransactionCommand('/catat makan nasi padang 50000');
+assert.strictEqual(tx3.type, 'Expense');
+assert.strictEqual(tx3.amount, 50000);
+assert.strictEqual(tx3.category, 'Food');
+
+const tx4 = parseTransactionCommand('/masuk gaji bulanan 2.5jt');
+assert.strictEqual(tx4.type, 'Income');
+assert.strictEqual(tx4.amount, 2500000);
+
+const tx5 = parseTransactionCommand('kopi kenangan 50k');
+assert.strictEqual(tx5.type, 'Expense');
+assert.strictEqual(tx5.amount, 50000);
+assert.strictEqual(tx5.category, 'Food');
+assert.strictEqual(tx2.category, 'Salary');
+
 // 3. Bot commands flow
 async function testBot() {
   const uid = 'test-uid';
@@ -53,12 +68,35 @@ async function testBot() {
   }, null, 'token');
   assert(replies[0].text.includes('Pengeluaran Dicatat') || replies[0].text.includes('Tercatat'));
 
-  // Shorthand direct amount catat
+  // Catat format baru: /catat [keterangan] [nominal]
   replies = [];
   await handleTelegramUpdate({
-    message: { chat: { id: 777 }, text: '35k es kopi', from: { first_name: 'Dewi' } }
+    message: { chat: { id: 777 }, text: '/catat nasi goreng 30k', from: { first_name: 'Dewi' } }
   }, null, 'token');
   assert(replies[0].text.includes('Pengeluaran Dicatat') || replies[0].text.includes('Tercatat'));
+  assert(replies[0].text.includes('Nasi Goreng'));
+
+  // Masuk format baru: /masuk [keterangan] [nominal]
+  replies = [];
+  await handleTelegramUpdate({
+    message: { chat: { id: 777 }, text: '/masuk honor project 500k', from: { first_name: 'Dewi' } }
+  }, null, 'token');
+  assert(replies[0].text.includes('Pemasukan Dicatat'));
+
+  // Shorthand direct amount catat: [keterangan] [nominal]
+  replies = [];
+  await handleTelegramUpdate({
+    message: { chat: { id: 777 }, text: 'es kopi susu 18k', from: { first_name: 'Dewi' } }
+  }, null, 'token');
+  assert(replies[0].text.includes('Pengeluaran Dicatat') || replies[0].text.includes('Tercatat'));
+
+  // Goal format baru: /goal [nama] [nominal]
+  replies = [];
+  await handleTelegramUpdate({
+    message: { chat: { id: 777 }, text: '/goal Motor Baru 20jt', from: { first_name: 'Dewi' } }
+  }, null, 'token');
+  assert(replies[0].text.includes('Target Baru Dibuat'));
+  assert(replies[0].text.includes('Motor Baru'));
 
   // Saldo
   replies = [];
