@@ -361,7 +361,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
 
 async function sendSaldo(chatId, uid, db, botToken) {
   const { bal, inc, exp } = await getBalance(uid, db);
-  const text = `💳 *Dompet PocketPlan*\n\n💰 *Saldo:* \`${formatRupiah(bal)}\`\n🟢 Pemasukan: ${formatRupiah(inc)}\n🔴 Pengeluaran: ${formatRupiah(exp)}\n🆔 _uid: ${uid || 'null'}_\n\n_Uang tercatat rapi, masa depan tenang._`;
+  const text = `💳 *Dompet PocketPlan*\n\n💰 *Saldo:* \`${formatRupiah(bal)}\`\n🟢 Pemasukan: ${formatRupiah(inc)}\n🔴 Pengeluaran: ${formatRupiah(exp)}\n\n_Uang tercatat rapi, masa depan tenang._`;
   return sendTelegramMessage(botToken, chatId, text, {
     reply_markup: { inline_keyboard: [[{ text: '🎯 Lihat Target Impian', callback_data: 'goals' }]] }
   });
