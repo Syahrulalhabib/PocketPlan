@@ -34,6 +34,22 @@ function formatShortDate(dStr) {
   return parts.length === 3 ? `${parts[2]}/${parts[1]}` : dStr;
 }
 
+async function getBalance(uid, db) {
+  let inc = 0, exp = 0, base = 0;
+  if (db && uid) {
+    const uDoc = await db.collection('users').doc(uid).get();
+    base = Number(uDoc.data()?.baseBalance || 0);
+    const snap = await db.collection('users').doc(uid).collection('transactions').get();
+    snap.forEach((d) => {
+      const t = d.data();
+      const a = Number(t.amount) || 0;
+      if (t.type === 'Income') inc += a;
+      else exp += a;
+    });
+  }
+  return { bal: base + inc - exp, inc, exp };
+}
+
 export async function handleTelegramUpdate(update, db, botToken) {
   if (update?.callback_query) {
     const cb = update.callback_query;
@@ -49,6 +65,13 @@ export async function handleTelegramUpdate(update, db, botToken) {
         if (snap.exists) {
           const g = snap.data();
           const amt = Number(g.target) || 0;
+          const { bal } = await getBalance(uid, db);
+          if (bal < amt) {
+            await answerTelegramCallback(botToken, cb.id, 'Saldo tidak cukup');
+            return sendTelegramMessage(botToken, chatId,
+              `🚫 *Saldo tidak cukup untuk beli ${g.name}*\n\n💳 Saldo: *${formatRupiah(bal)}*\n🎯 Harga: *${formatRupiah(amt)}*\n📉 Kurang: *${formatRupiah(amt - bal)}*\n\nTambah pemasukan dulu ya!`
+            );
+          }
           await db.collection('users').doc(uid).collection('transactions').add({
             category: 'Shopping',
             type: 'Expense',
@@ -300,6 +323,19 @@ export async function handleTelegramUpdate(update, db, botToken) {
 
   const parsed = parseTransactionCommand(text);
   if (parsed) {
+    if (parsed.type === 'Expense' && db && uid) {
+      const { bal } = await getBalance(uid, db);
+      if (bal <= 0) {
+        return sendTelegramMessage(botToken, chatId,
+          `🚫 *Saldo tidak cukup*\n\n💳 Saldomu saat ini: *${formatRupiah(bal)}*\n\nTambah pemasukan dulu sebelum mencatat pengeluaran.\nContoh: \`/masuk gaji 2jt\``
+        );
+      }
+      if (bal - parsed.amount < 0) {
+        return sendTelegramMessage(botToken, chatId,
+          `🚫 *Saldo tidak cukup*\n\n💳 Saldo: *${formatRupiah(bal)}*\n💸 Pengeluaran: *${formatRupiah(parsed.amount)}*\n📉 Kurang: *${formatRupiah(parsed.amount - bal)}*\n\nTambah pemasukan dulu atau kurangi nominal.`
+        );
+      }
+    }
     if (db) await db.collection('users').doc(uid).collection('transactions').add(parsed);
     if (parsed.type === 'Income') {
       return sendTelegramMessage(
@@ -324,19 +360,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
 }
 
 async function sendSaldo(chatId, uid, db, botToken) {
-  let bal = 0, inc = 0, exp = 0;
-  if (db && uid) {
-    const uDoc = await db.collection('users').doc(uid).get();
-    const base = Number(uDoc.data()?.baseBalance || 0);
-    const snap = await db.collection('users').doc(uid).collection('transactions').get();
-    snap.forEach((d) => {
-      const t = d.data();
-      const a = Number(t.amount) || 0;
-      if (t.type === 'Income') inc += a;
-      else exp += a;
-    });
-    bal = base + inc - exp;
-  }
+  const { bal, inc, exp } = await getBalance(uid, db);
   const text = `💳 *Dompet PocketPlan*\n\n💰 *Saldo:* \`${formatRupiah(bal)}\`\n🟢 Pemasukan: ${formatRupiah(inc)}\n🔴 Pengeluaran: ${formatRupiah(exp)}\n\n_Uang tercatat rapi, masa depan tenang._`;
   return sendTelegramMessage(botToken, chatId, text, {
     reply_markup: { inline_keyboard: [[{ text: '🎯 Lihat Target Impian', callback_data: 'goals' }]] }
@@ -344,19 +368,9 @@ async function sendSaldo(chatId, uid, db, botToken) {
 }
 
 async function sendGoals(chatId, uid, db, botToken) {
-  let goals = [], bal = 0;
+  const { bal } = await getBalance(uid, db);
+  let goals = [];
   if (db && uid) {
-    const uDoc = await db.collection('users').doc(uid).get();
-    let inc = 0, exp = 0;
-    const base = Number(uDoc.data()?.baseBalance || 0);
-    const txSnap = await db.collection('users').doc(uid).collection('transactions').get();
-    txSnap.forEach((d) => {
-      const t = d.data();
-      const a = Number(t.amount) || 0;
-      if (t.type === 'Income') inc += a;
-      else exp += a;
-    });
-    bal = base + inc - exp;
     const gSnap = await db.collection('users').doc(uid).collection('goals').get();
     goals = gSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
   }
