@@ -336,3 +336,61 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
+
+/* Receipt Scanner */
+.receipt-upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px;
+  border: 2px dashed var(--border-color, #cbd5e1);
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.receipt-upload-zone:hover {
+  border-color: var(--primary, #e45153);
+  background: rgba(228, 81, 83, 0.04);
+}
+.receipt-progress-bar {
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+  width: 80%;
+  margin: 0 auto;
+}
+.theme-dark .receipt-progress-bar { background: #374151; }
+.receipt-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #e45153, #f59e0b);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+.receipt-result-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+.theme-dark .receipt-result-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.receipt-result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 13.5px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+.receipt-result-row:last-child { border-bottom: none; }
+.theme-dark .receipt-result-row { border-bottom-color: rgba(255, 255, 255, 0.06); }
+.receipt-result-label { color: var(--muted); font-weight: 500; }
+.receipt-result-value { font-weight: 600; color: var(--text); }
