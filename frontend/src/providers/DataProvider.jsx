@@ -273,9 +273,10 @@ export const DataProvider = ({ children }) => {
       addGoal,
       updateGoal,
       deleteGoal,
-      toast
+      toast,
+      showToast
     }),
-    [transactions, goals, summary, loading, toast, baseBalance, addTransaction, updateTransaction, deleteTransaction, addGoal, updateGoal, deleteGoal]
+    [transactions, goals, summary, loading, toast, baseBalance, addTransaction, updateTransaction, deleteTransaction, addGoal, updateGoal, deleteGoal, showToast]
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

@@ -58,7 +58,12 @@ const googleProvider = firebaseEnabled ? new GoogleAuthProvider() : null;
 
 export const signInEmail = (email, password) => signInWithEmailAndPassword(auth, email, password);
 export const signUpEmail = (email, password) => createUserWithEmailAndPassword(auth, email, password);
-export const signInWithGoogle = () => signInWithPopup(auth, googleProvider).catch(() => signInWithRedirect(auth, googleProvider));
+export const signInWithGoogle = () => signInWithPopup(auth, googleProvider).catch((err) => {
+  if (err?.code === 'auth/popup-blocked' || err?.code === 'auth/operation-not-supported-in-this-environment') {
+    return signInWithRedirect(auth, googleProvider);
+  }
+  throw err;
+});
 export const signOutUser = () => signOut(auth);
 export const signInWithToken = (token) => firebaseSignInWithCustomToken(auth, token);
 export const sendVerificationEmail = (user) => {

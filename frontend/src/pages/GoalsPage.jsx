@@ -19,7 +19,7 @@ const emptyForm = {
 };
 
 const GoalsPage = () => {
-  const { goals, addGoal, updateGoal, deleteGoal, addTransaction, summary } = useData();
+  const { goals, addGoal, updateGoal, deleteGoal, addTransaction, summary, showToast } = useData();
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editModal, setEditModal] = useState(false);
@@ -33,6 +33,7 @@ const GoalsPage = () => {
     if (!buyTarget) return;
     const amt = Number(buyTarget.target) || 0;
     if ((summary?.balance ?? 0) < amt) {
+      showToast(`Saldo tidak cukup untuk beli ${buyTarget.name}. Kurang ${formatRupiah(amt - (summary?.balance ?? 0))}`, 'error');
       setBuyTarget(null);
       return;
     }

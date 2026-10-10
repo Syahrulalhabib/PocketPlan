@@ -77,7 +77,8 @@ const requireAuth = async (req, res, next) => {
   const token = authHeader.replace(/^Bearer\s+/i, '');
   if (!token) return res.status(401).json({ error: 'Missing token' });
   try {
-    const decoded = await import('firebase-admin').then(({ auth }) => auth().verifyIdToken(token));
+    const adminAuth = (await import('firebase-admin')).default.auth();
+    const decoded = await adminAuth.verifyIdToken(token);
     req.user = { uid: decoded.uid };
     next();
   } catch (err) {
