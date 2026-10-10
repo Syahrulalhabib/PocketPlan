@@ -5,6 +5,8 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  signInWithCustomToken as firebaseSignInWithCustomToken,
   createUserWithEmailAndPassword,
   signOut,
   sendEmailVerification,
@@ -56,8 +58,9 @@ const googleProvider = firebaseEnabled ? new GoogleAuthProvider() : null;
 
 export const signInEmail = (email, password) => signInWithEmailAndPassword(auth, email, password);
 export const signUpEmail = (email, password) => createUserWithEmailAndPassword(auth, email, password);
-export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
+export const signInWithGoogle = () => signInWithPopup(auth, googleProvider).catch(() => signInWithRedirect(auth, googleProvider));
 export const signOutUser = () => signOut(auth);
+export const signInWithToken = (token) => firebaseSignInWithCustomToken(auth, token);
 export const sendVerificationEmail = (user) => {
   const target = user || auth?.currentUser;
   if (!target) {

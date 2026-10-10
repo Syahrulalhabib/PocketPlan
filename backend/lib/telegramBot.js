@@ -34,6 +34,12 @@ function formatShortDate(dStr) {
   return parts.length === 3 ? `${parts[2]}/${parts[1]}` : dStr;
 }
 
+function escapeMarkdown(text) {
+  if (!text) return '';
+  return String(text).replace(/([*_`\[\]])/g, '\\$1');
+}
+
+// TODO(perf): getBalance reads all transactions; add server-side balance caching if collection grows large
 async function getBalance(uid, db) {
   let inc = 0, exp = 0, base = 0;
   if (db && uid) {
@@ -68,6 +74,15 @@ function recordLinkFail(chatId) {
   hits.push(Date.now());
   _linkFails.set(key, hits);
 }
+// Prune stale link-fail entries every 10 minutes
+setInterval(() => {
+  const now = Date.now();
+  const window = 15 * 60 * 1000;
+  for (const [k, hits] of _linkFails) {
+    const fresh = hits.filter(t => t > now - window);
+    if (fresh.length === 0) _linkFails.delete(k); else _linkFails.set(k, fresh);
+  }
+}, 10 * 60 * 1000).unref();
 
 export async function handleTelegramUpdate(update, db, botToken) {
   if (update?.callback_query) {
@@ -88,7 +103,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
           if (bal < amt) {
             await answerTelegramCallback(botToken, cb.id, 'Saldo tidak cukup');
             return sendTelegramMessage(botToken, chatId,
-              `🚫 *Saldo tidak cukup untuk beli ${g.name}*\n\n💳 Saldo: *${formatRupiah(bal)}*\n🎯 Harga: *${formatRupiah(amt)}*\n📉 Kurang: *${formatRupiah(amt - bal)}*\n\nTambah pemasukan dulu ya!`
+              `🚫 *Saldo tidak cukup untuk beli ${escapeMarkdown(g.name)}*\n\n💳 Saldo: *${formatRupiah(bal)}*\n🎯 Harga: *${formatRupiah(amt)}*\n📉 Kurang: *${formatRupiah(amt - bal)}*\n\nTambah pemasukan dulu ya!`
             );
           }
           await db.collection('users').doc(uid).collection('transactions').add({
@@ -105,7 +120,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
           return sendTelegramMessage(
             botToken,
             chatId,
-            `🥳 *Impian Tercapai!* 🎉\n\n*${g.name}* (${formatRupiah(amt)}) berhasil dibeli!\n\n✅ Pengeluaran dicatat\n🎯 Target selesai & diarsipkan\n\nHebat, nabungmu membuahkan hasil! 🪙`
+            `🥳 *Impian Tercapai!* 🎉\n\n*${escapeMarkdown(g.name)}* (${formatRupiah(amt)}) berhasil dibeli!\n\n✅ Pengeluaran dicatat\n🎯 Target selesai & diarsipkan\n\nHebat, nabungmu membuahkan hasil! 🪙`
           );
         }
       }
@@ -130,7 +145,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
   const chatId = msg.chat.id;
   const text = msg.text.trim();
   const userFrom = msg.from || {};
-  const userName = userFrom.first_name || 'Teman';
+  const userName = escapeMarkdown(userFrom.first_name || 'Teman');
 
   if (text.startsWith('/start')) {
     const parts = text.split(/\s+/);
@@ -220,10 +235,20 @@ export async function handleTelegramUpdate(update, db, botToken) {
     }
     if (db) {
       const snap = await db.collection('users').doc(uid).collection('goals').get();
-      const match = snap.docs.find((d) => d.id === q || d.data().name?.toLowerCase().includes(q));
-      if (!match) return sendTelegramMessage(botToken, chatId, `❌ Target "${q}" tidak ditemukan.\nKetik /goals untuk lihat semua target.`);
+      const exact = snap.docs.find((d) => d.id === q || d.data().name?.toLowerCase() === q);
+      const match = exact || snap.docs.find((d) => d.data().name?.toLowerCase().includes(q));
+      if (!match) return sendTelegramMessage(botToken, chatId, `❌ Target "${escapeMarkdown(q)}" tidak ditemukan.\nKetik /goals untuk lihat semua target.`);
+      if (!exact && snap.docs.filter((d) => d.data().name?.toLowerCase().includes(q)).length > 1) {
+        return sendTelegramMessage(botToken, chatId, `⚠️ Ada beberapa target cocok dengan "${escapeMarkdown(q)}".\nKetik nama lebih lengkap atau gunakan /goals lalu tekan tombol Beli.`);
+      }
       const g = match.data();
       const amt = Number(g.target) || 0;
+      const { bal } = await getBalance(uid, db);
+      if (bal < amt) {
+        return sendTelegramMessage(botToken, chatId,
+          `🚫 *Saldo tidak cukup untuk beli ${escapeMarkdown(g.name)}*\n\n💳 Saldo: *${formatRupiah(bal)}*\n🎯 Harga: *${formatRupiah(amt)}*\n📉 Kurang: *${formatRupiah(amt - bal)}*\n\nTambah pemasukan dulu ya!`
+        );
+      }
       await db.collection('users').doc(uid).collection('transactions').add({
         category: 'Shopping',
         type: 'Expense',
@@ -237,19 +262,19 @@ export async function handleTelegramUpdate(update, db, botToken) {
       return sendTelegramMessage(
         botToken,
         chatId,
-        `🥳 *Impian Tercapai!* 🎉\n\n*${g.name}* (${formatRupiah(amt)}) berhasil dibeli!\n\n✅ Pengeluaran dicatat\n🎯 Target selesai & diarsipkan\n\nHebat, nabungmu membuahkan hasil! 🪙`
+        `🥳 *Impian Tercapai!* 🎉\n\n*${escapeMarkdown(g.name)}* (${formatRupiah(amt)}) berhasil dibeli!\n\n✅ Pengeluaran dicatat\n🎯 Target selesai & diarsipkan\n\nHebat, nabungmu membuahkan hasil! 🪙`
       );
     }
     return sendTelegramMessage(botToken, chatId, 'Target dibeli.');
   }
 
-  if (text === '/goal' || text.startsWith('/goal@')) {
+  if (text === '/goal' || /^\/goal@\S+$/i.test(text)) {
     return sendTelegramMessage(botToken, chatId, '🎯 *Format Buat Target:*\nKetik: `/goal [nama] [nominal]` atau `/goal [nominal] [nama]`\nContoh: `/goal Motor Matic 15jt`',
       { reply_markup: KEYBOARD });
   }
 
-  if (text.startsWith('/goal ')) {
-    const raw = text.replace(/^\/goal(@\S+)?\s+/, '').trim();
+  if (/^\/goal(@\S+)?\s+/i.test(text)) {
+    const raw = text.replace(/^\/goal(@\S+)?\s+/i, '').trim();
     if (!raw) return sendTelegramMessage(botToken, chatId, '🎯 *Format Buat Target:*\nKetik: `/goal [nama] [nominal]` atau `/goal [nominal] [nama]`\nContoh: `/goal Motor Matic 15jt`');
     const rawWords = raw.split(/\s+/);
     let amt = 0;
@@ -280,7 +305,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
     return sendTelegramMessage(
       botToken,
       chatId,
-      `🎯 *Target Baru Dibuat!* ✨\n\n📌 *${name}*\n🎯 Target: *${formatRupiah(amt)}*\n\nKetik \`/goals\` kapan saja buat cek progres tabunganmu! 🚀`
+      `🎯 *Target Baru Dibuat!* ✨\n\n📌 *${escapeMarkdown(name)}*\n🎯 Target: *${formatRupiah(amt)}*\n\nKetik \`/goals\` kapan saja buat cek progres tabunganmu! 🚀`
     );
   }
 
@@ -306,7 +331,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
       snap.forEach((d) => {
         const t = d.data();
         const sign = t.type === 'Income' ? '🟢 +' : '🔴 -';
-        out += `${i}. ${sign}*${formatRupiah(t.amount)}*\n   ${t.description || t.category} • ${formatShortDate(t.date)}\n\n`;
+        out += `${i}. ${sign}*${formatRupiah(t.amount)}*\n   ${escapeMarkdown(t.description || t.category)} • ${formatShortDate(t.date)}\n\n`;
         i++;
       });
       out += '💡 _Salah catat? Ketik `/batal` untuk hapus yang terakhir._';
@@ -372,13 +397,13 @@ export async function handleTelegramUpdate(update, db, botToken) {
       return sendTelegramMessage(
         botToken,
         chatId,
-        `✅ *Pemasukan Dicatat*\n🟢 +*${formatRupiah(parsed.amount)}*\n📝 *${parsed.description}*\n📁 ${parsed.category} • 📅 ${formatShortDate(parsed.date)}`
+        `✅ *Pemasukan Dicatat*\n🟢 +*${formatRupiah(parsed.amount)}*\n📝 *${escapeMarkdown(parsed.description)}*\n📁 ${escapeMarkdown(parsed.category)} • 📅 ${formatShortDate(parsed.date)}`
       );
     }
     return sendTelegramMessage(
       botToken,
       chatId,
-      `✅ *Pengeluaran Dicatat*\n🔴 -*${formatRupiah(parsed.amount)}*\n📝 *${parsed.description}*\n📁 ${parsed.category} • 📅 ${formatShortDate(parsed.date)}`
+      `✅ *Pengeluaran Dicatat*\n🔴 -*${formatRupiah(parsed.amount)}*\n📝 *${escapeMarkdown(parsed.description)}*\n📁 ${escapeMarkdown(parsed.category)} • 📅 ${formatShortDate(parsed.date)}`
     );
   }
 
@@ -419,7 +444,7 @@ async function sendGoals(chatId, uid, db, botToken) {
   goals.forEach((g, i) => {
     const tgt = Number(g.target) || 1;
     const done = bal >= tgt;
-    text += `${i + 1}. *${g.name}*\n   Target: ${formatRupiah(tgt)}\n   Progres: ${renderBar(bal, tgt)}${done ? ' 🏆 *BISA DIBELI!*' : ''}\n\n`;
+    text += `${i + 1}. *${escapeMarkdown(g.name)}*\n   Target: ${formatRupiah(tgt)}\n   Progres: ${renderBar(bal, tgt)}${done ? ' 🏆 *BISA DIBELI!*' : ''}\n\n`;
     if (done) buttons.push([{ text: `🛍️ Beli: ${g.name}`, callback_data: `buy:${g.id}` }]);
   });
 
