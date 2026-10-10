@@ -63,7 +63,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
           return sendTelegramMessage(
             botToken,
             chatId,
-            `🥳 *HOREEE! IMPIAN TERCAPAI!* 🎉🛍️\n\nBarang idamanmu *${g.name}* (${formatRupiah(amt)}) resmi dibeli!\n\n✅ Pengeluaran dicatat\n🎯 Target selesai & diarsipkan\n\nKeren banget, nabungnya berhasil! 🪙✨`
+            `🥳 *Impian Tercapai!* 🎉\n\n*${g.name}* (${formatRupiah(amt)}) berhasil dibeli!\n\n✅ Pengeluaran dicatat\n🎯 Target selesai & diarsipkan\n\nHebat, nabungmu membuahkan hasil! 🪙`
           );
         }
       }
@@ -94,22 +94,22 @@ export async function handleTelegramUpdate(update, db, botToken) {
     const parts = text.split(/\s+/);
     if (parts.length > 1) {
       const res = await linkChatWithCode(chatId, parts[1], userFrom, db);
-      if (res === 'EXPIRED') return sendTelegramMessage(botToken, chatId, '⌛ *Ups, kodenya kedaluwarsa!*\nBikin kode baru di web yuk: *Profile > Telegram Bot*.');
+      if (res === 'EXPIRED') return sendTelegramMessage(botToken, chatId, '⏳ *Kode kedaluwarsa*\nBuat kode baru di website: *Profile → Telegram Bot*.');
       if (res) {
         return sendTelegramMessage(
           botToken,
           chatId,
-          '🎉 *Hore, akunmu terhubung!* 🪙\nSemua catatan di bot ini langsung sinkron ke PocketPlan web.\n\nMau catat apa hari ini? 🚀',
+          '🎉 *Akun berhasil terhubung!*\n\nSemua catatan keuanganmu kini sinkron otomatis antara Telegram dan PocketPlan web.\n\nMau mulai catat? Coba ketik: `kopi 15k`',
           { reply_markup: KEYBOARD }
         );
       }
-      return sendTelegramMessage(botToken, chatId, '❌ *Kodenya kurang pas nih.*\nCek lagi 6 karakter kodenya di menu *Profile* website ya!');
+      return sendTelegramMessage(botToken, chatId, '❌ *Kode tidak valid*\nPastikan 6 karakter kode sama persis dengan yang tertera di menu *Profile* website.');
     }
     await ensureTelegramUser(chatId, userFrom, db);
     return sendTelegramMessage(
       botToken,
       chatId,
-      `🪙 *Halo ${userName}! Aku Pocky,* asisten keuangan pribadimu! 🎉\n\nAku bisa bantu kamu:\n💸 Catat pengeluaran & pemasukan\n🎯 Buat target impian & pantau progres\n📊 Cek saldo & riwayat kapan saja\n\n*Cara pakai gampang banget:*\n• Ketik langsung → \`kopi susu 25k\`\n• Pengeluaran → \`/catat bensin 50k\`\n• Pemasukan → \`/masuk gaji 2jt\`\n• Target baru → \`/goal Laptop 10jt\`\n• Cek saldo → \`/saldo\`\n\nKetik /help untuk panduan lengkap 📖\nYuk mulai catat keuanganmu! 🚀`,
+      `🪙 *Hai ${userName}! Salam kenal, aku Pocky!*\n\nAsisten keuangan pribadimu di Telegram. Aku bantu kamu:\n\n💸 Catat pemasukan & pengeluaran\n🎯 Buat & pantau target tabungan\n📊 Cek saldo & riwayat kapan saja\n\n*Mulai gampang banget:*\n• Ketik langsung → \`kopi susu 25k\`\n• Pengeluaran → \`/catat bensin 50k\`\n• Pemasukan → \`/masuk gaji 2jt\`\n• Target baru → \`/goal Laptop 10jt\`\n• Cek saldo → \`/saldo\`\n\nKetik /help untuk panduan lengkap 📖`,
       { reply_markup: KEYBOARD }
     );
   }
@@ -117,48 +117,85 @@ export async function handleTelegramUpdate(update, db, botToken) {
   if (text.startsWith('/link') || text.startsWith('/hubungkan')) {
     const parts = text.split(/\s+/);
     if (parts.length < 2) {
-      return sendTelegramMessage(botToken, chatId, '💡 *Cara Hubungkan Akun:*\nKetik: `/link [KODE]`\nContoh: `/link AB12CD`\n\n_(Ambil kodenya di menu Profile website PocketPlan)_');
+      return sendTelegramMessage(botToken, chatId, '🔗 *Hubungkan Akun Website*\n\nKetik: `/link KODE`\nContoh: `/link AB12CD`\n\n_Ambil kode di menu Profile → Telegram Bot di website PocketPlan._');
     }
     const res = await linkChatWithCode(chatId, parts[1], userFrom, db);
-    if (res === 'EXPIRED') return sendTelegramMessage(botToken, chatId, '⌛ *Kodenya sudah kedaluwarsa!*\nAmbil kode baru di menu Profile website ya.');
+    if (res === 'EXPIRED') return sendTelegramMessage(botToken, chatId, '⏳ *Kode kedaluwarsa*\nBuat kode baru di menu Profile website.');
     if (res) {
       return sendTelegramMessage(
         botToken,
         chatId,
-        '🎉 *Sip, akunmu tersambung!*\nSemua catatan di sini langsung sinkron ke website PocketPlan.',
+        '🎉 *Akun tersambung!*\nSemua catatan kini sinkron otomatis ke website PocketPlan.',
         { reply_markup: KEYBOARD }
       );
     }
-    return sendTelegramMessage(botToken, chatId, '❌ *Kode tidak ditemukan.*\nPastikan kodenya sama persis dengan yang ada di web ya!');
+    return sendTelegramMessage(botToken, chatId, '❌ *Kode tidak ditemukan*\nPastikan kode sama persis dengan yang tertera di website.');
   }
 
   const uid = await ensureTelegramUser(chatId, userFrom, db);
 
-  if (text === '/unlink' || text === '/putus') {
+  if (text === '/unlink' || text === '/putus' || text.startsWith('/unlink@') || text.startsWith('/putus@')) {
     await unlinkAccount(uid, db);
-    return sendTelegramMessage(botToken, chatId, '🔌 *Koneksi Terputus!*\nAkun Telegram kamu sudah dilepas dari website.');
+    return sendTelegramMessage(botToken, chatId, '🔌 *Koneksi diputus*\nAkun Telegram tidak lagi terhubung ke website PocketPlan.');
   }
 
-  if (text === '/menu') return sendTelegramMessage(botToken, chatId, '📱 *Menu PocketPlan:*', { reply_markup: KEYBOARD });
+  if (text === '/menu' || text.startsWith('/menu@')) return sendTelegramMessage(botToken, chatId, '📱 *Menu PocketPlan*\nPilih menu di bawah atau ketik perintah langsung.', { reply_markup: KEYBOARD });
 
   if (text === '💸 Catat Keluar' || text === '💸 Catat Pengeluaran') {
-    return sendTelegramMessage(botToken, chatId, '💸 *Catat Pengeluaran*\nLangsung ketik nominal & keterangannya, atau sebaliknya:\n👉 `25k kopi susu`\n👉 `kopi susu 25k`\n👉 `/catat makan siang 50k`');
+    return sendTelegramMessage(botToken, chatId, '💸 *Catat Pengeluaran*\nKetik nominal & keterangan (urutan bebas):\n\n`25k kopi susu`\n`kopi susu 25k`\n`/catat makan siang 50k`');
   }
 
   if (text === '💰 Catat Masuk' || text === '💰 Tambah Pemasukan') {
-    return sendTelegramMessage(botToken, chatId, '💰 *Catat Pemasukan*\nKetik keterangan & sumber pemasukannya:\n👉 `/masuk gaji bulanan 2.5jt`\n👉 `/masuk 300k freelance`');
+    return sendTelegramMessage(botToken, chatId, '💰 *Catat Pemasukan*\nKetik keterangan & sumber & nominal pemasukan:\n\n`/masuk gaji bulanan 2.5jt`\n`/masuk 300k freelance`');
   }
 
-  if (text === '/goals' || text === '🎯 Target Impian' || text === '🎯 Target Goals') {
+  if (text === '/goals' || text.startsWith('/goals@') || text === '🎯 Target Impian' || text === '🎯 Target Goals') {
     return sendGoals(chatId, uid, db, botToken);
   }
 
-  if (text === '/web' || text === '🌐 Buka di Web' || text === '🌐 Akses Web') {
+  if (text === '/web' || text.startsWith('/web@') || text === '🌐 Buka di Web' || text === '🌐 Akses Web') {
     return sendWebAccess(chatId, uid, db, botToken);
   }
 
-  if (text.startsWith('/goal')) {
-    const raw = text.replace('/goal', '').trim();
+  if (text.startsWith('/beligoal')) {
+    const q = text.replace(/^\/beligoal(@\S+)?/i, '').trim().toLowerCase();
+    if (!q) {
+      return sendTelegramMessage(botToken, chatId,
+        '🛍️ *Cara beli target impian:*\n\nKetik: `/beligoal [nama target]`\nContoh: `/beligoal Laptop`\n\nAtau ketik `/goals` untuk lihat daftar target & tombol beli.',
+        { reply_markup: KEYBOARD });
+    }
+    if (db) {
+      const snap = await db.collection('users').doc(uid).collection('goals').get();
+      const match = snap.docs.find((d) => d.id === q || d.data().name?.toLowerCase().includes(q));
+      if (!match) return sendTelegramMessage(botToken, chatId, `❌ Target "${q}" tidak ditemukan.\nKetik /goals untuk lihat semua target.`);
+      const g = match.data();
+      const amt = Number(g.target) || 0;
+      await db.collection('users').doc(uid).collection('transactions').add({
+        category: 'Shopping',
+        type: 'Expense',
+        amount: amt,
+        description: `Pembelian Goal: ${g.name}`,
+        date: new Date().toISOString().split('T')[0],
+        createdAt: new Date().toISOString(),
+        goalBackup: { name: g.name, target: g.target, amount: g.amount || 0, type: g.type || 'Saving', createdAt: g.createdAt || new Date().toISOString() }
+      });
+      await match.ref.delete();
+      return sendTelegramMessage(
+        botToken,
+        chatId,
+        `🥳 *Impian Tercapai!* 🎉\n\n*${g.name}* (${formatRupiah(amt)}) berhasil dibeli!\n\n✅ Pengeluaran dicatat\n🎯 Target selesai & diarsipkan\n\nHebat, nabungmu membuahkan hasil! 🪙`
+      );
+    }
+    return sendTelegramMessage(botToken, chatId, 'Target dibeli.');
+  }
+
+  if (text === '/goal' || text.startsWith('/goal@')) {
+    return sendTelegramMessage(botToken, chatId, '🎯 *Format Buat Target:*\nKetik: `/goal [nama] [nominal]` atau `/goal [nominal] [nama]`\nContoh: `/goal Motor Matic 15jt`',
+      { reply_markup: KEYBOARD });
+  }
+
+  if (text.startsWith('/goal ')) {
+    const raw = text.replace(/^\/goal(@\S+)?\s+/, '').trim();
     if (!raw) return sendTelegramMessage(botToken, chatId, '🎯 *Format Buat Target:*\nKetik: `/goal [nama] [nominal]` atau `/goal [nominal] [nama]`\nContoh: `/goal Motor Matic 15jt`');
     const rawWords = raw.split(/\s+/);
     let amt = 0;
@@ -193,34 +230,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
     );
   }
 
-  if (text.startsWith('/beligoal')) {
-    const q = text.replace('/beligoal', '').trim().toLowerCase();
-    if (db) {
-      const snap = await db.collection('users').doc(uid).collection('goals').get();
-      const match = snap.docs.find((d) => d.id === q || d.data().name?.toLowerCase().includes(q));
-      if (!match) return sendTelegramMessage(botToken, chatId, `❌ Target "${q}" tidak ditemukan.`);
-      const g = match.data();
-      const amt = Number(g.target) || 0;
-      await db.collection('users').doc(uid).collection('transactions').add({
-        category: 'Shopping',
-        type: 'Expense',
-        amount: amt,
-        description: `Pembelian Goal: ${g.name}`,
-        date: new Date().toISOString().split('T')[0],
-        createdAt: new Date().toISOString(),
-        goalBackup: { name: g.name, target: g.target, amount: g.amount || 0, type: g.type || 'Saving', createdAt: g.createdAt || new Date().toISOString() }
-      });
-      await match.ref.delete();
-      return sendTelegramMessage(
-        botToken,
-        chatId,
-        `🥳 *HOREEE! IMPIAN TERCAPAI!* 🎉🛍️\n\nBarang idamanmu *${g.name}* (${formatRupiah(amt)}) resmi dibeli!\n\n✅ Pengeluaran dicatat\n🎯 Target selesai & diarsipkan\n\nHebat! Nabungnya membuahkan hasil 🪙✨`
-      );
-    }
-    return sendTelegramMessage(botToken, chatId, 'Target dibeli.');
-  }
-
-  if (text === '/help' || text === '/bantuan') {
+  if (text === '/help' || text === '/bantuan' || text.startsWith('/help@') || text.startsWith('/bantuan@')) {
     return sendTelegramMessage(
       botToken,
       chatId,
@@ -229,14 +239,14 @@ export async function handleTelegramUpdate(update, db, botToken) {
     );
   }
 
-  if (text === '/saldo' || text === '/balance' || text === '📊 Cek Saldo') {
+  if (text === '/saldo' || text === '/balance' || text.startsWith('/saldo@') || text.startsWith('/balance@') || text === '📊 Cek Saldo') {
     return sendSaldo(chatId, uid, db, botToken);
   }
 
-  if (text === '/riwayat' || text === '/history' || text === '📜 Riwayat' || text === '📜 5 Riwayat') {
+  if (text === '/riwayat' || text === '/history' || text.startsWith('/riwayat@') || text.startsWith('/history@') || text === '📜 Riwayat' || text === '📜 5 Riwayat') {
     if (db) {
       const snap = await db.collection('users').doc(uid).collection('transactions').orderBy('date', 'desc').limit(5).get();
-      if (snap.empty) return sendTelegramMessage(botToken, chatId, '📜 *Belum ada transaksi.*\nYuk mulai catat, misalnya ketik: `25k makan siang`');
+      if (snap.empty) return sendTelegramMessage(botToken, chatId, '📜 *Belum ada transaksi.*\nMulai catat, misal: `25k makan siang`');
       let out = '📜 *5 Transaksi Terakhir:*\n\n';
       let i = 1;
       snap.forEach((d) => {
@@ -251,7 +261,8 @@ export async function handleTelegramUpdate(update, db, botToken) {
     return sendTelegramMessage(botToken, chatId, 'Mode demo aktif.');
   }
 
-  if (text === '/batal' || text === '/hapus') {
+  const cmdText = text.toLowerCase().replace(/@\S+/, '').trim();
+  if (cmdText === '/batal' || cmdText === '/hapus') {
     if (db) {
       const snap = await db.collection('users').doc(uid).collection('transactions').orderBy('createdAt', 'desc').limit(1).get();
       if (snap.empty) return sendTelegramMessage(botToken, chatId, '🤷 Tidak ada transaksi untuk dibatalkan.');
@@ -276,20 +287,14 @@ export async function handleTelegramUpdate(update, db, botToken) {
   }
 
   // Bare commands without arguments → friendly guidance
-  const bareCmd = text.toLowerCase().replace(/@\S+/, '');
-  if (['/catat', '/keluar', '/expense'].includes(bareCmd)) {
+  if (['/catat', '/keluar', '/expense'].includes(cmdText)) {
     return sendTelegramMessage(botToken, chatId,
       `📝 *Cara catat pengeluaran:*\n\n\`/catat 25k kopi susu\`\n\`/catat makan siang 35rb\`\n\`kopi 15k\` _(tanpa command juga bisa!)_\n\nFormat: \`/catat [nominal] [keterangan]\` atau sebaliknya`,
       { reply_markup: KEYBOARD });
   }
-  if (['/masuk', '/income'].includes(bareCmd)) {
+  if (['/masuk', '/income'].includes(cmdText)) {
     return sendTelegramMessage(botToken, chatId,
       `💰 *Cara catat pemasukan:*\n\n\`/masuk 2.5jt gaji bulanan\`\n\`/masuk freelance 500k\`\n\nFormat: \`/masuk [nominal] [keterangan]\` atau sebaliknya`,
-      { reply_markup: KEYBOARD });
-  }
-  if (bareCmd === '/goal') {
-    return sendTelegramMessage(botToken, chatId,
-      `🎯 *Cara buat target impian:*\n\n\`/goal Laptop Baru 10jt\`\n\`/goal Sepatu Lari 500k\`\n\nFormat: \`/goal [nama target] [nominal]\``,
       { reply_markup: KEYBOARD });
   }
 
@@ -300,20 +305,20 @@ export async function handleTelegramUpdate(update, db, botToken) {
       return sendTelegramMessage(
         botToken,
         chatId,
-        `✨ *Pemasukan Dicatat!*\n🟢 +*${formatRupiah(parsed.amount)}*\n📝 *${parsed.description}*\n📁 ${parsed.category} • 📅 ${formatShortDate(parsed.date)}`
+        `✅ *Pemasukan Dicatat*\n🟢 +*${formatRupiah(parsed.amount)}*\n📝 *${parsed.description}*\n📁 ${parsed.category} • 📅 ${formatShortDate(parsed.date)}`
       );
     }
     return sendTelegramMessage(
       botToken,
       chatId,
-      `✨ *Pengeluaran Dicatat!*\n🔴 -*${formatRupiah(parsed.amount)}*\n📝 *${parsed.description}*\n📁 ${parsed.category} • 📅 ${formatShortDate(parsed.date)}`
+      `✅ *Pengeluaran Dicatat*\n🔴 -*${formatRupiah(parsed.amount)}*\n📝 *${parsed.description}*\n📁 ${parsed.category} • 📅 ${formatShortDate(parsed.date)}`
     );
   }
 
   return sendTelegramMessage(
     botToken,
     chatId,
-    `🤔 *Hmm, Pocky belum ngerti nih...*\n\nCoba format ini ya:\n📝 \`kopi susu 25k\` — catat pengeluaran\n💰 \`/masuk gaji 2jt\` — catat pemasukan\n🎯 \`/goal Laptop 10jt\` — buat target\n\nKetik /help untuk panduan lengkap 📖`,
+    `🤔 *Hmm, Pocky belum dikenali...*\n\nCoba format ini:\n📝 \`kopi susu 25k\` — catat pengeluaran\n💰 \`/masuk gaji 2jt\` — catat pemasukan\n🎯 \`/goal Laptop 10jt\` — buat target\n\nKetik /help untuk panduan lengkap 📖`,
     { reply_markup: KEYBOARD }
   );
 }
@@ -332,7 +337,7 @@ async function sendSaldo(chatId, uid, db, botToken) {
     });
     bal = base + inc - exp;
   }
-  const text = `💳 *DOMPET POCKETPLAN*\n\n💰 *Sisa Saldo:* \`${formatRupiah(bal)}\`\n🟢 Pemasukan: ${formatRupiah(inc)}\n🔴 Pengeluaran: ${formatRupiah(exp)}\n\n✨ _"Uang yang tercatat rapi bikin masa depan tenang."_`;
+  const text = `💳 *Dompet PocketPlan*\n\n💰 *Saldo:* \`${formatRupiah(bal)}\`\n🟢 Pemasukan: ${formatRupiah(inc)}\n🔴 Pengeluaran: ${formatRupiah(exp)}\n\n_Uang tercatat rapi, masa depan tenang._`;
   return sendTelegramMessage(botToken, chatId, text, {
     reply_markup: { inline_keyboard: [[{ text: '🎯 Lihat Target Impian', callback_data: 'goals' }]] }
   });
@@ -360,11 +365,11 @@ async function sendGoals(chatId, uid, db, botToken) {
     return sendTelegramMessage(
       botToken,
       chatId,
-      '🎯 *Belum ada target impian nih!*\n\nBikin target yuk biar makin semangat nabung:\n👉 `/goal Laptop Baru 10jt`\n👉 `/goal Sepatu Lari 500k`'
+      '🎯 *Belum ada target*\n\nBuat target baru:\n`/goal Laptop Baru 10jt`\n`/goal Sepatu Lari 500k`'
     );
   }
 
-  let text = `🎯 *TARGET IMPIAN KAMU*\n💵 Saldo Tersedia: *${formatRupiah(bal)}*\n\n`;
+  let text = `🎯 *Target Impianmu*\n💵 Saldo Tersedia: *${formatRupiah(bal)}*\n\n`;
   const buttons = [];
   goals.forEach((g, i) => {
     const tgt = Number(g.target) || 1;
@@ -380,6 +385,6 @@ async function sendGoals(chatId, uid, db, botToken) {
 
 async function sendWebAccess(chatId, uid, db, botToken) {
   const { code } = await generateWebLoginCode(uid, db);
-  const text = `🌐 *KODE LOGIN WEBSITE*\n\nBuka PocketPlan di browser, pilih tab *Telegram*, lalu masukkan kode ini:\n\n🔑 Kode: \`${code}\`\n⏱️ _(Berlaku 15 menit)_\n\n🚀 Nikmati visual grafik & kelola keuanganmu di layar lebar!`;
+  const text = `🌐 *Kode Login Website*\n\nBuka PocketPlan di browser, pilih tab *Telegram*, masukkan kode:\n\n🔑 Kode: \`${code}\`\n⏱️ _Berlaku 15 menit_`;
   return sendTelegramMessage(botToken, chatId, text);
 }

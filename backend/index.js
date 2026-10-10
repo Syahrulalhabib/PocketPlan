@@ -44,6 +44,20 @@ function getDemoGoals(uid) {
 
 const useFirestore = Boolean(getDb());
 
+// ponytail: in-memory rate limit resets on serverless cold start; upgrade to Redis/KV when real abuse observed
+const _rl = new Map();
+function checkRateLimit(key, max = 5, windowMs = 15 * 60 * 1000) {
+  const now = Date.now();
+  const hits = (_rl.get(key) || []).filter(t => t > now - windowMs);
+  _rl.set(key, hits);
+  if (hits.length >= max) {
+    const retryAfterSec = Math.ceil((hits[0] + windowMs - now) / 1000);
+    return { allowed: false, retryAfterSec };
+  }
+  hits.push(now);
+  return { allowed: true, retryAfterSec: 0 };
+}
+
 // Middleware to verify Firebase token when admin is configured
 const requireAuth = async (req, res, next) => {
   if (!useFirestore) {
@@ -66,6 +80,10 @@ app.get('/health', (_, res) => res.json({ ok: true, useFirestore }));
 
 // Telegram Webhook
 app.post('/api/telegram-webhook', async (req, res) => {
+  const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  if (webhookSecret && req.headers['x-telegram-bot-api-secret-token'] !== webhookSecret) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return res.status(500).json({ error: 'TELEGRAM_BOT_TOKEN not configured' });
   try {
@@ -110,6 +128,8 @@ app.post('/api/telegram/unlink', requireAuth, async (req, res) => {
 });
 
 app.post('/api/telegram/web-login', async (req, res) => {
+  const rl = checkRateLimit(`wl:${req.ip}`);
+  if (!rl.allowed) return res.status(429).json({ error: `Terlalu banyak percobaan. Coba lagi dalam ${rl.retryAfterSec} detik.` });
   const { code } = req.body || {};
   if (!code) return res.status(400).json({ error: 'Kode login diperlukan' });
   try {

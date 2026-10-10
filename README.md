@@ -185,9 +185,67 @@ PocketPlan comes with native Telegram Bot integration (`@yourpocketplan_bot`):
 4. Buka website PocketPlan, di halaman Login pilih tab **"Masuk dengan Telegram"** dan masukkan kodenya.
 5. Website langsung masuk ke dashboard dengan data transaksi yang sama persis!
 
+### 📋 Daftar Perintah Bot
+
+| Perintah | Fungsi | Contoh |
+|---|---|---|
+| *(ketik langsung)* | Catat pengeluaran kilat | `kopi susu 25k`, `50k makan siang` |
+| `/catat` | Catat pengeluaran | `/catat bensin 50k`, `/catat makan siang 35rb` |
+| `/keluar` | Alias `/catat` | `/keluar parkir 5k` |
+| `/masuk` | Catat pemasukan | `/masuk gaji 2.5jt`, `/masuk freelance 500k` |
+| `/goal` | Buat target impian | `/goal Laptop Baru 10jt`, `/goal 500k Sepatu` |
+| `/goals` | Lihat semua target & progres | `/goals` |
+| `/beligoal` | Beli target yang tercapai | `/beligoal Laptop` |
+| `/saldo` | Cek sisa saldo | `/saldo` |
+| `/riwayat` | 5 transaksi terakhir | `/riwayat` |
+| `/batal` | Batalkan transaksi terakhir | `/batal` |
+| `/web` | Kode login website | `/web` |
+| `/link` | Hubungkan akun website | `/link AB12CD` |
+| `/menu` | Tampilkan keyboard menu | `/menu` |
+| `/help` | Panduan lengkap | `/help` |
+
+> 💡 **Format nominal fleksibel:** `50k`, `50rb`, `50.000`, `1.5jt`, `Rp50000`
+> 
+> 💡 **Urutan bebas:** `/catat 50k kopi` atau `/catat kopi 50k` keduanya bisa!
+
 ### 🎯 Fitur Realisasi & Pembelian Goals (Achieved Goals)
 - **Di Website**: Goal yang telah tercapai (`balance >= target`) akan memunculkan tombol **"🛍️ Beli"**. Saat diklik, pengeluaran otomatis dicatat dan goal otomatis diselesaikan (dihapus dari daftar aktif). Saat membuat transaksi pengeluaran baru di menu Transaksi, tersedia juga dropdown opsi untuk menautkan goal tercapai.
 - **Di Telegram Bot**: Ketik `/goals` untuk melihat visual progress bar. Jika goal tercapai, bot menampilkan tombol inline interaktif `[🛍️ Beli Goal: Nama]` (atau ketik `/beligoal [nama]`). Sistem langsung mencatat pengeluaran dan menyelesaikan goal dengan notifikasi perayaan!
+- **Pembatalan**: Jika salah beli, ketik `/batal` di Telegram atau hapus transaksi di website — goal otomatis dikembalikan ke daftar aktif.
+
+### 🔒 Webhook Security (Production)
+
+Set `TELEGRAM_WEBHOOK_SECRET` di `.env` backend lalu daftarkan webhook dengan `secret_token`:
+
+```bash
+curl -X POST "https://api.telegram.org/bot<TOKEN>/setWebhook" \
+  -d "url=https://yourapp.vercel.app/api/telegram-webhook" \
+  -d "secret_token=YOUR_RANDOM_SECRET"
+```
+
+Ini memastikan endpoint `/api/telegram-webhook` hanya menerima request dari Telegram.
+
+### 📝 BotFather Bio & Description
+
+Gunakan teks ini saat setup bot via [@BotFather](https://t.me/BotFather):
+
+**Name:** `PocketPlan`
+**About (bio, maks 120 karakter):**
+```
+Asisten keuangan pribadimu 🪙 Catat pemasukan & pengeluaran, buat target tabungan, cek saldo — semua dari Telegram.
+```
+**Description (saat user buka chat pertama kali):**
+```
+🪙 PocketPlan — Asisten Keuangan Pribadi
+
+Catat keuanganmu langsung dari Telegram:
+💸 Pengeluaran: ketik "kopi 25k"
+💰 Pemasukan: /masuk gaji 2jt
+🎯 Target: /goal Laptop 10jt
+📊 Saldo: /saldo
+
+Tekan Start untuk mulai!
+```
 
 ---
 
