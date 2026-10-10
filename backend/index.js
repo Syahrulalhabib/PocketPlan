@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
-import { initFirebaseAdmin, getDb } from './lib/firebaseAdmin.js';
+import { initFirebaseAdmin, getDb, getInitError } from './lib/firebaseAdmin.js';
 import {
   handleTelegramUpdate,
   generateLinkCode,
@@ -82,7 +82,9 @@ app.get('/api/health', (_, res) => res.json({
   useFirestore,
   hasToken: Boolean(process.env.TELEGRAM_BOT_TOKEN),
   hasDb: Boolean(getDb()),
-  hasSvcAcct: Boolean(process.env.GOOGLE_SERVICE_ACCOUNT_BASE64 || process.env.GOOGLE_APPLICATION_CREDENTIALS)
+  hasSvcAcct: Boolean(process.env.GOOGLE_SERVICE_ACCOUNT_BASE64 || process.env.GOOGLE_APPLICATION_CREDENTIALS),
+  initError: getInitError(),
+  whichEnv: process.env.GOOGLE_SERVICE_ACCOUNT_BASE64 ? 'BASE64' : (process.env.GOOGLE_APPLICATION_CREDENTIALS ? 'PATH' : 'NONE')
 }));
 
 // Telegram Webhook
