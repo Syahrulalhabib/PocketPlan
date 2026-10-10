@@ -318,7 +318,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
   return sendTelegramMessage(
     botToken,
     chatId,
-    `🤔 *Hmm, Pocky belum dikenali...*\n\nCoba format ini:\n📝 \`kopi susu 25k\` — catat pengeluaran\n💰 \`/masuk gaji 2jt\` — catat pemasukan\n🎯 \`/goal Laptop 10jt\` — buat target\n\nKetik /help untuk panduan lengkap 📖`,
+    `❓ *Perintah tidak dikenali*\n\nBerikut contoh yang bisa kamu ketik:\n📝 \`kopi susu 25k\` — catat pengeluaran\n💰 \`/masuk gaji 2jt\` — catat pemasukan\n🎯 \`/goal Laptop 10jt\` — buat target\n\nKetik /help untuk panduan lengkap 📖`,
     { reply_markup: KEYBOARD }
   );
 }
