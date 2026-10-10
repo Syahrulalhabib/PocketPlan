@@ -9,6 +9,8 @@ let db = null;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+let initError = null;
+
 export const initFirebaseAdmin = () => {
   if (initialized) return db;
 
@@ -45,6 +47,7 @@ export const initFirebaseAdmin = () => {
       console.warn('Firebase Admin not initialized (service account missing). Using in-memory data.');
     }
   } catch (err) {
+    initError = err?.message || String(err);
     console.warn('Firebase Admin init failed, falling back to in-memory data', err?.message);
   }
 
@@ -52,4 +55,5 @@ export const initFirebaseAdmin = () => {
 };
 
 export const getDb = () => db;
+export const getInitError = () => initError;
 
