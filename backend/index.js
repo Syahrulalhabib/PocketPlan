@@ -57,6 +57,15 @@ function checkRateLimit(key, max = 5, windowMs = 15 * 60 * 1000) {
   hits.push(now);
   return { allowed: true, retryAfterSec: 0 };
 }
+// Prune stale rate-limit entries every 10 minutes to prevent unbounded growth
+setInterval(() => {
+  const now = Date.now();
+  const window = 15 * 60 * 1000;
+  for (const [k, hits] of _rl) {
+    const fresh = hits.filter(t => t > now - window);
+    if (fresh.length === 0) _rl.delete(k); else _rl.set(k, fresh);
+  }
+}, 10 * 60 * 1000).unref();
 
 // Middleware to verify Firebase token when admin is configured
 const requireAuth = async (req, res, next) => {
@@ -65,7 +74,7 @@ const requireAuth = async (req, res, next) => {
     return next();
   }
   const authHeader = req.headers.authorization || '';
-  const token = authHeader.replace('Bearer ', '');
+  const token = authHeader.replace(/^Bearer\s+/i, '');
   if (!token) return res.status(401).json({ error: 'Missing token' });
   try {
     const decoded = await import('firebase-admin').then(({ auth }) => auth().verifyIdToken(token));
@@ -137,7 +146,12 @@ app.post('/api/telegram/web-login', async (req, res) => {
     const result = await verifyWebLoginCode(code, getDb());
     if (!result) return res.status(404).json({ error: 'Kode login tidak ditemukan atau salah' });
     if (result === 'EXPIRED') return res.status(400).json({ error: 'Kode login telah kedaluwarsa' });
-    res.json({ ok: true, user: result });
+    let customToken = null;
+    if (useFirestore) {
+      const adminAuth = (await import('firebase-admin')).default.auth();
+      customToken = await adminAuth.createCustomToken(result.uid);
+    }
+    res.json({ ok: true, user: result, ...(customToken && { customToken }) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

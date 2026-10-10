@@ -252,8 +252,10 @@ export const DataProvider = ({ children }) => {
     const income = transactions.filter((t) => t.type === 'Income').reduce((acc, t) => acc + Number(t.amount), 0);
     const expense = transactions.filter((t) => t.type === 'Expense').reduce((acc, t) => acc + Number(t.amount), 0);
     const balance = baseBalance + income - expense;
-    const monthIncome = income;
-    const monthExpense = expense;
+    const now = new Date();
+    const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const monthIncome = transactions.filter((t) => t.type === 'Income' && (t.date || '').startsWith(monthPrefix)).reduce((acc, t) => acc + Number(t.amount), 0);
+    const monthExpense = transactions.filter((t) => t.type === 'Expense' && (t.date || '').startsWith(monthPrefix)).reduce((acc, t) => acc + Number(t.amount), 0);
     return { income, expense, balance, monthIncome, monthExpense };
   }, [transactions, baseBalance]);
 
@@ -273,7 +275,7 @@ export const DataProvider = ({ children }) => {
       deleteGoal,
       toast
     }),
-    [transactions, goals, summary, loading, toast, baseBalance]
+    [transactions, goals, summary, loading, toast, baseBalance, addTransaction, updateTransaction, deleteTransaction, addGoal, updateGoal, deleteGoal]
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

@@ -148,7 +148,7 @@ const DashboardPage = () => {
                 {showBalance ? formatRupiah(summary.income) : 'Rp ••••••••'}
               </div>
               <div className="muted">
-                {showBalance ? `+ ${formatRupiah(summary.monthIncome)} recorded` : '+ Rp •••••• recorded'}
+                {showBalance ? `This month: ${formatRupiah(summary.monthIncome)}` : 'This month: Rp ••••••'}
               </div>
             </div>
             <IncomeMascot size={78} />
@@ -169,7 +169,7 @@ const DashboardPage = () => {
                 {showBalance ? formatRupiah(summary.expense) : 'Rp ••••••••'}
               </div>
               <div className="muted">
-                {showBalance ? `- ${formatRupiah(summary.monthExpense)} recorded` : '- Rp •••••• recorded'}
+                {showBalance ? `This month: ${formatRupiah(summary.monthExpense)}` : 'This month: Rp ••••••'}
               </div>
             </div>
             <ExpenseMascot size={78} />

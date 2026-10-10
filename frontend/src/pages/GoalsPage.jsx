@@ -31,6 +31,11 @@ const GoalsPage = () => {
 
   const confirmBuyGoal = async () => {
     if (!buyTarget) return;
+    const amt = Number(buyTarget.target) || 0;
+    if ((summary?.balance ?? 0) < amt) {
+      setBuyTarget(null);
+      return;
+    }
     await addTransaction({
       category: 'Shopping',
       type: 'Expense',
@@ -53,7 +58,7 @@ const GoalsPage = () => {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     const list = goals.filter((g) => {
-      const matchesSearch = g.name.toLowerCase().includes(q) || g.type.toLowerCase().includes(q);
+      const matchesSearch = (g.name || '').toLowerCase().includes(q) || (g.type || '').toLowerCase().includes(q);
       return matchesSearch;
     });
     return list;

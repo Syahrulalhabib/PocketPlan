@@ -131,6 +131,6 @@ export async function telegramWebLogin(code) {
   if (!res.ok || !data.ok) {
     throw new Error(data?.error || 'Login with Telegram failed');
   }
-  return data.user;
+  return { ...data.user, customToken: data.customToken || null };
 }
 

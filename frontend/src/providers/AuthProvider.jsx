@@ -5,6 +5,7 @@ import {
   signInWithGoogle,
   signOutUser,
   signUpEmail,
+  signInWithToken,
   watchAuth,
   updateProfileName,
   updateProfileData,
@@ -123,6 +124,9 @@ export const AuthProvider = ({ children }) => {
 
   const loginWithTelegram = async (code) => {
     const tgUser = await telegramWebLogin(code);
+    if (tgUser.customToken && firebaseEnabled) {
+      await signInWithToken(tgUser.customToken);
+    }
     const resolvedUser = {
       id: tgUser.uid || tgUser.id,
       name: tgUser.name || 'Telegram User',
@@ -165,6 +169,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfileInfo = useCallback(
     async (payload) => {
+      if (!user) return;
       const nextUser = {
         ...user,
         name: payload?.name || user?.name,
