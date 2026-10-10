@@ -1,6 +1,7 @@
 {
   "name": "pocketplan",
   "private": true,
+  "type": "module",
   "workspaces": ["frontend", "backend"],
   "scripts": {
     "dev": "npm --workspace frontend run dev",
