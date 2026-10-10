@@ -132,11 +132,14 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
             <ul>
               <li><code>/catat makan nasi 50k</code> Catat pengeluaran</li>
               <li><code>/masuk gaji 2.5jt</code> Catat pemasukan</li>
-              <li><code>kopi susu 25k</code> Catat kilat (keterangan + nominal)</li>
+              <li><code>kopi susu 25k</code> Catat kilat (langsung ketik)</li>
               <li><code>/goal Motor Matic 15jt</code> Buat target impian</li>
+              <li><code>/goals</code> Lihat semua target & progres</li>
+              <li><code>/beligoal Laptop</code> Beli target tercapai</li>
               <li><code>/saldo</code> Ringkasan saldo</li>
               <li><code>/riwayat</code> 5 transaksi terakhir</li>
               <li><code>/batal</code> Batalkan catatan terakhir</li>
+              <li><code>/web</code> Kode login website</li>
             </ul>
           </div>
           <button type="button" className="pill btn-danger" onClick={handleUnlink} disabled={unlinking}>
