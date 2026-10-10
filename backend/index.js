@@ -77,6 +77,13 @@ const requireAuth = async (req, res, next) => {
 };
 
 app.get('/health', (_, res) => res.json({ ok: true, useFirestore }));
+app.get('/api/health', (_, res) => res.json({
+  ok: true,
+  useFirestore,
+  hasToken: Boolean(process.env.TELEGRAM_BOT_TOKEN),
+  hasDb: Boolean(getDb()),
+  hasSvcAcct: Boolean(process.env.GOOGLE_SERVICE_ACCOUNT_BASE64 || process.env.GOOGLE_APPLICATION_CREDENTIALS)
+}));
 
 // Telegram Webhook
 app.post('/api/telegram-webhook', async (req, res) => {
