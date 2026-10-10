@@ -50,6 +50,25 @@ async function getBalance(uid, db) {
   return { bal: base + inc - exp, inc, exp };
 }
 
+// In-memory rate limit for link-code brute force per chatId.
+// Resets on serverless cold start; acceptable because codes expire in 15min anyway.
+const _linkFails = new Map();
+function checkLinkRateLimit(chatId) {
+  const key = String(chatId);
+  const now = Date.now();
+  const window = 15 * 60 * 1000;
+  const hits = (_linkFails.get(key) || []).filter(t => t > now - window);
+  _linkFails.set(key, hits);
+  if (hits.length >= 10) return false;
+  return true;
+}
+function recordLinkFail(chatId) {
+  const key = String(chatId);
+  const hits = _linkFails.get(key) || [];
+  hits.push(Date.now());
+  _linkFails.set(key, hits);
+}
+
 export async function handleTelegramUpdate(update, db, botToken) {
   if (update?.callback_query) {
     const cb = update.callback_query;
@@ -116,6 +135,10 @@ export async function handleTelegramUpdate(update, db, botToken) {
   if (text.startsWith('/start')) {
     const parts = text.split(/\s+/);
     if (parts.length > 1) {
+      if (!checkLinkRateLimit(chatId)) {
+        return sendTelegramMessage(botToken, chatId, '⚠️ Terlalu banyak percobaan kode gagal. Coba lagi nanti.');
+      }
+
       const res = await linkChatWithCode(chatId, parts[1], userFrom, db);
       if (res === 'EXPIRED') return sendTelegramMessage(botToken, chatId, '⏳ *Kode kedaluwarsa*\nBuat kode baru di website: *Profile → Telegram Bot*.');
       if (res) {
@@ -126,6 +149,8 @@ export async function handleTelegramUpdate(update, db, botToken) {
           { reply_markup: KEYBOARD }
         );
       }
+      recordLinkFail(chatId);
+
       return sendTelegramMessage(botToken, chatId, '❌ *Kode tidak valid*\nPastikan 6 karakter kode sama persis dengan yang tertera di menu *Profile* website.');
     }
     await ensureTelegramUser(chatId, userFrom, db);
@@ -142,6 +167,10 @@ export async function handleTelegramUpdate(update, db, botToken) {
     if (parts.length < 2) {
       return sendTelegramMessage(botToken, chatId, '🔗 *Hubungkan Akun Website*\n\nKetik: `/link KODE`\nContoh: `/link AB12CD`\n\n_Ambil kode di menu Profile → Telegram Bot di website PocketPlan._');
     }
+    if (!checkLinkRateLimit(chatId)) {
+      return sendTelegramMessage(botToken, chatId, '⚠️ Terlalu banyak percobaan kode gagal. Coba lagi nanti.');
+    }
+
     const res = await linkChatWithCode(chatId, parts[1], userFrom, db);
     if (res === 'EXPIRED') return sendTelegramMessage(botToken, chatId, '⏳ *Kode kedaluwarsa*\nBuat kode baru di menu Profile website.');
     if (res) {
@@ -152,6 +181,8 @@ export async function handleTelegramUpdate(update, db, botToken) {
         { reply_markup: KEYBOARD }
       );
     }
+    recordLinkFail(chatId);
+
     return sendTelegramMessage(botToken, chatId, '❌ *Kode tidak ditemukan*\nPastikan kode sama persis dengan yang tertera di website.');
   }
 

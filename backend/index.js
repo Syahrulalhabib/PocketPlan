@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
-import { initFirebaseAdmin, getDb, getInitError } from './lib/firebaseAdmin.js';
+import { initFirebaseAdmin, getDb } from './lib/firebaseAdmin.js';
 import {
   handleTelegramUpdate,
   generateLinkCode,
@@ -44,7 +44,7 @@ function getDemoGoals(uid) {
 
 const useFirestore = Boolean(getDb());
 
-// ponytail: in-memory rate limit resets on serverless cold start; upgrade to Redis/KV when real abuse observed
+// In-memory rate limit — resets on serverless cold start; upgrade to Redis/KV when real abuse observed
 const _rl = new Map();
 function checkRateLimit(key, max = 5, windowMs = 15 * 60 * 1000) {
   const now = Date.now();
@@ -77,15 +77,7 @@ const requireAuth = async (req, res, next) => {
 };
 
 app.get('/health', (_, res) => res.json({ ok: true, useFirestore }));
-app.get('/api/health', (_, res) => res.json({
-  ok: true,
-  useFirestore,
-  hasToken: Boolean(process.env.TELEGRAM_BOT_TOKEN),
-  hasDb: Boolean(getDb()),
-  hasSvcAcct: Boolean(process.env.GOOGLE_SERVICE_ACCOUNT_BASE64 || process.env.GOOGLE_APPLICATION_CREDENTIALS),
-  initError: getInitError(),
-  whichEnv: process.env.GOOGLE_SERVICE_ACCOUNT_BASE64 ? 'BASE64' : (process.env.GOOGLE_APPLICATION_CREDENTIALS ? 'PATH' : 'NONE')
-}));
+
 
 // Telegram Webhook
 app.post('/api/telegram-webhook', async (req, res) => {
