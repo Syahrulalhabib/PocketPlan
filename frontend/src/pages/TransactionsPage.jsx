@@ -9,8 +9,9 @@ import {
 } from '../utils/formatters.js';
 import Modal from '../components/Modal.jsx';
 import TransactionFormModal from '../components/TransactionFormModal.jsx';
-import { PlusIcon, SearchIcon, ViewIcon, EditIcon, TrashIcon, ReceiptIcon, CloseIcon } from '../components/Icons.jsx';
+import { PlusIcon, SearchIcon, ViewIcon, EditIcon, TrashIcon, ReceiptIcon, CloseIcon, ScanIcon } from '../components/Icons.jsx';
 import LuckyCoinMascot from '../components/LuckyCoinMascot.jsx';
+import ReceiptScannerModal from '../components/ReceiptScannerModal.jsx';
 
 const today = new Date().toISOString().slice(0, 10);
 const emptyForm = {
@@ -32,6 +33,7 @@ const TransactionsPage = () => {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [selected, setSelected] = useState(null);
+  const [scanModal, setScanModal] = useState(false);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -69,6 +71,17 @@ const TransactionsPage = () => {
     setShowModal(true);
   };
 
+  const handleScanResult = (result) => {
+    setForm({
+      category: result.category || '',
+      type: result.type || 'Expense',
+      amount: result.amount || '',
+      date: result.date || new Date().toISOString().slice(0, 10),
+      description: result.description || ''
+    });
+    setShowModal(true);
+  };
+
   const submitEdit = async (e) => {
     e.preventDefault();
     if (!selected) return;
@@ -88,10 +101,17 @@ const TransactionsPage = () => {
           <h1 className="section-title">Transactions</h1>
           <div className="subtitle">Manage your transactions</div>
         </div>
-        <button type="button" className="pill btn-primary btn-add shadowed" onClick={openModal}>
-          <PlusIcon size={16} />
-          <span>Add Transaction</span>
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button type="button" className="pill btn-secondary btn-add shadowed" onClick={() => setScanModal(true)}
+            title="Scan struk">
+            <ScanIcon size={16} />
+            <span>Scan Struk</span>
+          </button>
+          <button type="button" className="pill btn-primary btn-add shadowed" onClick={openModal}>
+            <PlusIcon size={16} />
+            <span>Add Transaction</span>
+          </button>
+        </div>
       </div>
 
       <div className="toolbar transactions-toolbar">
@@ -356,6 +376,11 @@ const TransactionsPage = () => {
           </div>
         )}
       </Modal>
+      <ReceiptScannerModal
+        open={scanModal}
+        onClose={() => setScanModal(false)}
+        onResult={handleScanResult}
+      />
     </div>
   );
 };
