@@ -109,6 +109,14 @@ async function testBot() {
   await unlinkAccount(uid, null);
   assert.strictEqual((await getLinkStatus(uid, null)).linked, false);
 
+  // Photo receipt unlinked check
+  replies = [];
+  await handleTelegramUpdate({
+    message: { chat: { id: 888 }, photo: [{ file_id: 'abc' }], from: { first_name: 'Unlinked' } }
+  }, null, 'token');
+  assert(replies[0].text.includes('belum terhubung'));
+
+
   // Auto-provision & Web Login Code test
   const { ensureTelegramUser, generateWebLoginCode, verifyWebLoginCode } = await import('./telegramBotCore.js');
   const newUid = await ensureTelegramUser(999, { first_name: 'Budi' }, null);
