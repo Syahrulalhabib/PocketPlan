@@ -1,5 +1,4 @@
 import { parseTransactionCommand, parseAmount, formatRupiah } from './telegramParser.js';
-import { parseReceiptText } from './parseReceipt.js';
 import {
   sendTelegramMessage,
   answerTelegramCallback,
@@ -18,8 +17,7 @@ const KEYBOARD = {
   keyboard: [
     [{ text: '💸 Catat Keluar' }, { text: '💰 Catat Masuk' }],
     [{ text: '📊 Cek Saldo' }, { text: '🎯 Target Impian' }],
-    [{ text: '📜 Riwayat' }, { text: '📸 Scan Struk' }],
-    [{ text: '🌐 Buka di Web' }]
+    [{ text: '📜 Riwayat' }, { text: '🌐 Buka di Web' }]
   ],
   resize_keyboard: true
 };
@@ -147,15 +145,12 @@ export async function handleTelegramUpdate(update, db, botToken) {
   const chatId = msg.chat.id;
   const userFrom = msg.from || {};
 
-  // Handle photo (receipt scan)
+  // Handle photo: redirect to web scanner
   if (msg.photo && msg.photo.length > 0) {
-    const uid = await findLinkedUid(chatId, db);
-    if (!uid) {
-      return sendTelegramMessage(botToken, chatId,
-        '🔗 *Akun belum terhubung*\n\nHubungkan dulu di web PocketPlan, lalu kirim kode 6 huruf ke sini.'
-      );
-    }
-    return handleReceiptPhoto(msg, chatId, uid, db, botToken);
+    return sendTelegramMessage(botToken, chatId,
+      '📸 *Scan Struk Tersedia di Web PocketPlan*\n\nUntuk scan struk otomatis dengan kamera, buka website PocketPlan lalu klik tombol *Scan Struk* di menu Transaksi.\n\nKetik `/web` untuk mendapatkan kode login web instan!',
+      { reply_markup: KEYBOARD }
+    );
   }
 
   if (!msg.text) return;
@@ -239,12 +234,6 @@ export async function handleTelegramUpdate(update, db, botToken) {
 
   if (text === '/web' || text.startsWith('/web@') || text === '🌐 Buka di Web' || text === '🌐 Akses Web') {
     return sendWebAccess(chatId, uid, db, botToken);
-  }
-
-  if (text === '📸 Scan Struk') {
-    return sendTelegramMessage(botToken, chatId,
-      '📸 *Scan Struk*\nKirim foto struk/receipt ke sini, dan aku akan otomatis membaca dan mencatat transaksinya\\!\n\n💡 *Tips:*\n• Pastikan foto jelas dan tidak buram\n• Bisa tambahkan caption untuk override, misal: `25k makan`\n• Foto struk apapun — minimarket, restoran, SPBU, dll'
-    );
   }
 
   if (text.startsWith('/beligoal')) {
@@ -435,82 +424,6 @@ export async function handleTelegramUpdate(update, db, botToken) {
     { reply_markup: KEYBOARD }
   );
 }
-
-async function handleReceiptPhoto(msg, chatId, uid, db, botToken) {
-  // Get largest photo (last in array)
-  const photo = msg.photo[msg.photo.length - 1];
-  const caption = msg.caption || '';
-
-  try {
-    // Tell user we're processing
-    await sendTelegramMessage(botToken, chatId, '🔍 _Memindai struk..._');
-
-    // Download file from Telegram
-    const fileRes = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${photo.file_id}`);
-    const fileData = await fileRes.json();
-    if (!fileData.ok || !fileData.result?.file_path) {
-      return sendTelegramMessage(botToken, chatId, '❌ Gagal mengunduh foto. Coba kirim ulang.');
-    }
-
-    const imageUrl = `https://api.telegram.org/file/bot${botToken}/${fileData.result.file_path}`;
-    const imgRes = await fetch(imageUrl);
-    const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
-
-    // OCR via Tesseract.js
-    const { createWorker } = await import('tesseract.js');
-    const worker = await createWorker('ind+eng');
-    const { data: { text: ocrText } } = await worker.recognize(imgBuffer);
-    await worker.terminate();
-
-    if (!ocrText || ocrText.trim().length < 5) {
-      return sendTelegramMessage(botToken, chatId,
-        '❌ *Tidak bisa membaca struk*\n\nPastikan foto jelas dan tidak buram. Coba foto ulang.'
-      );
-    }
-
-    // Parse receipt
-    const parsed = parseReceiptText(ocrText);
-
-    // Override from caption if user typed something like "makan" or amount
-    if (caption) {
-      const captionParsed = parseTransactionCommand(caption, 'Expense');
-      if (captionParsed?.amount) parsed.amount = captionParsed.amount;
-      if (captionParsed?.category && captionParsed.category !== 'General') parsed.category = captionParsed.category;
-      if (captionParsed?.description) parsed.description = captionParsed.description;
-    }
-
-    if (!parsed.amount) {
-      return sendTelegramMessage(botToken, chatId,
-        `🧾 *Struk terbaca, tapi nominal tidak terdeteksi*\n\n📝 Teks: _${escapeMarkdown(ocrText.substring(0, 200))}..._\n\nCoba kirim ulang dengan caption nominal, contoh:\n\`25000\` atau \`25k\``
-      );
-    }
-
-    // Save transaction
-    const txData = {
-      type: parsed.type || 'Expense',
-      category: parsed.category || 'Shopping',
-      amount: parsed.amount,
-      description: parsed.description || 'Struk',
-      date: parsed.date || new Date().toISOString().slice(0, 10),
-      createdAt: new Date().toISOString(),
-      source: 'telegram-ocr'
-    };
-
-    if (db) await db.collection('users').doc(uid).collection('transactions').add(txData);
-
-    const emoji = txData.type === 'Income' ? '🟢 +' : '🔴 -';
-    return sendTelegramMessage(botToken, chatId,
-      `✅ *Struk Berhasil Dicatat!*\n${emoji}*${formatRupiah(txData.amount)}*\n📝 *${escapeMarkdown(txData.description)}*\n📁 ${escapeMarkdown(txData.category)} • 📅 ${formatShortDate(txData.date)}\n\n_📸 Dari scan struk otomatis_`
-    );
-  } catch (err) {
-    console.error('Receipt OCR error:', err);
-    return sendTelegramMessage(botToken, chatId,
-      '❌ *Gagal memproses struk*\n\nMungkin timeout atau gambar terlalu besar. Coba foto lebih kecil atau catat manual.\nContoh: `kopi susu 25k`'
-    );
-  }
-}
-
-
 
 async function sendSaldo(chatId, uid, db, botToken) {
   const { bal, inc, exp } = await getBalance(uid, db);

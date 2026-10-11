@@ -109,12 +109,12 @@ async function testBot() {
   await unlinkAccount(uid, null);
   assert.strictEqual((await getLinkStatus(uid, null)).linked, false);
 
-  // Photo receipt unlinked check
+  // Photo receipt redirect check
   replies = [];
   await handleTelegramUpdate({
-    message: { chat: { id: 888 }, photo: [{ file_id: 'abc' }], from: { first_name: 'Unlinked' } }
+    message: { chat: { id: 888 }, photo: [{ file_id: 'abc' }], from: { first_name: 'User' } }
   }, null, 'token');
-  assert(replies[0].text.includes('belum terhubung'));
+  assert(replies[0].text.includes('Scan Struk'));
 
 
   // Auto-provision & Web Login Code test
