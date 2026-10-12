@@ -17,6 +17,22 @@ export async function sendTelegramMessage(botToken, chatId, text, options = {}) 
   }
 }
 
+export async function deleteTelegramMessage(botToken, chatId, messageId) {
+  if (!botToken || !chatId || !messageId) return false;
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/deleteMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, message_id: messageId })
+    });
+    const data = await res.json();
+    return data?.ok || false;
+  } catch (err) {
+    console.error('Telegram deleteMessage error:', err.message);
+    return false;
+  }
+}
+
 export async function generateLinkCode(uid, db, botUsername = '') {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
@@ -266,6 +282,22 @@ export async function generateWebLoginCode(uid, db) {
   return { code, expiresAt };
 }
 
+export async function attachMessageToWebCode(code, messageId, chatId, db) {
+  const cleanCode = String(code || '').trim().toUpperCase();
+  if (db) {
+    await db.collection('telegram_web_codes').doc(cleanCode).set(
+      { messageId: Number(messageId), chatId: String(chatId) },
+      { merge: true }
+    );
+  } else {
+    const entry = demoWebCodes.get(cleanCode);
+    if (entry) {
+      entry.messageId = Number(messageId);
+      entry.chatId = String(chatId);
+    }
+  }
+}
+
 export async function verifyWebLoginCode(code, db) {
   const cleanCode = code.trim().toUpperCase();
   if (db) {
@@ -279,13 +311,14 @@ export async function verifyWebLoginCode(code, db) {
     await doc.ref.delete();
     const userDoc = await db.collection('users').doc(data.uid).get();
     const uData = userDoc.data() || {};
-    const chatId = uData.telegramChatId || (data.uid.startsWith('tg_') ? data.uid.replace('tg_', '') : null);
+    const chatId = uData.telegramChatId || data.chatId || (data.uid.startsWith('tg_') ? data.uid.replace('tg_', '') : null);
     return {
       uid: data.uid,
       name: uData.name || 'Telegram User',
       email: uData.email || `${data.uid}@telegram.pocketplan`,
       telegramChatId: chatId,
-      telegramUsername: uData.telegramUsername || null
+      telegramUsername: uData.telegramUsername || null,
+      messageId: data.messageId || null
     };
   }
 
@@ -309,8 +342,9 @@ export async function verifyWebLoginCode(code, db) {
     uid: entry.uid,
     name: demoUsername ? `@${demoUsername}` : 'Telegram User',
     email: `${entry.uid}@telegram.pocketplan`,
-    telegramChatId: demoChatId,
-    telegramUsername: demoUsername
+    telegramChatId: demoChatId || entry.chatId || null,
+    telegramUsername: demoUsername,
+    messageId: entry.messageId || null
   };
 }
 

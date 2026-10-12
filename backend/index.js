@@ -9,7 +9,7 @@ import {
   getLinkStatus,
   unlinkAccount
 } from './lib/telegramBot.js';
-import { verifyWebLoginCode, sendTelegramMessage } from './lib/telegramBotCore.js';
+import { verifyWebLoginCode, sendTelegramMessage, deleteTelegramMessage } from './lib/telegramBotCore.js';
 import { scanReceiptWithGemini } from './lib/geminiReceiptScanner.js';
 
 dotenv.config();
@@ -191,6 +191,9 @@ app.post('/api/telegram/web-login', async (req, res) => {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const targetChatId = result.telegramChatId || (result.uid?.startsWith('tg_') ? result.uid.replace('tg_', '') : null);
     if (botToken && targetChatId) {
+      if (result.messageId) {
+        deleteTelegramMessage(botToken, targetChatId, result.messageId).catch(() => {});
+      }
       sendTelegramMessage(
         botToken,
         targetChatId,

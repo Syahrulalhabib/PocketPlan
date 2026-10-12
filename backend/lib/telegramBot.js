@@ -10,7 +10,9 @@ import {
   linkChatWithCode,
   ensureTelegramUser,
   generateWebLoginCode,
-  migrateTelegramDataToUser
+  migrateTelegramDataToUser,
+  attachMessageToWebCode,
+  deleteTelegramMessage
 } from './telegramBotCore.js';
 import { scanReceiptWithGemini } from './geminiReceiptScanner.js';
 
@@ -211,6 +213,9 @@ export async function handleTelegramUpdate(update, db, botToken) {
     }
     if (data === 'refresh_web_code') {
       await answerTelegramCallback(botToken, cb.id, '🔄 Membuat kode baru...');
+      if (cb.message?.message_id) {
+        deleteTelegramMessage(botToken, chatId, cb.message.message_id).catch(() => {});
+      }
       const userUid = uid || (await ensureTelegramUser(chatId, cb.from, db));
       return sendWebAccess(chatId, userUid, db, botToken);
     }
@@ -355,6 +360,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
       const res = await linkChatWithCode(chatId, parts[1], userFrom, db);
       if (res === 'EXPIRED') return sendTelegramMessage(botToken, chatId, '⏳ *Kode kedaluwarsa*\nBuat kode baru di website: *Profile → Telegram Bot*.');
       if (res) {
+        if (msg?.message_id) deleteTelegramMessage(botToken, chatId, msg.message_id).catch(() => {});
         return sendTelegramMessage(
           botToken,
           chatId,
@@ -387,6 +393,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
     const res = await linkChatWithCode(chatId, parts[1], userFrom, db);
     if (res === 'EXPIRED') return sendTelegramMessage(botToken, chatId, '⏳ *Kode kedaluwarsa*\nBuat kode baru di menu Profile website.');
     if (res) {
+      if (msg?.message_id) deleteTelegramMessage(botToken, chatId, msg.message_id).catch(() => {});
       return sendTelegramMessage(
         botToken,
         chatId,
@@ -737,11 +744,15 @@ async function sendWebAccess(chatId, uid, db, botToken) {
     `🔑 *KODE:* \`${code}\`\n\n` +
     `⏱️ *Berlaku:* 15 Menit (Kedaluwarsa pukul *${timeStr} WIB*)\n` +
     `💡 _Segera masukkan kode di website sebelum waktu habis ya!_`;
-  return sendTelegramMessage(botToken, chatId, text, {
+  const sent = await sendTelegramMessage(botToken, chatId, text, {
     reply_markup: {
       inline_keyboard: [
         [{ text: '🔄 Buat Kode Baru', callback_data: 'refresh_web_code' }]
       ]
     }
   });
+  if (sent?.result?.message_id) {
+    await attachMessageToWebCode(code, sent.result.message_id, chatId, db);
+  }
+  return sent;
 }

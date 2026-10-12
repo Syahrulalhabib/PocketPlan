@@ -167,15 +167,17 @@ async function testBot() {
 
 
   // Auto-provision & Web Login Code test
-  const { ensureTelegramUser, generateWebLoginCode, verifyWebLoginCode } = await import('./telegramBotCore.js');
+  const { ensureTelegramUser, generateWebLoginCode, verifyWebLoginCode, attachMessageToWebCode } = await import('./telegramBotCore.js');
   const newUid = await ensureTelegramUser(999, { first_name: 'Budi' }, null);
   assert.strictEqual(newUid, 'tg_999');
 
   const { code: webCode } = await generateWebLoginCode(newUid, null);
   assert.strictEqual(webCode.length, 6);
+  await attachMessageToWebCode(webCode, 12345, 999, null);
 
   const verified = await verifyWebLoginCode(webCode, null);
   assert.strictEqual(verified.uid, 'tg_999');
+  assert.strictEqual(verified.messageId, 12345);
 
   console.log('All Telegram integration tests passed!');
 }
