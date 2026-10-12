@@ -144,7 +144,7 @@ async function testBot() {
   await handleTelegramUpdate({
     message: { chat: { id: 888 }, photo: [{ file_id: 'abc' }], from: { first_name: 'User' } }
   }, null, 'token');
-  assert(replies.some(r => r.text.includes('membaca struk') || r.text.includes('Struk Berhasil Dicatat') || r.text.includes('Warung Nasi')));
+  assert(replies.some(r => (r.text || '').includes('membaca struk') || (r.text || '').includes('Struk Berhasil Dicatat') || (r.text || '').includes('Warung Nasi')));
 
   // Test receipt action callbacks
   await handleTelegramUpdate({

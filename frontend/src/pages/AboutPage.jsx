@@ -9,7 +9,7 @@ const features = [
   {
     key: 'goals',
     title: 'Set Your Goals',
-    text: 'Define your financial goals, from saving plans to long-term objectives. PocketPlan helps you stay focused and consistent in achieving them.'
+    text: 'Define your financial goals, from saving plans to long-term objectives. Pocketplan helps you stay focused and consistent in achieving them.'
   },
   {
     key: 'insights',
@@ -31,8 +31,8 @@ const AboutPage = () => {
     <div className="page about full">
       <header className="topbar card about-topbar">
         <div className="brand" onClick={() => navigate('/login')}>
-          <img src="/pocket-logo.svg" alt="PocketPlan logo" className="brand-logo" />
-          <span className="brand-title">PocketPlan</span>
+          <img src="/pocket-logo.svg" alt="Pocketplan logo" className="brand-logo" />
+          <span className="brand-title">Pocketplan</span>
         </div>
       </header>
 
@@ -40,7 +40,7 @@ const AboutPage = () => {
         <div className="about-header">
           <div className="about-title-block">
             <h2 className="section-title">ABOUT US</h2>
-            <p className="subtitle about-subtitle">Smart Saving, Brighter Future — Master your money with PocketPlan</p>
+            <p className="subtitle about-subtitle">Smart Saving, Brighter Future — Master your money with Pocketplan</p>
           </div>
         </div>
 
@@ -48,7 +48,7 @@ const AboutPage = () => {
           <div className="intro-text">
             <h3 className="about-question">WHAT IS POCKETPLAN?</h3>
             <p className="about-text">
-              PocketPlan helps you track income, expenses, and savings goals with a simple interface.
+              Pocketplan helps you track income, expenses, and savings goals with a simple interface.
               Record transactions, set targets, and get insights from interactive charts to support faster decisions.
             </p>
             <p className="about-text">
@@ -56,12 +56,12 @@ const AboutPage = () => {
             </p>
           </div>
           <div className="intro-logo">
-            <img src="/pocket-logo-text.svg" alt="PocketPlan" className="about-logo" />
+            <img src="/pocket-logo-text.svg" alt="Pocketplan" className="about-logo" />
           </div>
         </div>
 
         <div className="about-body">
-          <h3 className="about-subtitle strong">Why Choose PocketPlan?</h3>
+          <h3 className="about-subtitle strong">Why Choose Pocketplan?</h3>
           <div className="features-grid">
             {features.map((f) => (
               <div className="card feature" key={f.key}>

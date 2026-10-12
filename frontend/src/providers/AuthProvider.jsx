@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }) => {
       await new Promise((resolve) => setTimeout(resolve, 300));
       setUser({
         id: 'demo-user',
-        name: 'PocketPlan User',
+        name: 'Pocketplan User',
         email
       });
     }

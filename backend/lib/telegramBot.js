@@ -159,7 +159,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
           botToken,
           chatId,
           messageId,
-          '🗑️ *Transaksi struk ini telah dibatalkan & dihapus dari PocketPlan oleh Pocky.*'
+          '🗑️ *Transaksi ini telah dibatalkan & dihapus dari Pocketplan oleh Pocky.*'
         );
       }
       return;
@@ -202,7 +202,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
 
   if (isPhoto || isImageDoc) {
     const uid = await ensureTelegramUser(chatId, userFrom, db);
-    await sendTelegramMessage(botToken, chatId, '🔍 *Pocky lagi teliti membaca struk kamu nih...*\nSebentar ya, Pocky intip total sama daftar belanjaannya dulu! 🪙');
+    await sendTelegramMessage(botToken, chatId, '🔍 *Pocky lagi teliti membaca struk & bukti transaksi kamu nih...*\nSebentar ya, Pocky periksa apakah ini struk belanja, bukti transfer, atau tagihan! 🪙');
     try {
       const fileId = isPhoto
         ? msg.photo[msg.photo.length - 1].file_id
@@ -222,15 +222,17 @@ export async function handleTelegramUpdate(update, db, botToken) {
       const scanRes = await scanReceiptWithGemini({ imageBase64, mimeType });
       const r = scanRes.data;
 
+      const txType = r.type === 'Income' ? 'Income' : 'Expense';
       const tx = {
-        category: r.category || 'Food',
-        type: 'Expense',
+        category: r.category || (txType === 'Income' ? 'Salary' : 'Food'),
+        type: txType,
         amount: Number(r.total_amount) || 0,
-        description: r.merchant_name || 'Scan Struk AI',
+        description: r.merchant_name || (txType === 'Income' ? 'Transfer Masuk' : 'Struk Belanja'),
         date: r.date || new Date().toISOString().slice(0, 10),
         createdAt: new Date().toISOString(),
-        paymentMethod: r.payment_method || 'CASH',
-        receiptItems: r.items || []
+        paymentMethod: r.payment_method || (r.doc_type?.startsWith('transfer') ? 'TRANSFER' : 'CASH'),
+        receiptItems: r.items || [],
+        docType: r.doc_type || 'receipt'
       };
 
       let txId = '';
@@ -243,17 +245,33 @@ export async function handleTelegramUpdate(update, db, botToken) {
       if (Array.isArray(r.items) && r.items.length > 0) {
         const lines = r.items.slice(0, 5).map(it => `• ${escapeMarkdown(it.item_name)} (${it.quantity || 1}x): ${formatRupiah(it.total_price || 0)}`);
         if (r.items.length > 5) lines.push(`_...dan ${r.items.length - 5} barang lainnya_`);
-        itemSummary = `\n🛒 *Rincian Belanja:*\n${lines.join('\n')}\n`;
+        itemSummary = `\n🛒 *Rincian:* \n${lines.join('\n')}\n`;
       }
 
-      const reply = `🧾 *Hore! Struk Berhasil Dicatat Pocky!* 🎉\n\n` +
-        `🏪 *Toko:* ${escapeMarkdown(r.merchant_name)}\n` +
-        `💵 *Total:* *${formatRupiah(r.total_amount)}*\n` +
+      let headerTitle = '🧾 *Hore! Struk Berhasil Dicatat Pocky!* 🎉';
+      let entityLabel = '🏪 *Toko:*';
+      let amountSign = '-';
+
+      if (txType === 'Income') {
+        headerTitle = '💰 *Hore! Bukti Transfer Masuk Dicatat Pocky!* 🎉';
+        entityLabel = '📥 *Sumber / Pengirim:*';
+        amountSign = '+';
+      } else if (r.doc_type === 'transfer_out') {
+        headerTitle = '💸 *Hore! Bukti Transfer Keluar Dicatat Pocky!* 🎉';
+        entityLabel = '📤 *Tujuan / Penerima:*';
+      } else if (r.doc_type === 'bill') {
+        headerTitle = '📄 *Hore! Bukti Bayar Tagihan Dicatat Pocky!* 🎉';
+        entityLabel = '🏢 *Layanan / Penyedia:*';
+      }
+
+      const reply = `${headerTitle}\n\n` +
+        `${entityLabel} ${escapeMarkdown(r.merchant_name)}\n` +
+        `💵 *Total:* *${amountSign}${formatRupiah(r.total_amount)}* (${txType === 'Income' ? '🟢 Pemasukan' : '🔴 Pengeluaran'})\n` +
         `🏷️ *Kategori:* ${escapeMarkdown(r.category)}\n` +
         `📅 *Tanggal:* ${formatShortDate(r.date)}\n` +
         `💳 *Metode:* ${escapeMarkdown(r.payment_method)}\n` +
         itemSummary +
-        `\n✨ Sudah rapi tersimpan di PocketPlan kamu!\n\n` +
+        `\n✨ Sudah rapi tersimpan di Pocketplan kamu!\n\n` +
         `💡 _Ada yang keliru? Ketik \`/koreksi 150k\` atau pilih opsi di bawah ini:_ 👇`;
 
       const inlineButtons = txId ? [
@@ -274,7 +292,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
       return sendTelegramMessage(
         botToken,
         chatId,
-        `🙈 *Aduh, mata Pocky agak burem baca struk ini!*\n\n_${escapeMarkdown(err.message || 'Gambarnya kurang terbaca')}_\n\nCoba kirim foto struk yang lebih terang, tegak, dan jelas yaa ✨\nAtau kamu bisa minta Pocky catat manual: \`kopi 25k\` atau \`/catat makan 50k\``,
+        `🙈 *Aduh, mata Pocky agak burem baca gambar ini!*\n\n_${escapeMarkdown(err.message || 'Gambarnya kurang terbaca')}_\n\nCoba kirim foto struk atau bukti transfer yang lebih terang, tegak, dan jelas yaa ✨\nAtau kamu bisa minta Pocky catat manual: \`kopi 25k\` atau \`/catat makan 50k\``,
         { reply_markup: KEYBOARD }
       );
     }
@@ -297,7 +315,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
         return sendTelegramMessage(
           botToken,
           chatId,
-          '🎉 *Akun berhasil terhubung!*\n\nSemua catatan keuanganmu kini sinkron otomatis antara Telegram dan PocketPlan web.\n\nMau mulai catat? Coba ketik: `kopi 15k`',
+          '🎉 *Akun berhasil terhubung!*\n\nSemua catatan keuanganmu kini sinkron otomatis antara Telegram dan Pocketplan web.\n\nMau mulai catat? Coba ketik: `kopi 15k`',
           { reply_markup: KEYBOARD }
         );
       }
@@ -309,7 +327,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
     return sendTelegramMessage(
       botToken,
       chatId,
-      `🪙 *Hai ${userName}! Salam kenal, aku Pocky!*\n\nAsisten keuangan pribadimu di Telegram. Aku bantu kamu:\n\n💸 Catat pemasukan & pengeluaran\n🧾 Scan foto struk otomatis dengan AI Gemini\n🎯 Buat & pantau target tabungan\n📊 Cek saldo & riwayat kapan saja\n\n*Mulai gampang banget:*\n• Kirim foto struk belanja → otomatis dicatat AI!\n• Ketik langsung → \`kopi susu 25k\`\n• Pengeluaran → \`/catat bensin 50k\`\n• Pemasukan → \`/masuk gaji 2jt\`\n• Target baru → \`/goal Laptop 10jt\`\n• Cek saldo → \`/saldo\`\n\nKetik /help untuk panduan lengkap 📖`,
+      `🪙 *Hai ${userName}! Salam kenal, aku Pocky!*\n\nAsisten keuangan pribadimu dari Pocketplan. Pocky bantu kamu:\n\n💸 Catat pemasukan & pengeluaran\n🧾 Scan foto struk & bukti transfer otomatis\n🎯 Buat & pantau target tabungan\n📊 Cek saldo & riwayat kapan saja\n\n*Mulai gampang banget:*\n• Kirim foto struk atau bukti transfer → otomatis dicatat Pocky!\n• Ketik langsung → \`kopi susu 25k\`\n• Pengeluaran → \`/catat bensin 50k\`\n• Pemasukan → \`/masuk gaji 2jt\`\n• Target baru → \`/goal Laptop 10jt\`\n• Cek saldo → \`/saldo\`\n\nKetik /help untuk panduan lengkap 📖`,
       { reply_markup: KEYBOARD }
     );
   }
@@ -317,7 +335,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
   if (text.startsWith('/link') || text.startsWith('/hubungkan')) {
     const parts = text.split(/\s+/);
     if (parts.length < 2) {
-      return sendTelegramMessage(botToken, chatId, '🔗 *Hubungkan Akun Website*\n\nKetik: `/link KODE`\nContoh: `/link AB12CD`\n\n_Ambil kode di menu Profile → Telegram Bot di website PocketPlan._');
+      return sendTelegramMessage(botToken, chatId, '🔗 *Hubungkan Akun Website*\n\nKetik: `/link KODE`\nContoh: `/link AB12CD`\n\n_Ambil kode di menu Profile → Telegram Bot di website Pocketplan._');
     }
     if (!checkLinkRateLimit(chatId)) {
       return sendTelegramMessage(botToken, chatId, '⚠️ Terlalu banyak percobaan kode gagal. Coba lagi nanti.');
@@ -329,7 +347,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
       return sendTelegramMessage(
         botToken,
         chatId,
-        '🎉 *Akun tersambung!*\nSemua catatan kini sinkron otomatis ke website PocketPlan.',
+        '🎉 *Akun tersambung!*\nSemua catatan kini sinkron otomatis ke website Pocketplan.',
         { reply_markup: KEYBOARD }
       );
     }
@@ -342,10 +360,10 @@ export async function handleTelegramUpdate(update, db, botToken) {
 
   if (text === '/unlink' || text === '/putus' || text.startsWith('/unlink@') || text.startsWith('/putus@')) {
     await unlinkAccount(uid, db);
-    return sendTelegramMessage(botToken, chatId, '🔌 *Koneksi diputus*\nAkun Telegram tidak lagi terhubung ke website PocketPlan.');
+    return sendTelegramMessage(botToken, chatId, '🔌 *Koneksi diputus*\nAkun Telegram tidak lagi terhubung ke website Pocketplan.');
   }
 
-  if (text === '/menu' || text.startsWith('/menu@')) return sendTelegramMessage(botToken, chatId, '📱 *Menu PocketPlan*\nPilih menu di bawah atau ketik perintah langsung.', { reply_markup: KEYBOARD });
+  if (text === '/menu' || text.startsWith('/menu@')) return sendTelegramMessage(botToken, chatId, '📱 *Menu Pocketplan*\nPilih menu di bawah atau ketik perintah langsung.', { reply_markup: KEYBOARD });
 
   if (text === '💸 Catat Keluar' || text === '💸 Catat Pengeluaran') {
     return sendTelegramMessage(botToken, chatId, '💸 *Catat Pengeluaran*\nKetik nominal & keterangan (urutan bebas):\n\n`25k kopi susu`\n`kopi susu 25k`\n`/catat makan siang 50k`');
@@ -531,7 +549,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
         `🏪 *Toko / Deskripsi:* ${escapeMarkdown(oldData.description || 'Pengeluaran')}\n` +
         `💵 *Total Semula:* ${formatRupiah(oldData.amount)}\n` +
         `💵 *Total Baru:* *${formatRupiah(newAmt)}*\n\n` +
-        `✅ Catatan di PocketPlan sudah langsung diperbarui!`,
+        `✅ Catatan di Pocketplan sudah langsung diperbarui!`,
         { reply_markup: KEYBOARD }
       );
     }
@@ -628,7 +646,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
 
 async function sendSaldo(chatId, uid, db, botToken) {
   const { bal, inc, exp } = await getBalance(uid, db);
-  const text = `💳 *Dompet PocketPlan*\n\n💰 *Saldo:* \`${formatRupiah(bal)}\`\n🟢 Pemasukan: ${formatRupiah(inc)}\n🔴 Pengeluaran: ${formatRupiah(exp)}\n\n_Uang tercatat rapi, masa depan tenang._`;
+  const text = `💳 *Dompet Pocketplan*\n\n💰 *Saldo:* \`${formatRupiah(bal)}\`\n🟢 Pemasukan: ${formatRupiah(inc)}\n🔴 Pengeluaran: ${formatRupiah(exp)}\n\n_Uang tercatat rapi, masa depan tenang._`;
   return sendTelegramMessage(botToken, chatId, text, {
     reply_markup: { inline_keyboard: [[{ text: '🎯 Lihat Target Impian', callback_data: 'goals' }]] }
   });
@@ -666,6 +684,6 @@ async function sendGoals(chatId, uid, db, botToken) {
 
 async function sendWebAccess(chatId, uid, db, botToken) {
   const { code } = await generateWebLoginCode(uid, db);
-  const text = `🌐 *Kode Login Website*\n\nBuka PocketPlan di browser, pilih tab *Telegram*, masukkan kode:\n\n🔑 Kode: \`${code}\`\n⏱️ _Berlaku 15 menit_`;
+  const text = `🌐 *Kode Login Website*\n\nBuka Pocketplan di browser, pilih tab *Telegram*, masukkan kode:\n\n🔑 Kode: \`${code}\`\n⏱️ _Berlaku 15 menit_`;
   return sendTelegramMessage(botToken, chatId, text);
 }

@@ -9,12 +9,12 @@ async function updateBot() {
   const nameRes = await (await fetch(`https://api.telegram.org/bot${token}/setMyName`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: 'PocketPlan | Pocky 🪙' })
+    body: JSON.stringify({ name: 'Pocketplan | Pocky 🪙' })
   })).json();
   console.log('setName:', nameRes);
 
   // 2. Set Short Description (Bio in user profile, max 120 chars)
-  const shortDesc = 'Hai! Aku Pocky 🪙 asisten keuangan PocketPlan. Kirim foto struk belanja untuk scan AI atau catat uangmu di sini!';
+  const shortDesc = 'Hai! Aku Pocky 🪙 asisten keuangan Pocketplan. Kirim foto struk belanja untuk Pocky scan atau catat uangmu di sini!';
   const shortRes = await (await fetch(`https://api.telegram.org/bot${token}/setMyShortDescription`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -24,14 +24,14 @@ async function updateBot() {
 
   // 3. Set Description (Shown when opening bot before pressing Start, max 512 chars)
   const desc = [
-    'Halo! Aku Pocky 🪙, asisten keuangan pribadi pintarmu dari PocketPlan!',
+    'Halo! Aku Pocky 🪙, asisten keuangan pribadi pintarmu dari Pocketplan!',
     '',
     'Fitur pintar Pocky:',
-    '🧾 Scan Struk AI: Kirim foto struk belanja, Pocky baca & catat otomatis!',
+    '🧾 Pocky Scan: Kirim foto struk belanja atau bukti transfer, Pocky catat otomatis!',
     '💸 Catat Kilat: Ketik langsung "kopi 25k" atau "/masuk gaji 2jt"',
     '🎯 Target Impian: Bikin celengan & pantau impianmu',
     '📊 Cek Keuangan: Pantau saldo & riwayat kapan saja',
-    '🌐 Sinkron Website: Terhubung langsung ke web PocketPlan',
+    '🌐 Sinkron Website: Terhubung langsung ke web Pocketplan',
     '',
     'Tekan START di bawah untuk mulai kelola keuanganmu bareng Pocky! ✨'
   ].join('\n');

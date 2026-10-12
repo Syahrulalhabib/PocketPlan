@@ -18,7 +18,7 @@ if (!token) {
   process.exit(1);
 }
 
-console.log('🤖 PocketPlan Telegram Bot Polling started...');
+console.log('🤖 Pocketplan Telegram Bot Polling started...');
 
 let offset = 0;
 const poll = async () => {

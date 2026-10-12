@@ -241,7 +241,7 @@ const LuckyCoinMascot = ({
       <div className="koiny-banner-content">
         <div className="koiny-banner-badge">
           <span className="badge-sparkle">⭐</span>
-          <span>PocketPlan Goal Companion</span>
+          <span>Pocketplan Goal Companion</span>
         </div>
         <h2 className="koiny-banner-title">{headline}</h2>
         <p className="koiny-banner-desc">{description}</p>

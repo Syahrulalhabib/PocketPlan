@@ -24,7 +24,7 @@ const LoadingScreen = ({ message = 'Preparing your financial data...' }) => (
         </span>
         <img
           src="/pocket-logo.svg"
-          alt="PocketPlan Logo"
+          alt="Pocketplan Logo"
           className="loading-mascot-logo"
         />
         <div className="loading-mascot-shadow" />

@@ -13,7 +13,7 @@ const ProfileGeneralTab = ({
       <div className="form-section-intro">
         <h3 className="section-title">Personal Information</h3>
         <p className="section-desc">
-          Update your account details and manage how your profile appears across PocketPlan.
+          Update your account details and manage how your profile appears across Pocketplan.
         </p>
       </div>
 

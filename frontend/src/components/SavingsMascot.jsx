@@ -149,7 +149,7 @@ const SavingsMascot = ({ mode = 'hero', className = '' }) => {
         <div className="mascot-character-wrapper">
           <img
             src="/pocket-logo.svg"
-            alt="PocketPlan Piggy Bank"
+            alt="Pocketplan Piggy Bank"
             className="mascot-pocket-img"
           />
           <div className="mascot-shadow" />
@@ -227,7 +227,7 @@ const SavingsMascot = ({ mode = 'hero', className = '' }) => {
             <div className="mascot-character-wrapper">
               <img
                 src="/pocket-logo.svg"
-                alt="PocketPlan Piggy Bank"
+                alt="Pocketplan Piggy Bank"
                 className="mascot-pocket-img"
               />
               <div className="mascot-shadow" />
@@ -278,7 +278,7 @@ const SavingsMascot = ({ mode = 'hero', className = '' }) => {
         onClick={handleTossCoin}
         role="button"
         tabIndex={0}
-        title="Click PocketPlan to toss golden coins!"
+        title="Click Pocketplan to toss golden coins!"
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -326,7 +326,7 @@ const SavingsMascot = ({ mode = 'hero', className = '' }) => {
         <div className="hero-mascot-body">
           <img
             src="/pocket-logo.svg"
-            alt="PocketPlan Savings Mascot"
+            alt="Pocketplan Savings Mascot"
             className="hero-mascot-img"
           />
           <div className="hero-mascot-shadow" />

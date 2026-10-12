@@ -189,14 +189,14 @@ const ProfilePage = () => {
               <div className="profile-badges-row">
                 <span className="profile-role-pill">
                   <SparklesIcon size={12} />
-                  <span>PocketPlan Saver</span>
+                  <span>Pocketplan Saver</span>
                 </span>
                 <span className="profile-verified-pill">
                   <ShieldCheckIcon size={12} />
                   <span>Verified</span>
                 </span>
               </div>
-              <h1 className="profile-user-fullname">{user?.name || 'PocketPlan Saver'}</h1>
+              <h1 className="profile-user-fullname">{user?.name || 'Pocketplan Saver'}</h1>
               <p className="profile-user-email">{user?.email || 'user@pocketplan.app'}</p>
               <button
                 type="button"

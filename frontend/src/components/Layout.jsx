@@ -51,10 +51,10 @@ const Layout = ({ children }) => {
             type="button"
             className="brand brand-btn"
             onClick={() => navigate('/dashboard')}
-            aria-label="PocketPlan Dashboard"
+            aria-label="Pocketplan Dashboard"
           >
-            <img src="/pocket-logo.svg" alt="PocketPlan logo" className="brand-logo" />
-            <span className="brand-title">PocketPlan</span>
+            <img src="/pocket-logo.svg" alt="Pocketplan logo" className="brand-logo" />
+            <span className="brand-title">Pocketplan</span>
           </button>
 
           <nav className="tab-nav" aria-label="Main navigation">

@@ -57,6 +57,29 @@ assert.strictEqual(norm.total_amount, 52800);
 assert.strictEqual(norm.category, 'Food');
 assert.strictEqual(norm.items.length, 2);
 
+// 2.5 Transfer proof and doc_type tests
+const rawTransferIn = {
+  doc_type: 'transfer_in',
+  merchant_name: 'Transfer dari Budi Santoso',
+  total_amount: 500000,
+  payment_method: 'TRANSFER'
+};
+const normTransferIn = normalizeReceipt(rawTransferIn);
+assert.strictEqual(normTransferIn.type, 'Income');
+assert.strictEqual(normTransferIn.doc_type, 'transfer_in');
+assert.strictEqual(normTransferIn.payment_method, 'TRANSFER');
+
+const rawTransferOut = {
+  doc_type: 'transfer_out',
+  merchant_name: 'Transfer ke Toko Maju',
+  total_amount: 150000,
+  payment_method: 'BI-FAST'
+};
+const normTransferOut = normalizeReceipt(rawTransferOut);
+assert.strictEqual(normTransferOut.type, 'Expense');
+assert.strictEqual(normTransferOut.doc_type, 'transfer_out');
+assert.strictEqual(normTransferOut.payment_method, 'TRANSFER');
+
 // 3. Fallback calculation if total_amount is missing or 0
 const rawZeroTotal = {
   merchant: 'Warung Bu Siti',

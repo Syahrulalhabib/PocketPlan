@@ -98,12 +98,41 @@ export function normalizePaymentMethod(methodStr) {
   if (clean.includes('TUNAI') || clean.includes('CASH')) return 'CASH';
   if (clean.includes('DEBIT')) return 'DEBIT';
   if (clean.includes('CREDIT') || clean.includes('KREDIT')) return 'CREDIT';
-  if (['CASH', 'QRIS', 'DEBIT', 'CREDIT'].includes(clean)) return clean;
+  if (clean.includes('TRANSFER') || clean.includes('TF') || clean.includes('BANK') || clean.includes('BI-FAST')) return 'TRANSFER';
+  if (['CASH', 'QRIS', 'DEBIT', 'CREDIT', 'TRANSFER'].includes(clean)) return clean;
   return 'UNKNOWN';
 }
 
 export function normalizeReceipt(raw = {}) {
-  const merchant_name = String(raw.merchant_name || raw.merchant || raw.store_name || 'Struk Belanja').trim();
+  let doc_type = String(raw.doc_type || '').toLowerCase().trim();
+  if (!['receipt', 'transfer_out', 'transfer_in', 'bill', 'other'].includes(doc_type)) {
+    if (/transfer.*masuk|dana.*masuk|uang.*masuk|received|incoming|topup.*masuk/i.test(doc_type)) {
+      doc_type = 'transfer_in';
+    } else if (/transfer|tf|qris|kirim.*uang|send.*money/i.test(doc_type)) {
+      doc_type = 'transfer_out';
+    } else if (/tagihan|bill|pln|pdam|indihome|bpjs|listrik/i.test(doc_type)) {
+      doc_type = 'bill';
+    } else {
+      doc_type = 'receipt';
+    }
+  }
+
+  // Deteksi tipe transaksi: Income atau Expense
+  let type = String(raw.type || '').trim();
+  if (type.toLowerCase() === 'income' || doc_type === 'transfer_in') {
+    type = 'Income';
+  } else {
+    type = 'Expense';
+  }
+
+  let merchant_name = String(raw.merchant_name || raw.merchant || raw.store_name || '').trim();
+  if (!merchant_name) {
+    if (doc_type === 'transfer_in') merchant_name = 'Transfer Masuk';
+    else if (doc_type === 'transfer_out') merchant_name = 'Transfer Keluar';
+    else if (doc_type === 'bill') merchant_name = 'Pembayaran Tagihan';
+    else merchant_name = 'Struk Belanja';
+  }
+
   let date = raw.date || null;
   if (typeof date === 'string') {
     const match = date.match(/\d{4}-\d{2}-\d{2}/);
@@ -138,9 +167,16 @@ export function normalizeReceipt(raw = {}) {
   }
 
   const payment_method = normalizePaymentMethod(raw.payment_method);
-  const category = normalizeCategory(raw.category);
+  let category = normalizeCategory(raw.category);
+  if (type === 'Income' && category === 'Other') {
+    if (/gaji|salary|payroll|upah|honor/i.test(merchant_name)) {
+      category = 'Salary';
+    }
+  }
 
   return {
+    doc_type,
+    type,
     merchant_name,
     date,
     items,
@@ -161,10 +197,30 @@ export async function scanReceiptWithGemini({
 }) {
   if (!imageBase64) throw new Error('Data gambar (base64) wajib disediakan.');
 
-  const promptText = `Anda adalah asisten pembaca struk dan bukti pembayaran akuntansi.
-Ekstrak seluruh informasi dari struk ini ke format JSON valid:
+  const promptText = `Anda adalah asisten cerdas pembaca dokumen finansial: struk kasir, invoice tagihan, dan bukti transfer perbankan/e-wallet (BCA, Mandiri, BRI, BNI, QRIS, GoPay, OVO, Dana, ShopeePay, dll).
+Analisis gambar ini secara teliti:
+1. Tentukan jenis dokumen (doc_type):
+   - "receipt": struk fisik/nota belanja kasir (minimarket, toko, resto, cafe, SPBU).
+   - "transfer_out": bukti transfer keluar / bayar QRIS / kirim uang lewat m-banking atau e-wallet.
+   - "transfer_in": bukti transfer masuk / terima dana / top up saldo masuk.
+   - "bill": bukti bayar atau tagihan listrik PLN, air PDAM, WiFi internet, BPJS, pulsa.
+   - "other": dokumen transaksi lainnya.
+2. Tentukan tipe arus uang (type):
+   - "Expense" jika uang keluar (struk belanja, transfer keluar, bayar QRIS, tagihan).
+   - "Income" jika uang masuk (transfer masuk, terima uang, transfer dana dari orang/perusahaan).
+3. Ekstrak data:
+   - merchant_name: nama toko/merchant (jika struk), nama tujuan/penerima (jika transfer keluar), nama pengirim/sumber (jika transfer masuk), atau penyedia layanan (jika tagihan).
+   - date: format YYYY-MM-DD.
+   - items: rincian barang/transaksi jika ada.
+   - subtotal, tax, total_amount: angka nominal dalam Rupiah murni (angka saja).
+   - payment_method: CASH | QRIS | DEBIT | CREDIT | TRANSFER | UNKNOWN.
+   - category: Food | Shopping | Transport | Bills | Health | Education | Entertainment | Charity | Salary | Other.
+
+Ekstrak seluruh informasi ke format JSON valid berikut:
 {
-  "merchant_name": "Nama toko / merchant",
+  "doc_type": "receipt | transfer_out | transfer_in | bill | other",
+  "type": "Expense | Income",
+  "merchant_name": "Nama toko / penerima / pengirim / penyedia",
   "date": "YYYY-MM-DD",
   "items": [
     {
@@ -175,10 +231,10 @@ Ekstrak seluruh informasi dari struk ini ke format JSON valid:
     }
   ],
   "subtotal": 10000,
-  "tax": 1000,
-  "total_amount": 11000,
-  "payment_method": "CASH | QRIS | DEBIT | CREDIT | UNKNOWN",
-  "category": "Food | Shopping | Transport | Bills | Health | Education | Entertainment | Charity | Other"
+  "tax": 0,
+  "total_amount": 10000,
+  "payment_method": "CASH | QRIS | DEBIT | CREDIT | TRANSFER | UNKNOWN",
+  "category": "Food | Shopping | Transport | Bills | Health | Education | Entertainment | Charity | Salary | Other"
 }
 Hanya balas dengan JSON murni tanpa markdown fences.`;
 

@@ -1,5 +1,5 @@
 /**
- * Formatting and manipulation utilities for PocketPlan
+ * Formatting and manipulation utilities for Pocketplan
  */
 
 export const formatRupiah = (value) => {

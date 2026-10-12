@@ -276,7 +276,7 @@ app.delete('/api/goals/:id', requireAuth, async (req, res) => {
 // Export for Vercel serverless. When running locally (npm run dev/start), still listen on PORT.
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {
-    console.log(`PocketPlan API running on http://localhost:${PORT}`);
+    console.log(`Pocketplan API running on http://localhost:${PORT}`);
   });
 }
 

@@ -210,7 +210,7 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
           <div className="telegram-promo">
             <div className="telegram-icon-hero"><TelegramIcon size={32} /></div>
             <h4>Catat Cepat Kapan Saja via Telegram</h4>
-            <p>Hubungkan akun PocketPlan kamu ke bot <strong>@yourpocketplan_bot</strong>.</p>
+            <p>Hubungkan akun Pocketplan kamu ke bot <strong>@yourpocketplan_bot</strong>.</p>
           </div>
 
           {!generatedCode ? (
