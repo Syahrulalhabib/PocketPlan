@@ -110,7 +110,7 @@ const testKeyPool = new KeyPool(['mock_key']);
 const originalFetch = global.fetch;
 
 global.fetch = async (url) => {
-  assert.ok(url.includes('models/gemini-1.5-flash-8b:generateContent'));
+  assert.ok(url.includes('models/gemini-3.5-flash-lite:generateContent'));
   return {
     ok: true,
     json: async () => ({

@@ -157,7 +157,7 @@ export async function scanReceiptWithGemini({
   mimeType = 'image/jpeg',
   keyPool = defaultKeyPool,
   maxRetries = 3,
-  preferredModel = 'gemini-1.5-flash-8b'
+  preferredModel = 'gemini-3.5-flash-lite'
 }) {
   if (!imageBase64) throw new Error('Data gambar (base64) wajib disediakan.');
 
@@ -182,7 +182,7 @@ Ekstrak seluruh informasi dari struk ini ke format JSON valid:
 }
 Hanya balas dengan JSON murni tanpa markdown fences.`;
 
-  const modelsToTry = [preferredModel, 'gemini-1.5-flash'];
+  const modelsToTry = [preferredModel, 'gemini-3.5-flash', 'gemini-flash-latest'];
   let lastError = null;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -219,7 +219,7 @@ Hanya balas dengan JSON murni tanpa markdown fences.`;
       }
 
       if (!res.ok) {
-        if (res.status === 404 && model !== 'gemini-1.5-flash') {
+        if (res.status === 404 && attempt < modelsToTry.length - 1) {
           continue;
         }
         const errText = await res.text();
@@ -227,7 +227,8 @@ Hanya balas dengan JSON murni tanpa markdown fences.`;
       }
 
       const resJson = await res.json();
-      const rawText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+      const textPart = resJson.candidates?.[0]?.content?.parts?.find(p => p.text);
+      const rawText = textPart?.text;
       if (!rawText) throw new Error('Gemini tidak mengembalikan teks konten');
 
       const cleanJson = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();

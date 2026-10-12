@@ -34,7 +34,7 @@ const DIRECT_GEMINI_PROMPT = `Analisis struk belanja ini. Ekstrak JSON valid tan
 Kategori yang valid: Food, Transport, Shopping, Bills, Entertainment, Health, Other.`;
 
 async function callDirectGeminiApi(base64, mimeType, apiKey) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`;
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -53,7 +53,8 @@ async function callDirectGeminiApi(base64, mimeType, apiKey) {
     throw new Error(`Gemini API HTTP ${res.status}: ${errText}`);
   }
   const json = await res.json();
-  const rawText = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+  const textPart = json?.candidates?.[0]?.content?.parts?.find(p => p.text);
+  const rawText = textPart?.text || json?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!rawText) throw new Error('Gemini API tidak mengembalikan teks');
   return JSON.parse(rawText.replace(/```json/gi, '').replace(/```/g, '').trim());
 }
