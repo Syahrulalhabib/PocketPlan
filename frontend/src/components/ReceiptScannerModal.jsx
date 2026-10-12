@@ -21,47 +21,6 @@ const fileToBase64 = (file) =>
     reader.onerror = reject;
   });
 
-const DIRECT_GEMINI_PROMPT = `Analisis gambar dokumen keuangan ini (struk belanja fisik, bukti transfer m-banking/e-wallet masuk atau keluar, bukti bayar tagihan). Ekstrak JSON valid tanpa markdown:
-{
-  "doc_type": "receipt | transfer_out | transfer_in | bill | other",
-  "type": "Expense | Income",
-  "merchant_name": "Nama Toko / Penerima / Pengirim / Penyedia Layanan",
-  "date": "YYYY-MM-DD",
-  "items": [{"item_name": "Nama Barang / Transaksi", "quantity": 1, "unit_price": 0, "total_price": 0}],
-  "subtotal": 0,
-  "tax": 0,
-  "total_amount": 0,
-  "payment_method": "CASH | QRIS | DEBIT | CREDIT | TRANSFER | UNKNOWN",
-  "category": "Food | Shopping | Transport | Bills | Health | Education | Entertainment | Charity | Salary | Other"
-}
-Aturan type: "Expense" jika uang keluar (struk, transfer keluar, tagihan). "Income" jika uang masuk (transfer masuk, terima uang).`;
-
-async function callDirectGeminiApi(base64, mimeType, apiKey) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{
-        parts: [
-          { text: DIRECT_GEMINI_PROMPT },
-          { inline_data: { mime_type: mimeType, data: base64 } }
-        ]
-      }],
-      generationConfig: { response_mime_type: 'application/json', temperature: 0.1 }
-    })
-  });
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`Gemini API HTTP ${res.status}: ${errText}`);
-  }
-  const json = await res.json();
-  const textPart = json?.candidates?.[0]?.content?.parts?.find(p => p.text);
-  const rawText = textPart?.text || json?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!rawText) throw new Error('Gemini API tidak mengembalikan teks');
-  return JSON.parse(rawText.replace(/```json/gi, '').replace(/```/g, '').trim());
-}
-
 const ReceiptScannerModal = ({ open, onClose, onResult }) => {
   const [status, setStatus] = useState(STATUS.IDLE);
   const [progress, setProgress] = useState(0);
@@ -143,33 +102,10 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
         lastError = backendErr?.message || 'Backend tidak merespons';
       }
 
-      // 2. Direct Gemini AI via browser jika VITE_GEMINI_API_KEY ada
-      const clientApiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      if (clientApiKey) {
-        setProgress(70);
-        const directData = await callDirectGeminiApi(base64, mimeType, clientApiKey);
-        const inferredType = (directData.type === 'Income' || directData.doc_type === 'transfer_in') ? 'Income' : 'Expense';
-        setParsed({
-          amount: directData.total_amount || 0,
-          category: directData.category || (inferredType === 'Income' ? 'Salary' : 'Food'),
-          description: directData.merchant_name || (inferredType === 'Income' ? 'Transfer Masuk' : 'Struk Belanja'),
-          date: directData.date || new Date().toISOString().slice(0, 10),
-          type: inferredType,
-          docType: directData.doc_type || 'receipt',
-          items: directData.items || [],
-          paymentMethod: directData.payment_method || (directData.doc_type?.startsWith('transfer') ? 'TRANSFER' : 'CASH')
-        });
-        setEngineUsed('Pocky Scan (Direct Gemini)');
-        setRawText(JSON.stringify(directData, null, 2));
-        setProgress(100);
-        setStatus(STATUS.DONE);
-        return;
-      }
-
-      // Jika keduanya gagal/belum ada API Key
+      // Jika backend gagal, tampilkan error jelas
       throw new Error(
         lastError ||
-        'GEMINI_API_KEY belum dikonfigurasi. Masukkan GEMINI_API_KEY di backend/.env atau VITE_GEMINI_API_KEY di frontend/.env.'
+        'Gagal memindai struk. Pastikan backend sudah berjalan dan GEMINI_API_KEY dikonfigurasi di backend/.env.'
       );
     } catch (err) {
       setErrorMsg(err?.message || 'Gagal memindai dengan Gemini API');

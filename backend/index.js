@@ -91,6 +91,10 @@ const requireAuth = async (req, res, next) => {
 app.get('/health', (_, res) => res.json({ ok: true, useFirestore }));
 
 app.post('/api/scan-receipt', requireAuth, async (req, res) => {
+  // Rate limit: 20 scans per 15 minutes per user
+  const rl = checkRateLimit(`scan:${req.user.uid}`, 20);
+  if (!rl.allowed) return res.status(429).json({ ok: false, error: `Terlalu banyak permintaan scan. Coba lagi dalam ${rl.retryAfterSec} detik.` });
+
   const { imageBase64, mimeType } = req.body || {};
   if (!imageBase64) {
     return res.status(400).json({ ok: false, error: 'Data gambar (imageBase64) wajib disertakan' });
@@ -103,7 +107,7 @@ app.post('/api/scan-receipt', requireAuth, async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('Scan receipt error:', err);
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(500).json({ ok: false, error: 'Gagal memproses gambar. Coba lagi nanti.' });
   }
 });
 
@@ -121,7 +125,7 @@ app.post('/api/telegram-webhook', async (req, res) => {
     res.status(200).json({ ok: true });
   } catch (err) {
     console.error('Telegram webhook error:', err);
-    res.status(200).json({ ok: false, error: err.message });
+    res.status(200).json({ ok: false, error: 'Internal error' });
   }
 });
 
@@ -133,7 +137,8 @@ app.post('/api/telegram/link-code', requireAuth, async (req, res) => {
     const result = await generateLinkCode(uid, getDb(), botUsername);
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('link-code error:', err);
+    res.status(500).json({ error: 'Gagal membuat kode link.' });
   }
 });
 
@@ -143,7 +148,8 @@ app.get('/api/telegram/status', requireAuth, async (req, res) => {
     const status = await getLinkStatus(uid, getDb());
     res.json({ ...status, botUsername: process.env.TELEGRAM_BOT_USERNAME || '' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('telegram status error:', err);
+    res.status(500).json({ error: 'Gagal mengambil status.' });
   }
 });
 
@@ -153,7 +159,8 @@ app.post('/api/telegram/unlink', requireAuth, async (req, res) => {
     const result = await unlinkAccount(uid, getDb());
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('unlink error:', err);
+    res.status(500).json({ error: 'Gagal memutus koneksi.' });
   }
 });
 
@@ -173,7 +180,8 @@ app.post('/api/telegram/web-login', async (req, res) => {
     }
     res.json({ ok: true, user: result, ...(customToken && { customToken }) });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('web-login error:', err);
+    res.status(500).json({ error: 'Gagal verifikasi kode login.' });
   }
 });
 
@@ -186,13 +194,29 @@ app.get('/api/transactions', requireAuth, async (req, res) => {
     const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     res.json(items);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('GET /api/transactions error:', err);
+    res.status(500).json({ error: 'Gagal mengambil transaksi.' });
   }
 });
 
 app.post('/api/transactions', requireAuth, async (req, res) => {
   const uid = req.user.uid;
-  const payload = req.body;
+  const b = req.body || {};
+
+  // Whitelist + validate fields
+  const type = b.type;
+  if (type !== 'Income' && type !== 'Expense') return res.status(400).json({ error: 'type harus "Income" atau "Expense"' });
+  const amount = Number(b.amount);
+  if (!amount || amount <= 0) return res.status(400).json({ error: 'amount harus angka > 0' });
+  const category = String(b.category || 'Other');
+  const description = String(b.description || '');
+  const date = String(b.date || new Date().toISOString().slice(0, 10));
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'date harus format YYYY-MM-DD' });
+
+  const payload = { type, amount, category, description, date, createdAt: new Date().toISOString() };
+  if (b.paymentMethod) payload.paymentMethod = String(b.paymentMethod);
+  if (b.goalBackup && typeof b.goalBackup === 'object') payload.goalBackup = b.goalBackup;
+
   if (!useFirestore) {
     const list = getDemoTransactions(uid);
     list.unshift({ ...payload, id: `t-${Date.now()}` });
@@ -203,7 +227,8 @@ app.post('/api/transactions', requireAuth, async (req, res) => {
     const docRef = await db.collection('users').doc(uid).collection('transactions').add(payload);
     res.status(201).json({ id: docRef.id });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('POST /api/transactions error:', err);
+    res.status(500).json({ error: 'Gagal menyimpan transaksi.' });
   }
 });
 
@@ -221,7 +246,8 @@ app.delete('/api/transactions/:id', requireAuth, async (req, res) => {
     await db.collection('users').doc(uid).collection('transactions').doc(id).delete();
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('DELETE /api/transactions error:', err);
+    res.status(500).json({ error: 'Gagal menghapus transaksi.' });
   }
 });
 
@@ -234,13 +260,25 @@ app.get('/api/goals', requireAuth, async (req, res) => {
     const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     res.json(items);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('GET /api/goals error:', err);
+    res.status(500).json({ error: 'Gagal mengambil target.' });
   }
 });
 
 app.post('/api/goals', requireAuth, async (req, res) => {
   const uid = req.user.uid;
-  const payload = req.body;
+  const b = req.body || {};
+
+  // Whitelist + validate fields
+  const name = String(b.name || '').trim();
+  if (!name) return res.status(400).json({ error: 'name wajib diisi' });
+  const target = Number(b.target);
+  if (!target || target <= 0) return res.status(400).json({ error: 'target harus angka > 0' });
+  const type = String(b.type || 'Saving');
+  const amount = Number(b.amount) || 0;
+
+  const payload = { name, target, type, amount, createdAt: new Date().toISOString() };
+
   if (!useFirestore) {
     const list = getDemoGoals(uid);
     list.push({ ...payload, id: `g-${Date.now()}` });
@@ -251,7 +289,8 @@ app.post('/api/goals', requireAuth, async (req, res) => {
     const docRef = await db.collection('users').doc(uid).collection('goals').add(payload);
     res.status(201).json({ id: docRef.id });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('POST /api/goals error:', err);
+    res.status(500).json({ error: 'Gagal menyimpan target.' });
   }
 });
 
@@ -269,7 +308,8 @@ app.delete('/api/goals/:id', requireAuth, async (req, res) => {
     await db.collection('users').doc(uid).collection('goals').doc(id).delete();
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('DELETE /api/goals error:', err);
+    res.status(500).json({ error: 'Gagal menghapus target.' });
   }
 });
 

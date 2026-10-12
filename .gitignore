@@ -33,6 +33,11 @@ output_rekap.csv
 
 # OS/Editor cruft
 .DS_Store
+
+# Planning / task tracking artifacts
+implementation_plan.md
+task.md
+
 *.swp
 .vscode/
 .idea/

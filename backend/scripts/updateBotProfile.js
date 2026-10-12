@@ -1,6 +1,10 @@
 import fetch from 'node-fetch'; // or global fetch in Node 18+
 
-const token = process.env.TELEGRAM_BOT_TOKEN || '8857383541:AAGc_EpP0l1AvtlzXWLmXmsM9r9BTWvLpj4';
+const token = process.env.TELEGRAM_BOT_TOKEN;
+if (!token) {
+  console.error('TELEGRAM_BOT_TOKEN environment variable is required.');
+  process.exit(1);
+}
 
 async function updateBot() {
   console.log('Updating bot profile...');

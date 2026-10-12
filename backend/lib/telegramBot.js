@@ -86,6 +86,27 @@ setInterval(() => {
   }
 }, 10 * 60 * 1000).unref();
 
+// In-memory rate limit for photo scan (Gemini API cost protection)
+const _scanHits = new Map();
+function checkScanRateLimit(chatId) {
+  const key = String(chatId);
+  const now = Date.now();
+  const window = 60 * 60 * 1000; // 1 hour
+  const hits = (_scanHits.get(key) || []).filter(t => t > now - window);
+  if (hits.length >= 10) { _scanHits.set(key, hits); return false; }
+  hits.push(now);
+  _scanHits.set(key, hits);
+  return true;
+}
+setInterval(() => {
+  const now = Date.now();
+  const window = 60 * 60 * 1000;
+  for (const [k, hits] of _scanHits) {
+    const fresh = hits.filter(t => t > now - window);
+    if (fresh.length === 0) _scanHits.delete(k); else _scanHits.set(k, fresh);
+  }
+}, 10 * 60 * 1000).unref();
+
 export async function handleTelegramUpdate(update, db, botToken) {
   if (update?.callback_query) {
     const cb = update.callback_query;
@@ -201,7 +222,23 @@ export async function handleTelegramUpdate(update, db, botToken) {
   const isImageDoc = msg.document && msg.document.mime_type?.startsWith('image/');
 
   if (isPhoto || isImageDoc) {
-    const uid = await ensureTelegramUser(chatId, userFrom, db);
+    // Security: only linked accounts can trigger Gemini scan (paid API)
+    const uid = await findLinkedUid(chatId, db);
+    if (!uid) {
+      return sendTelegramMessage(botToken, chatId,
+        '🔒 *Fitur Pocky Scan hanya untuk akun yang sudah terhubung.*\n\nHubungkan dulu akun kamu:\n1️⃣ Buka website Pocketplan → Profile → Telegram Bot\n2️⃣ Salin kode 6 huruf\n3️⃣ Ketik di sini: `/link KODE`\n\nSetelah terhubung, kirim foto struk dan Pocky langsung baca! 🧾',
+        { reply_markup: KEYBOARD }
+      );
+    }
+
+    // Rate limit: max 10 scans per hour per chat
+    if (!checkScanRateLimit(chatId)) {
+      return sendTelegramMessage(botToken, chatId,
+        '⏳ *Terlalu banyak scan foto, istirahat dulu ya!*\nMaksimal 10 scan per jam. Coba lagi nanti atau catat manual: `kopi 25k`',
+        { reply_markup: KEYBOARD }
+      );
+    }
+
     await sendTelegramMessage(botToken, chatId, '🔍 *Pocky lagi teliti membaca struk & bukti transaksi kamu nih...*\nSebentar ya, Pocky periksa apakah ini struk belanja, bukti transfer, atau tagihan! 🪙');
     try {
       const fileId = isPhoto
@@ -513,9 +550,9 @@ export async function handleTelegramUpdate(update, db, botToken) {
           type: gb.type || 'Saving',
           createdAt: gb.createdAt || new Date().toISOString()
         });
-        return sendTelegramMessage(botToken, chatId, `🗑️ *Dibatalkan!*\nTransaksi *${data.description}* (${formatRupiah(data.amount)}) telah dihapus.\n\n🎯 Target *${gb.name}* telah dikembalikan ke daftar goal.`);
+        return sendTelegramMessage(botToken, chatId, `🗑️ *Dibatalkan!*\nTransaksi *${escapeMarkdown(data.description)}* (${formatRupiah(data.amount)}) telah dihapus.\n\n🎯 Target *${escapeMarkdown(gb.name)}* telah dikembalikan ke daftar goal.`);
       }
-      return sendTelegramMessage(botToken, chatId, `🗑️ *Dibatalkan!*\nTransaksi *${data.description}* (${formatRupiah(data.amount)}) telah dihapus.`);
+      return sendTelegramMessage(botToken, chatId, `🗑️ *Dibatalkan!*\nTransaksi *${escapeMarkdown(data.description)}* (${formatRupiah(data.amount)}) telah dihapus.`);
     }
     return sendTelegramMessage(botToken, chatId, 'Dibatalkan.');
   }

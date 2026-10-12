@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { parseAmount, parseTransactionCommand, formatRupiah } from './telegramParser.js';
-import { generateLinkCode, getLinkStatus, unlinkAccount } from './telegramBotCore.js';
+import { generateLinkCode, getLinkStatus, unlinkAccount, linkChatWithCode } from './telegramBotCore.js';
 import { handleTelegramUpdate } from './telegramBot.js';
 
 console.log('Running Telegram integration tests...');
@@ -138,8 +138,11 @@ async function testBot() {
   await unlinkAccount(uid, null);
   assert.strictEqual((await getLinkStatus(uid, null)).linked, false);
 
-  // Photo receipt scan check
+  // Photo receipt scan check (must be linked first)
   process.env.GEMINI_API_KEYS = 'test_key';
+  const { code: code888 } = await generateLinkCode('user-888', null, 'TestBot');
+  await linkChatWithCode(888, code888, { first_name: 'User' }, null);
+
   replies = [];
   await handleTelegramUpdate({
     message: { chat: { id: 888 }, photo: [{ file_id: 'abc' }], from: { first_name: 'User' } }
