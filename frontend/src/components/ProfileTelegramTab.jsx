@@ -13,7 +13,13 @@ const formatTimer = (ms) => {
 
 const ProfileTelegramTab = ({ user, setStatusMessage }) => {
   const [loading, setLoading] = useState(true);
-  const [linkInfo, setLinkInfo] = useState({ linked: false, chatId: null, username: null });
+  const isTgAccount = Boolean(user?.isTelegramUser || user?.id?.startsWith('tg_'));
+  const initialChatId = user?.telegramChatId || (isTgAccount ? user.id.replace('tg_', '') : null);
+  const [linkInfo, setLinkInfo] = useState({
+    linked: isTgAccount || Boolean(initialChatId),
+    chatId: initialChatId,
+    username: user?.telegramUsername || null
+  });
   const [generatedCode, setGeneratedCode] = useState(null);
   const [deepLink, setDeepLink] = useState(null);
   const [expiresAt, setExpiresAt] = useState(null);
@@ -22,6 +28,7 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
   const [copied, setCopied] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
   const timerRef = useRef(null);
+  const prevLinkedRef = useRef(isTgAccount || Boolean(initialChatId));
 
   const startTimer = useCallback((expiry) => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -46,13 +53,29 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
   const fetchStatus = useCallback(async () => {
     try {
       const res = await getTelegramStatus();
-      setLinkInfo(res);
+      if (res?.linked) {
+        setLinkInfo(res);
+      } else if (isTgAccount) {
+        setLinkInfo({
+          linked: true,
+          chatId: user?.telegramChatId || user.id.replace('tg_', ''),
+          username: user?.telegramUsername || null
+        });
+      } else {
+        setLinkInfo(res || { linked: false });
+      }
     } catch {
-      // ignore
+      if (isTgAccount) {
+        setLinkInfo({
+          linked: true,
+          chatId: user?.telegramChatId || user.id.replace('tg_', ''),
+          username: user?.telegramUsername || null
+        });
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isTgAccount, user]);
 
   useEffect(() => {
     fetchStatus();
@@ -60,20 +83,30 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
       const ref = getUserDocRef(user.id);
       const unsub = listenDoc(ref, (snap) => {
         const data = snap?.data?.();
-        if (data?.telegramChatId) {
+        if (data?.telegramChatId || isTgAccount) {
+          const cId = data?.telegramChatId || user?.telegramChatId || (isTgAccount ? user.id.replace('tg_', '') : null);
+          const uName = data?.telegramUsername || user?.telegramUsername || null;
           setLinkInfo({
             linked: true,
-            chatId: data.telegramChatId,
-            username: data.telegramUsername || null
+            chatId: cId,
+            username: uName
           });
           setGeneratedCode(null);
-        } else if (data && data.telegramChatId === null) {
+          if (!prevLinkedRef.current) {
+            setStatusMessage?.({
+              type: 'success',
+              text: `🎉 Bot Telegram Pocky (${uName ? '@' + uName : 'ID: ' + cId}) berhasil terhubung!`
+            });
+            prevLinkedRef.current = true;
+          }
+        } else if (data && data.telegramChatId === null && !isTgAccount) {
           setLinkInfo({ linked: false, chatId: null, username: null });
+          prevLinkedRef.current = false;
         }
       });
       return () => unsub && unsub();
     }
-  }, [user, fetchStatus]);
+  }, [user, fetchStatus, isTgAccount, setStatusMessage]);
 
   const handleGenerateCode = async () => {
     try {

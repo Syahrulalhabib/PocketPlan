@@ -43,6 +43,14 @@ export async function getLinkStatus(uid, db) {
     if (data?.telegramChatId) {
       return { linked: true, chatId: data.telegramChatId, username: data.telegramUsername || null };
     }
+    if (data?.telegramChatId === null) {
+      return { linked: false };
+    }
+    const linkSnap = await db.collection('telegram_links').where('uid', '==', uid).limit(1).get();
+    if (!linkSnap.empty) {
+      const linkDoc = linkSnap.docs[0];
+      return { linked: true, chatId: linkDoc.id, username: linkDoc.data()?.username || null };
+    }
     return { linked: false };
   }
   for (const [chatId, link] of demoLinks.entries()) {
@@ -221,11 +229,13 @@ export async function verifyWebLoginCode(code, db) {
     await doc.ref.delete();
     const userDoc = await db.collection('users').doc(data.uid).get();
     const uData = userDoc.data() || {};
+    const chatId = uData.telegramChatId || (data.uid.startsWith('tg_') ? data.uid.replace('tg_', '') : null);
     return {
       uid: data.uid,
       name: uData.name || 'Telegram User',
       email: uData.email || `${data.uid}@telegram.pocketplan`,
-      telegramChatId: uData.telegramChatId || null
+      telegramChatId: chatId,
+      telegramUsername: uData.telegramUsername || null
     };
   }
 
@@ -236,11 +246,21 @@ export async function verifyWebLoginCode(code, db) {
     return 'EXPIRED';
   }
   demoWebCodes.delete(cleanCode);
+  let demoChatId = entry.uid.startsWith('tg_') ? entry.uid.replace('tg_', '') : null;
+  let demoUsername = null;
+  for (const [cId, link] of demoLinks.entries()) {
+    if (link.uid === entry.uid) {
+      demoChatId = cId;
+      demoUsername = link.username || null;
+      break;
+    }
+  }
   return {
     uid: entry.uid,
-    name: 'Telegram User',
+    name: demoUsername ? `@${demoUsername}` : 'Telegram User',
     email: `${entry.uid}@telegram.pocketplan`,
-    telegramChatId: null
+    telegramChatId: demoChatId,
+    telegramUsername: demoUsername
   };
 }
 

@@ -9,7 +9,7 @@ import {
   getLinkStatus,
   unlinkAccount
 } from './lib/telegramBot.js';
-import { verifyWebLoginCode } from './lib/telegramBotCore.js';
+import { verifyWebLoginCode, sendTelegramMessage } from './lib/telegramBotCore.js';
 import { scanReceiptWithGemini } from './lib/geminiReceiptScanner.js';
 
 dotenv.config();
@@ -71,12 +71,14 @@ setInterval(() => {
 
 // Middleware to verify Firebase token when admin is configured
 const requireAuth = async (req, res, next) => {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+
   if (!useFirestore) {
-    req.user = { uid: 'demo-user' };
+    req.user = { uid: token && token !== 'null' && token !== 'undefined' ? token : 'demo-user' };
     return next();
   }
-  const authHeader = req.headers.authorization || '';
-  const token = authHeader.replace(/^Bearer\s+/i, '');
+
   if (!token) return res.status(401).json({ error: 'Missing token' });
   try {
     const adminAuth = (await import('firebase-admin')).default.auth();
@@ -84,6 +86,11 @@ const requireAuth = async (req, res, next) => {
     req.user = { uid: decoded.uid };
     next();
   } catch (err) {
+    // If token is direct uid during fallback/offline
+    if (token.startsWith('tg_')) {
+      req.user = { uid: token };
+      return next();
+    }
     res.status(401).json({ error: 'Invalid token' });
   }
 };
@@ -179,6 +186,19 @@ app.post('/api/telegram/web-login', async (req, res) => {
       const adminAuth = (await import('firebase-admin')).default.auth();
       customToken = await adminAuth.createCustomToken(result.uid);
     }
+
+    // Bi-directional notification: alert user on Telegram that login succeeded
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const targetChatId = result.telegramChatId || (result.uid?.startsWith('tg_') ? result.uid.replace('tg_', '') : null);
+    if (botToken && targetChatId) {
+      sendTelegramMessage(
+        botToken,
+        targetChatId,
+        '🎉 *Website Pocketplan Berhasil Terhubung!*\n\n' +
+        'Akun Telegram Anda baru saja terhubung dan login ke website Pocketplan. Catatan keuangan dan target impian Anda kini tersinkron secara real-time! 🌐🪙'
+      ).catch(() => {});
+    }
+
     res.json({ ok: true, user: result, ...(customToken && { customToken }) });
   } catch (err) {
     console.error('web-login error:', err);

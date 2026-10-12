@@ -30,19 +30,36 @@ export const AuthProvider = ({ children }) => {
       return;
     }
     const unsubscribe = watchAuth((fbUser) => {
-      if (fbUser && !fbUser.emailVerified) {
+      const isPasswordUser = fbUser?.providerData?.some((p) => p.providerId === 'password');
+      if (fbUser && isPasswordUser && !fbUser.emailVerified) {
         signOutUser();
         setUser(null);
         setLoading(false);
         return;
       }
       if (fbUser) {
-        setUser({
+        const savedTg = localStorage.getItem('pocketplan_tg_user');
+        let extraTg = null;
+        if (savedTg) {
+          try {
+            const parsed = JSON.parse(savedTg);
+            if (parsed.id === fbUser.uid || parsed.telegramChatId) extraTg = parsed;
+          } catch {}
+        }
+        const isTg = Boolean(extraTg?.isTelegramUser || fbUser.uid.startsWith('tg_'));
+        const resolved = {
           id: fbUser.uid,
-          name: fbUser.displayName || fbUser.email || 'User',
-          email: fbUser.email || 'user@pocketplan.app',
-          photoURL: fbUser.photoURL || undefined
-        });
+          name: fbUser.displayName || extraTg?.name || fbUser.email || (isTg ? 'Telegram User' : 'User'),
+          email: fbUser.email || extraTg?.email || (isTg ? `${fbUser.uid}@telegram.pocketplan` : 'user@pocketplan.app'),
+          photoURL: fbUser.photoURL || extraTg?.photoURL || undefined,
+          isTelegramUser: isTg,
+          telegramChatId: extraTg?.telegramChatId || (isTg && fbUser.uid.startsWith('tg_') ? fbUser.uid.replace('tg_', '') : undefined),
+          telegramUsername: extraTg?.telegramUsername || undefined
+        };
+        setUser(resolved);
+        if (isTg) {
+          localStorage.setItem('pocketplan_tg_user', JSON.stringify(resolved));
+        }
       } else {
         const savedTg = localStorage.getItem('pocketplan_tg_user');
         if (savedTg) {
@@ -127,11 +144,14 @@ export const AuthProvider = ({ children }) => {
     if (tgUser.customToken && firebaseEnabled) {
       await signInWithToken(tgUser.customToken);
     }
+    const chatId = tgUser.telegramChatId || (tgUser.uid?.startsWith('tg_') ? tgUser.uid.replace('tg_', '') : undefined);
     const resolvedUser = {
       id: tgUser.uid || tgUser.id,
       name: tgUser.name || 'Telegram User',
       email: tgUser.email || `${tgUser.uid || 'user'}@telegram.pocketplan`,
       photoURL: tgUser.photoURL || undefined,
+      telegramChatId: chatId,
+      telegramUsername: tgUser.telegramUsername || undefined,
       isTelegramUser: true
     };
     setUser(resolvedUser);

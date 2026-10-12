@@ -208,6 +208,11 @@ export async function handleTelegramUpdate(update, db, botToken) {
       await answerTelegramCallback(botToken, cb.id);
       return sendGoals(chatId, uid, db, botToken);
     }
+    if (data === 'refresh_web_code') {
+      await answerTelegramCallback(botToken, cb.id, '🔄 Membuat kode baru...');
+      const userUid = uid || (await ensureTelegramUser(chatId, cb.from, db));
+      return sendWebAccess(chatId, userUid, db, botToken);
+    }
     await answerTelegramCallback(botToken, cb.id);
     return;
   }
@@ -720,7 +725,19 @@ async function sendGoals(chatId, uid, db, botToken) {
 }
 
 async function sendWebAccess(chatId, uid, db, botToken) {
-  const { code } = await generateWebLoginCode(uid, db);
-  const text = `🌐 *Kode Login Website*\n\nBuka Pocketplan di browser, pilih tab *Telegram*, masukkan kode:\n\n🔑 Kode: \`${code}\`\n⏱️ _Berlaku 15 menit_`;
-  return sendTelegramMessage(botToken, chatId, text);
+  const { code, expiresAt } = await generateWebLoginCode(uid, db);
+  const expiryDate = new Date(expiresAt);
+  const timeStr = expiryDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
+  const text = `🌐 *Kode Login Website Pocketplan*\n\n` +
+    `Buka Pocketplan di browser, pilih tab *Telegram*, lalu masukkan kode ini:\n\n` +
+    `🔑 *KODE:* \`${code}\`\n\n` +
+    `⏱️ *Berlaku:* 15 Menit (Kedaluwarsa pukul *${timeStr} WIB*)\n` +
+    `💡 _Segera masukkan kode di website sebelum waktu habis ya!_`;
+  return sendTelegramMessage(botToken, chatId, text, {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🔄 Buat Kode Baru', callback_data: 'refresh_web_code' }]
+      ]
+    }
+  });
 }

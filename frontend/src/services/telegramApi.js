@@ -9,7 +9,17 @@ import {
 const getHeaders = async () => {
   const token = await getAuthToken();
   const headers = { 'Content-Type': 'application/json' };
-  if (token) headers.Authorization = `Bearer ${token}`;
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  } else {
+    try {
+      const savedTg = localStorage.getItem('pocketplan_tg_user');
+      if (savedTg) {
+        const parsed = JSON.parse(savedTg);
+        if (parsed?.id) headers.Authorization = `Bearer ${parsed.id}`;
+      }
+    } catch {}
+  }
   return headers;
 };
 
@@ -17,7 +27,10 @@ export async function getTelegramStatus() {
   try {
     const headers = await getHeaders();
     const res = await fetch('/api/telegram/status', { headers });
-    if (res.ok) return await res.json();
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.linked) return data;
+    }
   } catch {
     // API failed, check direct Firestore below
   }
@@ -33,8 +46,29 @@ export async function getTelegramStatus() {
           username: data.telegramUsername || null
         };
       }
+      if (user.uid.startsWith('tg_')) {
+        return {
+          linked: true,
+          chatId: user.uid.replace('tg_', ''),
+          username: data?.telegramUsername || null
+        };
+      }
     } catch {}
   }
+
+  try {
+    const savedTg = localStorage.getItem('pocketplan_tg_user');
+    if (savedTg) {
+      const parsed = JSON.parse(savedTg);
+      if (parsed?.isTelegramUser || parsed?.id?.startsWith('tg_') || parsed?.telegramChatId) {
+        return {
+          linked: true,
+          chatId: parsed.telegramChatId || (parsed.id?.startsWith('tg_') ? parsed.id.replace('tg_', '') : null),
+          username: parsed.telegramUsername || null
+        };
+      }
+    }
+  } catch {}
 
   return { linked: false };
 }
