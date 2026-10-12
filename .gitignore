@@ -20,6 +20,14 @@ backend/serviceAccount.json
 frontend/dist
 backend/.vercel
 
+
+# Receipt scanner batch artifacts
+struk_input/*
+!struk_input/.gitkeep
+output_json/*
+!output_json/.gitkeep
+output_rekap.csv
+
 # Vercel local state
 .vercel
 

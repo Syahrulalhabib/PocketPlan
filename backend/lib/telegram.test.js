@@ -48,8 +48,37 @@ async function testBot() {
 
   let replies = [];
   global.fetch = async (url, opts) => {
-    replies.push(JSON.parse(opts.body));
-    return { json: async () => ({ ok: true }) };
+    if (opts?.body) {
+      try { replies.push(JSON.parse(opts.body)); } catch {}
+    }
+    if (typeof url === 'string' && url.includes('/getFile')) {
+      return { ok: true, json: async () => ({ ok: true, result: { file_path: 'photo.jpg' } }) };
+    }
+    if (typeof url === 'string' && url.includes('/file/')) {
+      return { ok: true, arrayBuffer: async () => Buffer.from('fake-image-bytes') };
+    }
+    if (typeof url === 'string' && url.includes('models/')) {
+      return {
+        ok: true,
+        json: async () => ({
+          candidates: [{
+            content: {
+              parts: [{
+                text: JSON.stringify({
+                  merchant_name: 'Warung Nasi',
+                  date: '2026-10-15',
+                  items: [{ item_name: 'Nasi Rendang', quantity: 1, unit_price: 25000, total_price: 25000 }],
+                  total_amount: 25000,
+                  category: 'Food',
+                  payment_method: 'CASH'
+                })
+              }]
+            }
+          }]
+        })
+      };
+    }
+    return { ok: true, json: async () => ({ ok: true }) };
   };
 
   // Link
@@ -109,12 +138,13 @@ async function testBot() {
   await unlinkAccount(uid, null);
   assert.strictEqual((await getLinkStatus(uid, null)).linked, false);
 
-  // Photo receipt redirect check
+  // Photo receipt scan check
+  process.env.GEMINI_API_KEYS = 'test_key';
   replies = [];
   await handleTelegramUpdate({
     message: { chat: { id: 888 }, photo: [{ file_id: 'abc' }], from: { first_name: 'User' } }
   }, null, 'token');
-  assert(replies[0].text.includes('Scan Struk'));
+  assert(replies.some(r => r.text.includes('membaca struk') || r.text.includes('Struk Berhasil Dicatat') || r.text.includes('Warung Nasi')));
 
 
   // Auto-provision & Web Login Code test

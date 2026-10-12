@@ -10,13 +10,15 @@ import {
   unlinkAccount
 } from './lib/telegramBot.js';
 import { verifyWebLoginCode } from './lib/telegramBotCore.js';
+import { scanReceiptWithGemini } from './lib/geminiReceiptScanner.js';
 
 dotenv.config();
 initFirebaseAdmin();
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan('dev'));
 
 const PORT = process.env.PORT || 4000;
@@ -87,6 +89,23 @@ const requireAuth = async (req, res, next) => {
 };
 
 app.get('/health', (_, res) => res.json({ ok: true, useFirestore }));
+
+app.post('/api/scan-receipt', requireAuth, async (req, res) => {
+  const { imageBase64, mimeType } = req.body || {};
+  if (!imageBase64) {
+    return res.status(400).json({ ok: false, error: 'Data gambar (imageBase64) wajib disertakan' });
+  }
+  try {
+    const result = await scanReceiptWithGemini({
+      imageBase64,
+      mimeType: mimeType || 'image/jpeg'
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('Scan receipt error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
 
 
 // Telegram Webhook

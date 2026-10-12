@@ -10,6 +10,7 @@ import {
   ensureTelegramUser,
   generateWebLoginCode
 } from './telegramBotCore.js';
+import { scanReceiptWithGemini } from './geminiReceiptScanner.js';
 
 export { generateLinkCode, getLinkStatus, unlinkAccount, sendTelegramMessage };
 
@@ -145,12 +146,73 @@ export async function handleTelegramUpdate(update, db, botToken) {
   const chatId = msg.chat.id;
   const userFrom = msg.from || {};
 
-  // Handle photo: redirect to web scanner
-  if (msg.photo && msg.photo.length > 0) {
-    return sendTelegramMessage(botToken, chatId,
-      '📸 *Scan Struk Tersedia di Web PocketPlan*\n\nUntuk scan struk otomatis dengan kamera, buka website PocketPlan lalu klik tombol *Scan Struk* di menu Transaksi.\n\nKetik `/web` untuk mendapatkan kode login web instan!',
-      { reply_markup: KEYBOARD }
-    );
+  // Handle photo or document image receipt with Gemini AI
+  const isPhoto = msg.photo && msg.photo.length > 0;
+  const isImageDoc = msg.document && msg.document.mime_type?.startsWith('image/');
+
+  if (isPhoto || isImageDoc) {
+    const uid = await ensureTelegramUser(chatId, userFrom, db);
+    await sendTelegramMessage(botToken, chatId, '⏳ *Sedang membaca struk dengan AI...*\nMohon tunggu beberapa detik.');
+    try {
+      const fileId = isPhoto
+        ? msg.photo[msg.photo.length - 1].file_id
+        : msg.document.file_id;
+      const mimeType = isImageDoc ? msg.document.mime_type : 'image/jpeg';
+
+      const fileRes = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
+      const fileData = await fileRes.json();
+      if (!fileData.ok || !fileData.result?.file_path) {
+        throw new Error('Gagal mengunduh file gambar dari server Telegram.');
+      }
+
+      const dlRes = await fetch(`https://api.telegram.org/file/bot${botToken}/${fileData.result.file_path}`);
+      const arrayBuf = await dlRes.arrayBuffer();
+      const imageBase64 = Buffer.from(arrayBuf).toString('base64');
+
+      const scanRes = await scanReceiptWithGemini({ imageBase64, mimeType });
+      const r = scanRes.data;
+
+      const tx = {
+        category: r.category || 'Food',
+        type: 'Expense',
+        amount: Number(r.total_amount) || 0,
+        description: r.merchant_name || 'Scan Struk AI',
+        date: r.date || new Date().toISOString().slice(0, 10),
+        createdAt: new Date().toISOString(),
+        paymentMethod: r.payment_method || 'CASH',
+        receiptItems: r.items || []
+      };
+
+      if (db) {
+        await db.collection('users').doc(uid).collection('transactions').add(tx);
+      }
+
+      let itemSummary = '';
+      if (Array.isArray(r.items) && r.items.length > 0) {
+        const lines = r.items.slice(0, 5).map(it => `• ${escapeMarkdown(it.item_name)} (${it.quantity || 1}x): ${formatRupiah(it.total_price || 0)}`);
+        if (r.items.length > 5) lines.push(`_...dan ${r.items.length - 5} barang lainnya_`);
+        itemSummary = `\n🛒 *Rincian Belanja:*\n${lines.join('\n')}\n`;
+      }
+
+      const reply = `🧾 *Struk Berhasil Dicatat!*\n\n` +
+        `🏪 *Toko:* ${escapeMarkdown(r.merchant_name)}\n` +
+        `💵 *Total:* *${formatRupiah(r.total_amount)}*\n` +
+        `🏷️ *Kategori:* ${escapeMarkdown(r.category)}\n` +
+        `📅 *Tanggal:* ${formatShortDate(r.date)}\n` +
+        `💳 *Metode:* ${escapeMarkdown(r.payment_method)}\n` +
+        itemSummary +
+        `\n✅ Transaksi otomatis tersimpan di PocketPlan!\n💡 _Salah catat? Ketik \`/batal\` untuk membatalkan._`;
+
+      return sendTelegramMessage(botToken, chatId, reply, { reply_markup: KEYBOARD });
+    } catch (err) {
+      console.error('Telegram receipt scanner error:', err);
+      return sendTelegramMessage(
+        botToken,
+        chatId,
+        `❌ *Gagal memindai struk*\n\n_${escapeMarkdown(err.message || 'Error tidak diketahui')}_\n\nPastikan foto struk terlihat jelas, terang, dan tidak terpotong.\nKamu juga bisa mencatat manual: \`kopi 25k\` atau \`/catat makan 50k\``,
+        { reply_markup: KEYBOARD }
+      );
+    }
   }
 
   if (!msg.text) return;
@@ -182,7 +244,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
     return sendTelegramMessage(
       botToken,
       chatId,
-      `🪙 *Hai ${userName}! Salam kenal, aku Pocky!*\n\nAsisten keuangan pribadimu di Telegram. Aku bantu kamu:\n\n💸 Catat pemasukan & pengeluaran\n🎯 Buat & pantau target tabungan\n📊 Cek saldo & riwayat kapan saja\n\n*Mulai gampang banget:*\n• Ketik langsung → \`kopi susu 25k\`\n• Pengeluaran → \`/catat bensin 50k\`\n• Pemasukan → \`/masuk gaji 2jt\`\n• Target baru → \`/goal Laptop 10jt\`\n• Cek saldo → \`/saldo\`\n\nKetik /help untuk panduan lengkap 📖`,
+      `🪙 *Hai ${userName}! Salam kenal, aku Pocky!*\n\nAsisten keuangan pribadimu di Telegram. Aku bantu kamu:\n\n💸 Catat pemasukan & pengeluaran\n🧾 Scan foto struk otomatis dengan AI Gemini\n🎯 Buat & pantau target tabungan\n📊 Cek saldo & riwayat kapan saja\n\n*Mulai gampang banget:*\n• Kirim foto struk belanja → otomatis dicatat AI!\n• Ketik langsung → \`kopi susu 25k\`\n• Pengeluaran → \`/catat bensin 50k\`\n• Pemasukan → \`/masuk gaji 2jt\`\n• Target baru → \`/goal Laptop 10jt\`\n• Cek saldo → \`/saldo\`\n\nKetik /help untuk panduan lengkap 📖`,
       { reply_markup: KEYBOARD }
     );
   }
@@ -323,7 +385,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
     return sendTelegramMessage(
       botToken,
       chatId,
-      '📖 *PANDUAN LENGKAP POCKY* 🪙\n\n*📝 CATAT PENGELUARAN*\n• `kopi susu 25k` — ketik langsung\n• `25k kopi susu` — nominal duluan juga bisa\n• `/catat bensin 50k` — pakai perintah\n• `/keluar makan siang 35k`\n\n*💰 CATAT PEMASUKAN*\n• `/masuk gaji 2jt`\n• `/masuk freelance 500k`\n\n*🎯 TARGET IMPIAN*\n• `/goal Laptop Baru 10jt` — buat target\n• `/goals` — lihat semua target & progres\n• `/beligoal Laptop` — beli target tercapai\n\n*📊 INFO KEUANGAN*\n• `/saldo` — cek sisa saldo\n• `/riwayat` — 5 transaksi terakhir\n• `/batal` — batalkan transaksi terakhir\n\n*🔗 LAINNYA*\n• `/web` — kode login website\n• `/link KODE` — hubungkan akun website\n• `/menu` — tampilkan keyboard menu\n\n💡 _Nominal bisa ditulis: 50k, 50rb, 50.000, 1.5jt, Rp50000_',
+      '📖 *PANDUAN LENGKAP POCKY* 🪙\n\n*🧾 SCAN STRUK DENGAN AI*\n• Cukup kirim foto struk belanja langsung ke chat ini!\n• AI Gemini otomatis membaca merchant, daftar barang, & total pengeluaran.\n\n*📝 CATAT PENGELUARAN*\n• `kopi susu 25k` — ketik langsung\n• `25k kopi susu` — nominal duluan juga bisa\n• `/catat bensin 50k` — pakai perintah\n• `/keluar makan siang 35k`\n\n*💰 CATAT PEMASUKAN*\n• `/masuk gaji 2jt`\n• `/masuk freelance 500k`\n\n*🎯 TARGET IMPIAN*\n• `/goal Laptop Baru 10jt` — buat target\n• `/goals` — lihat semua target & progres\n• `/beligoal Laptop` — beli target tercapai\n\n*📊 INFO KEUANGAN*\n• `/saldo` — cek sisa saldo\n• `/riwayat` — 5 transaksi terakhir\n• `/batal` — batalkan transaksi terakhir\n\n*🔗 LAINNYA*\n• `/web` — kode login website\n• `/link KODE` — hubungkan akun website\n• `/menu` — tampilkan keyboard menu\n\n💡 _Nominal bisa ditulis: 50k, 50rb, 50.000, 1.5jt, Rp50000_',
       { reply_markup: KEYBOARD }
     );
   }
