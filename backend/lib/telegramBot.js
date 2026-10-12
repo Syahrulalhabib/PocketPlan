@@ -152,7 +152,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
 
   if (isPhoto || isImageDoc) {
     const uid = await ensureTelegramUser(chatId, userFrom, db);
-    await sendTelegramMessage(botToken, chatId, '⏳ *Sedang membaca struk dengan AI...*\nMohon tunggu beberapa detik.');
+    await sendTelegramMessage(botToken, chatId, '🔍 *Pocky lagi teliti membaca struk kamu nih...*\nSebentar ya, Pocky intip total sama daftar belanjaannya dulu! 🪙');
     try {
       const fileId = isPhoto
         ? msg.photo[msg.photo.length - 1].file_id
@@ -194,14 +194,14 @@ export async function handleTelegramUpdate(update, db, botToken) {
         itemSummary = `\n🛒 *Rincian Belanja:*\n${lines.join('\n')}\n`;
       }
 
-      const reply = `🧾 *Struk Berhasil Dicatat!*\n\n` +
+      const reply = `🧾 *Hore! Struk Berhasil Dicatat Pocky!* 🎉\n\n` +
         `🏪 *Toko:* ${escapeMarkdown(r.merchant_name)}\n` +
         `💵 *Total:* *${formatRupiah(r.total_amount)}*\n` +
         `🏷️ *Kategori:* ${escapeMarkdown(r.category)}\n` +
         `📅 *Tanggal:* ${formatShortDate(r.date)}\n` +
         `💳 *Metode:* ${escapeMarkdown(r.payment_method)}\n` +
         itemSummary +
-        `\n✅ Transaksi otomatis tersimpan di PocketPlan!\n💡 _Salah catat? Ketik \`/batal\` untuk membatalkan._`;
+        `\n✨ Sudah rapi tersimpan di PocketPlan kamu!\n💡 _Pocky salah baca? Ketik \`/batal\` buat membatalkan ya._`;
 
       return sendTelegramMessage(botToken, chatId, reply, { reply_markup: KEYBOARD });
     } catch (err) {
@@ -209,7 +209,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
       return sendTelegramMessage(
         botToken,
         chatId,
-        `❌ *Gagal memindai struk*\n\n_${escapeMarkdown(err.message || 'Error tidak diketahui')}_\n\nPastikan foto struk terlihat jelas, terang, dan tidak terpotong.\nKamu juga bisa mencatat manual: \`kopi 25k\` atau \`/catat makan 50k\``,
+        `🙈 *Aduh, mata Pocky agak burem baca struk ini!*\n\n_${escapeMarkdown(err.message || 'Gambarnya kurang terbaca')}_\n\nCoba kirim foto struk yang lebih terang, tegak, dan jelas yaa ✨\nAtau kamu bisa minta Pocky catat manual: \`kopi 25k\` atau \`/catat makan 50k\``,
         { reply_markup: KEYBOARD }
       );
     }
@@ -469,13 +469,13 @@ export async function handleTelegramUpdate(update, db, botToken) {
       return sendTelegramMessage(
         botToken,
         chatId,
-        `✅ *Pemasukan Dicatat*\n🟢 +*${formatRupiah(parsed.amount)}*\n📝 *${escapeMarkdown(parsed.description)}*\n📁 ${escapeMarkdown(parsed.category)} • 📅 ${formatShortDate(parsed.date)}`
+        `🎉 *Yey, Pemasukan Dicatat Pocky!* 💰\n🟢 +*${formatRupiah(parsed.amount)}*\n📝 *${escapeMarkdown(parsed.description)}*\n📁 ${escapeMarkdown(parsed.category)} • 📅 ${formatShortDate(parsed.date)}`
       );
     }
     return sendTelegramMessage(
       botToken,
       chatId,
-      `✅ *Pengeluaran Dicatat*\n🔴 -*${formatRupiah(parsed.amount)}*\n📝 *${escapeMarkdown(parsed.description)}*\n📁 ${escapeMarkdown(parsed.category)} • 📅 ${formatShortDate(parsed.date)}`
+      `💸 *Pengeluaran Dicatat Pocky!* ✨\n🔴 -*${formatRupiah(parsed.amount)}*\n📝 *${escapeMarkdown(parsed.description)}*\n📁 ${escapeMarkdown(parsed.category)} • 📅 ${formatShortDate(parsed.date)}\n\n💡 _Salah catat? Ketik \`/batal\` buat menghapus._`
     );
   }
 
