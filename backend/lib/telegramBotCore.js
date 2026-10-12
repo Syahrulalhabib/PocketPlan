@@ -146,6 +146,22 @@ export async function answerTelegramCallback(botToken, callbackQueryId, text = '
   } catch {}
 }
 
+export async function editTelegramMessage(botToken, chatId, messageId, text, options = {}) {
+  if (!botToken || !chatId || !messageId) return null;
+  const url = `https://api.telegram.org/bot${botToken}/editMessageText`;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, message_id: messageId, text, parse_mode: 'Markdown', ...options })
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('Telegram editMessageText error:', err.message);
+    return null;
+  }
+}
+
 const demoWebCodes = new Map();
 
 export async function ensureTelegramUser(chatId, userFrom, db) {

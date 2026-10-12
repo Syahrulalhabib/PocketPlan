@@ -146,6 +146,22 @@ async function testBot() {
   }, null, 'token');
   assert(replies.some(r => r.text.includes('membaca struk') || r.text.includes('Struk Berhasil Dicatat') || r.text.includes('Warung Nasi')));
 
+  // Test receipt action callbacks
+  await handleTelegramUpdate({
+    callback_query: { id: 'cb1', data: 'ok:dummy-tx', message: { chat: { id: 888 }, message_id: 1, text: 'Struk Berhasil Dicatat' } }
+  }, null, 'token');
+
+  await handleTelegramUpdate({
+    callback_query: { id: 'cb2', data: 'edit:dummy-tx', message: { chat: { id: 888 }, message_id: 1 } }
+  }, null, 'token');
+
+  // Test /koreksi command
+  replies = [];
+  await handleTelegramUpdate({
+    message: { chat: { id: 888 }, text: '/koreksi 150k', from: { first_name: 'User' } }
+  }, null, 'token');
+  assert(replies[0].text.includes('150.000'));
+
 
   // Auto-provision & Web Login Code test
   const { ensureTelegramUser, generateWebLoginCode, verifyWebLoginCode } = await import('./telegramBotCore.js');

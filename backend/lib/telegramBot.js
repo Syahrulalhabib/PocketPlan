@@ -2,6 +2,7 @@ import { parseTransactionCommand, parseAmount, formatRupiah } from './telegramPa
 import {
   sendTelegramMessage,
   answerTelegramCallback,
+  editTelegramMessage,
   generateLinkCode,
   getLinkStatus,
   unlinkAccount,
@@ -129,6 +130,55 @@ export async function handleTelegramUpdate(update, db, botToken) {
       return;
     }
 
+    if (data.startsWith('ok:')) {
+      await answerTelegramCallback(botToken, cb.id, '✅ Transaksi dikonfirmasi cocok!');
+      const messageId = cb.message?.message_id;
+      if (messageId && cb.message?.text) {
+        await editTelegramMessage(
+          botToken,
+          chatId,
+          messageId,
+          cb.message.text + '\n\n✨ *Status: Sudah kamu konfirmasi cocok!* 👍'
+        );
+      }
+      return;
+    }
+
+    if (data.startsWith('del:')) {
+      const txId = data.replace('del:', '');
+      const userUid = uid || (await ensureTelegramUser(chatId, cb.from, db));
+      if (db && userUid && txId) {
+        try {
+          await db.collection('users').doc(userUid).collection('transactions').doc(txId).delete();
+        } catch {}
+      }
+      await answerTelegramCallback(botToken, cb.id, '🗑️ Transaksi struk berhasil dihapus!');
+      const messageId = cb.message?.message_id;
+      if (messageId) {
+        await editTelegramMessage(
+          botToken,
+          chatId,
+          messageId,
+          '🗑️ *Transaksi struk ini telah dibatalkan & dihapus dari PocketPlan oleh Pocky.*'
+        );
+      }
+      return;
+    }
+
+    if (data.startsWith('edit:')) {
+      await answerTelegramCallback(botToken, cb.id);
+      return sendTelegramMessage(
+        botToken,
+        chatId,
+        '✏️ *Panduan Koreksi Struk oleh Pocky:*\n\n' +
+        '• Mau ganti nominal? Ketik: `/koreksi 150k`\n' +
+        '• Mau ganti toko? Ketik: `/toko Indomaret Point`\n' +
+        '• Mau ganti kategori? Ketik: `/kategori Food`\n\n' +
+        'Atau tekan tombol *🗑️ Hapus Transaksi* jika ingin membatalkan seluruhnya.',
+        { reply_markup: KEYBOARD }
+      );
+    }
+
     if (data === 'saldo') {
       await answerTelegramCallback(botToken, cb.id);
       return sendSaldo(chatId, uid, db, botToken);
@@ -183,8 +233,10 @@ export async function handleTelegramUpdate(update, db, botToken) {
         receiptItems: r.items || []
       };
 
+      let txId = '';
       if (db) {
-        await db.collection('users').doc(uid).collection('transactions').add(tx);
+        const docRef = await db.collection('users').doc(uid).collection('transactions').add(tx);
+        txId = docRef.id;
       }
 
       let itemSummary = '';
@@ -201,9 +253,22 @@ export async function handleTelegramUpdate(update, db, botToken) {
         `📅 *Tanggal:* ${formatShortDate(r.date)}\n` +
         `💳 *Metode:* ${escapeMarkdown(r.payment_method)}\n` +
         itemSummary +
-        `\n✨ Sudah rapi tersimpan di PocketPlan kamu!\n💡 _Pocky salah baca? Ketik \`/batal\` buat membatalkan ya._`;
+        `\n✨ Sudah rapi tersimpan di PocketPlan kamu!\n\n` +
+        `💡 _Ada yang keliru? Ketik \`/koreksi 150k\` atau pilih opsi di bawah ini:_ 👇`;
 
-      return sendTelegramMessage(botToken, chatId, reply, { reply_markup: KEYBOARD });
+      const inlineButtons = txId ? [
+        [
+          { text: '✅ Sudah Pas!', callback_data: `ok:${txId}` },
+          { text: '🗑️ Hapus Transaksi', callback_data: `del:${txId}` }
+        ],
+        [
+          { text: '✏️ Cara Koreksi Nominal', callback_data: `edit:${txId}` }
+        ]
+      ] : undefined;
+
+      return sendTelegramMessage(botToken, chatId, reply, {
+        reply_markup: inlineButtons ? { inline_keyboard: inlineButtons } : KEYBOARD
+      });
     } catch (err) {
       console.error('Telegram receipt scanner error:', err);
       return sendTelegramMessage(
@@ -435,6 +500,80 @@ export async function handleTelegramUpdate(update, db, botToken) {
       return sendTelegramMessage(botToken, chatId, `🗑️ *Dibatalkan!*\nTransaksi *${data.description}* (${formatRupiah(data.amount)}) telah dihapus.`);
     }
     return sendTelegramMessage(botToken, chatId, 'Dibatalkan.');
+  }
+
+  if (text.startsWith('/koreksi') || text.startsWith('/ubah')) {
+    const parts = text.split(/\s+/);
+    if (parts.length < 2) {
+      return sendTelegramMessage(
+        botToken,
+        chatId,
+        '✏️ *Format Koreksi Nominal:*\n\nKetik: `/koreksi [nominal baru]`\nContoh:\n👉 `/koreksi 150k`\n👉 `/koreksi 185000`',
+        { reply_markup: KEYBOARD }
+      );
+    }
+    const newAmt = parseAmount(parts.slice(1).join(' '));
+    if (!newAmt || newAmt <= 0) {
+      return sendTelegramMessage(botToken, chatId, '⚠️ Nominal tidak valid. Contoh: `/koreksi 150k`');
+    }
+    if (db) {
+      const snap = await db.collection('users').doc(uid).collection('transactions').orderBy('createdAt', 'desc').limit(1).get();
+      if (snap.empty) {
+        return sendTelegramMessage(botToken, chatId, '🤷 Belum ada transaksi yang bisa diubah.');
+      }
+      const lastDoc = snap.docs[0];
+      const oldData = lastDoc.data();
+      await lastDoc.ref.update({ amount: newAmt });
+      return sendTelegramMessage(
+        botToken,
+        chatId,
+        `✏️ *Nominal Berhasil Dikoreksi Pocky!* ✨\n\n` +
+        `🏪 *Toko / Deskripsi:* ${escapeMarkdown(oldData.description || 'Pengeluaran')}\n` +
+        `💵 *Total Semula:* ${formatRupiah(oldData.amount)}\n` +
+        `💵 *Total Baru:* *${formatRupiah(newAmt)}*\n\n` +
+        `✅ Catatan di PocketPlan sudah langsung diperbarui!`,
+        { reply_markup: KEYBOARD }
+      );
+    }
+    return sendTelegramMessage(botToken, chatId, `✏️ Nominal diubah menjadi ${formatRupiah(newAmt)}.`);
+  }
+
+  if (text.startsWith('/toko')) {
+    const newShop = text.replace(/^\/toko(@\S+)?\s*/i, '').trim();
+    if (!newShop) {
+      return sendTelegramMessage(botToken, chatId, '🏪 Ketik: `/toko [nama toko baru]`\nContoh: `/toko Indomaret Point`');
+    }
+    if (db) {
+      const snap = await db.collection('users').doc(uid).collection('transactions').orderBy('createdAt', 'desc').limit(1).get();
+      if (snap.empty) return sendTelegramMessage(botToken, chatId, '🤷 Belum ada transaksi yang bisa diubah.');
+      await snap.docs[0].ref.update({ description: newShop });
+      return sendTelegramMessage(
+        botToken,
+        chatId,
+        `🏪 *Nama Toko Diperbarui Pocky!*\nKini menjadi: *${escapeMarkdown(newShop)}*`,
+        { reply_markup: KEYBOARD }
+      );
+    }
+    return sendTelegramMessage(botToken, chatId, 'Toko diperbarui.');
+  }
+
+  if (text.startsWith('/kategori')) {
+    const newCat = text.replace(/^\/kategori(@\S+)?\s*/i, '').trim();
+    if (!newCat) {
+      return sendTelegramMessage(botToken, chatId, '🏷️ Ketik: `/kategori [nama kategori]`\nContoh: `/kategori Food` atau `/kategori Shopping`');
+    }
+    if (db) {
+      const snap = await db.collection('users').doc(uid).collection('transactions').orderBy('createdAt', 'desc').limit(1).get();
+      if (snap.empty) return sendTelegramMessage(botToken, chatId, '🤷 Belum ada transaksi yang bisa diubah.');
+      await snap.docs[0].ref.update({ category: newCat });
+      return sendTelegramMessage(
+        botToken,
+        chatId,
+        `🏷️ *Kategori Diperbarui Pocky!*\nKini menjadi: *${escapeMarkdown(newCat)}*`,
+        { reply_markup: KEYBOARD }
+      );
+    }
+    return sendTelegramMessage(botToken, chatId, 'Kategori diperbarui.');
   }
 
   // Bare commands without arguments → friendly guidance
