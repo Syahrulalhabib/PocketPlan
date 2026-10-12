@@ -1,10 +1,11 @@
 export const SMART_TIPS = [
-  'Track every small expense; small leaks sink big ships! ⛵',
-  'Follow the 50/30/20 rule: 50% Needs, 30% Wants, 20% Savings! 📊',
-  'Wait 24 hours before impulse buys — your future self will thank you! ⏳',
-  'Pay yourself first: transfer savings as soon as income arrives! 🏦',
-  'Concrete goals boost motivation by over 80%! Keep going! 🎯',
-  'Compound interest is your quietest superpower — start today! ⚡',
-  'Cancel one unused subscription this month and bank the difference! ✂️',
-  'Celebrate milestones, not just the finish line! Every coin counts! 🌟'
+  '💡 Tips Pocky: Ada struk belanja? Foto langsung di menu Scan Struk atau kirim ke Telegram Pocky biar dicatat otomatis! 🧾✨',
+  '💡 Tips Pocky: Catat pengeluaran kecil tiap hari. Bocor halus sering bikin dompet jebol tanpa sadar! ⛵🪙',
+  '💡 Tips Pocky: Terapkan rumus 50/30/20: 50% Kebutuhan pokok, 30% Keinginan, 20% Tabungan masa depan! 📊',
+  '💡 Tips Pocky: Tahan belanja impulsif selama 24 jam. Dompet tenang, hati senang! ⏳✨',
+  '💡 Tips Pocky: Sisihkan tabungan di awal saat uang masuk, jangan tunggu sisa akhir bulan! 🏦💰',
+  '💡 Tips Pocky: Mau beli impian besar? Bikin target di menu Goals biar semangat nabung tiap hari! 🎯',
+  '💡 Tips Pocky: Lewat Telegram @yourpocketplan_bot, cukup ketik "kopi 25k" buat catat secepat kilat! ⚡',
+  '💡 Tips Pocky: Rayakan setiap progres kecil tabunganmu. Setiap rupiah membawamu lebih dekat ke impian! 🌟'
 ];
+

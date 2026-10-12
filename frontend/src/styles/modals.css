@@ -394,3 +394,132 @@
 .theme-dark .receipt-result-row { border-bottom-color: rgba(255, 255, 255, 0.06); }
 .receipt-result-label { color: var(--muted); font-weight: 500; }
 .receipt-result-value { font-weight: 600; color: var(--text); }
+
+
+/* Pocky Persona in Receipt Scanner */
+.pocky-receipt-intro {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(250, 204, 21, 0.08));
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 14px;
+  margin-bottom: 4px;
+}
+.theme-dark .pocky-receipt-intro {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(250, 204, 21, 0.05));
+  border-color: rgba(16, 185, 129, 0.25);
+}
+.pocky-receipt-mascot-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pocky-receipt-bubble {
+  flex: 1;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+.pocky-receipt-bubble strong {
+  display: block;
+  font-size: 0.92rem;
+  color: var(--text, #0f172a);
+  margin-bottom: 2px;
+}
+.pocky-receipt-bubble p {
+  margin: 0;
+  color: var(--muted, #64748b);
+  font-size: 0.82rem;
+}
+
+.pocky-receipt-loading {
+  text-align: center;
+  padding: 12px 0 8px;
+}
+.pocky-loading-title {
+  margin: 10px 0 4px;
+  font-weight: 600;
+  font-size: 0.96rem;
+  color: var(--text, #0f172a);
+}
+.pocky-loading-sub {
+  margin: 0 0 14px;
+  font-size: 0.82rem;
+  color: var(--muted, #64748b);
+}
+.pocky-receipt-preview {
+  max-width: 100%;
+  max-height: 170px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  object-fit: contain;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.pocky-receipt-error {
+  text-align: center;
+  padding: 12px 0 6px;
+}
+.pocky-error-title {
+  margin: 10px 0 4px;
+  font-weight: 700;
+  font-size: 0.98rem;
+  color: #ef4444;
+}
+.pocky-error-detail {
+  margin: 0 0 12px;
+  font-size: 0.82rem;
+  color: var(--muted, #64748b);
+}
+.pocky-error-tips {
+  text-align: left;
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px dashed rgba(239, 68, 68, 0.25);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 0.8rem;
+}
+.pocky-error-tips p {
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+.pocky-error-tips ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted, #64748b);
+}
+.pocky-error-tips li {
+  margin-bottom: 4px;
+}
+
+.pocky-receipt-done-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(52, 211, 153, 0.06));
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 12px;
+}
+.pocky-done-avatar {
+  flex-shrink: 0;
+}
+.pocky-done-text {
+  flex: 1;
+}
+.pocky-done-badge {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #059669;
+}
+.theme-dark .pocky-done-badge {
+  color: #34d399;
+}
+.pocky-done-sub {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: var(--muted, #64748b);
+}

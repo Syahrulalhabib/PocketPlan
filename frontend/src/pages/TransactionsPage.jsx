@@ -103,9 +103,9 @@ const TransactionsPage = () => {
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button type="button" className="pill btn-secondary btn-add shadowed" onClick={() => setScanModal(true)}
-            title="Scan struk">
+            title="Scan struk belanjaanmu bareng Pocky & AI">
             <ScanIcon size={16} />
-            <span>Scan Struk</span>
+            <span>Scan Struk Pocky 🧾</span>
           </button>
           <button type="button" className="pill btn-primary btn-add shadowed" onClick={openModal}>
             <PlusIcon size={16} />

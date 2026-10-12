@@ -182,7 +182,7 @@ const LoginPage = () => {
               required
             />
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0.25rem 0 1rem', lineHeight: '1.4' }}>
-              💡 Buka bot Telegram <strong>@yourpocketplan_bot</strong> lalu kirim perintah <code>/web</code> untuk mendapatkan kode akses unik Anda.
+              💡 Chat bot Telegram <strong>@yourpocketplan_bot</strong> lalu kirim perintah <code>/web</code> ke Pocky untuk mendapatkan kode akses login instan! 🪙
             </p>
             <button className="pill btn-primary auth-submit" disabled={loading}>
               {loading ? 'Memverifikasi...' : '🚀 Masuk dengan Telegram'}
@@ -194,7 +194,7 @@ const LoginPage = () => {
               className="pill btn-secondary auth-submit"
               style={{ textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              Buka Bot Telegram PocketPlan
+              Chat Pocky di Telegram (@yourpocketplan_bot) 🪙
             </a>
             {error && <div className="form-status">{error}</div>}
             {!error && status && <div className="form-status">{status}</div>}
