@@ -9,7 +9,8 @@ import {
   findLinkedUid,
   linkChatWithCode,
   ensureTelegramUser,
-  generateWebLoginCode
+  generateWebLoginCode,
+  migrateTelegramDataToUser
 } from './telegramBotCore.js';
 import { scanReceiptWithGemini } from './geminiReceiptScanner.js';
 
@@ -399,6 +400,9 @@ export async function handleTelegramUpdate(update, db, botToken) {
   }
 
   const uid = await ensureTelegramUser(chatId, userFrom, db);
+  if (uid && uid !== `tg_${chatId}`) {
+    migrateTelegramDataToUser(chatId, uid, db).catch(() => {});
+  }
 
   if (text === '/unlink' || text === '/putus' || text.startsWith('/unlink@') || text.startsWith('/putus@')) {
     await unlinkAccount(uid, db);

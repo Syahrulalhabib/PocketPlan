@@ -36,11 +36,58 @@ export async function generateLinkCode(uid, db, botUsername = '') {
   return { code, expiresAt, deepLink };
 }
 
+export async function migrateTelegramDataToUser(chatId, targetUid, db) {
+  if (!db || !chatId || !targetUid) return;
+  const sourceUid = `tg_${String(chatId)}`;
+  if (sourceUid === targetUid) return;
+
+  try {
+    const sourceUserRef = db.collection('users').doc(sourceUid);
+    const sourceSnap = await sourceUserRef.get();
+    if (sourceSnap.exists) {
+      const sourceData = sourceSnap.data() || {};
+      if (sourceData.baseBalance && Number(sourceData.baseBalance) > 0) {
+        const targetUserRef = db.collection('users').doc(targetUid);
+        const targetSnap = await targetUserRef.get();
+        const targetBase = Number(targetSnap.data()?.baseBalance || 0);
+        if (targetBase === 0) {
+          await targetUserRef.set({ baseBalance: Number(sourceData.baseBalance) }, { merge: true });
+        }
+      }
+    }
+
+    const txSnap = await db.collection('users').doc(sourceUid).collection('transactions').get();
+    if (!txSnap.empty) {
+      const batch = db.batch();
+      for (const d of txSnap.docs) {
+        const newRef = db.collection('users').doc(targetUid).collection('transactions').doc(d.id);
+        batch.set(newRef, d.data(), { merge: true });
+        batch.delete(d.ref);
+      }
+      await batch.commit();
+    }
+
+    const goalsSnap = await db.collection('users').doc(sourceUid).collection('goals').get();
+    if (!goalsSnap.empty) {
+      const batch = db.batch();
+      for (const d of goalsSnap.docs) {
+        const newRef = db.collection('users').doc(targetUid).collection('goals').doc(d.id);
+        batch.set(newRef, d.data(), { merge: true });
+        batch.delete(d.ref);
+      }
+      await batch.commit();
+    }
+  } catch (err) {
+    console.error('Failed to migrate Telegram data to linked user:', err);
+  }
+}
+
 export async function getLinkStatus(uid, db) {
   if (db) {
     const userDoc = await db.collection('users').doc(uid).get();
     const data = userDoc.data();
     if (data?.telegramChatId) {
+      migrateTelegramDataToUser(data.telegramChatId, uid, db).catch(() => {});
       return { linked: true, chatId: data.telegramChatId, username: data.telegramUsername || null };
     }
     if (data?.telegramChatId === null) {
@@ -49,7 +96,9 @@ export async function getLinkStatus(uid, db) {
     const linkSnap = await db.collection('telegram_links').where('uid', '==', uid).limit(1).get();
     if (!linkSnap.empty) {
       const linkDoc = linkSnap.docs[0];
-      return { linked: true, chatId: linkDoc.id, username: linkDoc.data()?.username || null };
+      const chatId = linkDoc.id;
+      migrateTelegramDataToUser(chatId, uid, db).catch(() => {});
+      return { linked: true, chatId, username: linkDoc.data()?.username || null };
     }
     return { linked: false };
   }
@@ -129,6 +178,7 @@ export async function linkChatWithCode(chatId, code, userFrom, db) {
       { telegramChatId: strId, telegramUsername: userFrom.username || null },
       { merge: true }
     );
+    await migrateTelegramDataToUser(strId, uid, db);
     return uid;
   }
 
