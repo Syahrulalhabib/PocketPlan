@@ -108,6 +108,15 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
     }
   }, [user, fetchStatus, isTgAccount, setStatusMessage]);
 
+  // Fast-poll while code is displayed so UI transitions immediately when linked via bot
+  useEffect(() => {
+    if (!generatedCode || isTgAccount || linkInfo.linked) return;
+    const interval = setInterval(() => {
+      fetchStatus();
+    }, 1200);
+    return () => clearInterval(interval);
+  }, [generatedCode, isTgAccount, linkInfo.linked, fetchStatus]);
+
   const handleGenerateCode = async () => {
     try {
       setRequestingCode(true);

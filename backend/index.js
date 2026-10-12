@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
-import { initFirebaseAdmin, getDb } from './lib/firebaseAdmin.js';
+import { initFirebaseAdmin, getDb, getAdminAuth } from './lib/firebaseAdmin.js';
 import {
   handleTelegramUpdate,
   generateLinkCode,
@@ -183,8 +183,8 @@ app.post('/api/telegram/web-login', async (req, res) => {
     if (result === 'EXPIRED') return res.status(400).json({ error: 'Kode login telah kedaluwarsa' });
     let customToken = null;
     if (useFirestore) {
-      const adminAuth = (await import('firebase-admin')).default.auth();
-      customToken = await adminAuth.createCustomToken(result.uid);
+      const auth = getAdminAuth();
+      if (auth) customToken = await auth.createCustomToken(result.uid);
     }
 
     // Bi-directional notification: alert user on Telegram that login succeeded

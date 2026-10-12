@@ -183,18 +183,20 @@ export async function linkChatWithCode(chatId, code, userFrom, db) {
 
     if (!uid) return null;
 
-    await db.collection('telegram_links').doc(strId).set({
-      uid,
-      linkedAt: new Date().toISOString(),
-      username: userFrom.username || null,
-      firstName: userFrom.first_name || null
-    });
+    await Promise.all([
+      db.collection('telegram_links').doc(strId).set({
+        uid,
+        linkedAt: new Date().toISOString(),
+        username: userFrom.username || null,
+        firstName: userFrom.first_name || null
+      }),
+      db.collection('users').doc(uid).set(
+        { telegramChatId: strId, telegramUsername: userFrom.username || null },
+        { merge: true }
+      )
+    ]);
 
-    await db.collection('users').doc(uid).set(
-      { telegramChatId: strId, telegramUsername: userFrom.username || null },
-      { merge: true }
-    );
-    await migrateTelegramDataToUser(strId, uid, db);
+    migrateTelegramDataToUser(strId, uid, db).catch((err) => console.error('Migration error:', err));
     return uid;
   }
 

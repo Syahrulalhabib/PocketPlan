@@ -54,4 +54,5 @@ export const initFirebaseAdmin = () => {
 };
 
 export const getDb = () => db;
+export const getAdminAuth = () => (initialized ? admin.auth() : null);
 
