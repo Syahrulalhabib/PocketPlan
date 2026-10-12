@@ -114,8 +114,9 @@ app.post('/api/scan-receipt', requireAuth, async (req, res) => {
 
 // Telegram Webhook
 app.post('/api/telegram-webhook', async (req, res) => {
-  const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
-  if (webhookSecret && req.headers['x-telegram-bot-api-secret-token'] !== webhookSecret) {
+  const webhookSecret = (process.env.TELEGRAM_WEBHOOK_SECRET || '').trim().replace(/^["']|["']$/g, '');
+  const incomingSecret = (req.headers['x-telegram-bot-api-secret-token'] || '').trim();
+  if (webhookSecret && incomingSecret !== webhookSecret) {
     return res.status(403).json({ error: 'Forbidden' });
   }
   const token = process.env.TELEGRAM_BOT_TOKEN;
