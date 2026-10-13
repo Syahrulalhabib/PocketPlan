@@ -240,6 +240,65 @@ export async function handleTelegramUpdate(update, db, botToken) {
       }
       return;
     }
+    if (data === 'preview_morning') {
+      await answerTelegramCallback(botToken, cb.id, '🌅 Membuka preview pagi...');
+      const userUid = uid || (await ensureTelegramUser(chatId, cb.from, db));
+      let bal = 0;
+      let goals = [];
+      let displayName = cb.from?.first_name || 'Teman';
+      if (db && userUid) {
+        const balRes = await getBalance(userUid, db);
+        bal = balRes.bal;
+        const uDoc = await db.collection('users').doc(userUid).get();
+        if (uDoc.exists && uDoc.data()?.name) displayName = uDoc.data().name;
+        const gSnap = await db.collection('users').doc(userUid).collection('goals').get();
+        goals = gSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      }
+      const previewMsg = `*(Preview Pengingat Pagi)*\n\n` + generateMorningReminder(displayName, bal, goals);
+      return sendTelegramMessage(botToken, chatId, previewMsg, {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '💳 Cek Saldo', callback_data: 'saldo' }, { text: '🎯 Target Impian', callback_data: 'goals' }]
+          ]
+        }
+      });
+    }
+    if (data === 'preview_evening') {
+      await answerTelegramCallback(botToken, cb.id, '🌙 Membuka preview malam...');
+      const userUid = uid || (await ensureTelegramUser(chatId, cb.from, db));
+      let bal = 0;
+      let displayName = cb.from?.first_name || 'Teman';
+      let totalExpense = 0;
+      let totalIncome = 0;
+      let expenseCount = 0;
+      if (db && userUid) {
+        const balRes = await getBalance(userUid, db);
+        bal = balRes.bal;
+        const uDoc = await db.collection('users').doc(userUid).get();
+        if (uDoc.exists && uDoc.data()?.name) displayName = uDoc.data().name;
+        const todayWib = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+        const txSnap = await db.collection('users').doc(userUid).collection('transactions').where('date', '==', todayWib).get();
+        txSnap.forEach((tDoc) => {
+          const t = tDoc.data();
+          const amt = Number(t.amount) || 0;
+          if (t.type === 'Income') totalIncome += amt;
+          else {
+            totalExpense += amt;
+            expenseCount++;
+          }
+        });
+      }
+      const summary = {
+        totalExpense,
+        totalIncome,
+        expenseCount,
+        currentBalance: bal
+      };
+      const previewMsg = `*(Preview Rekap Malam)*\n\n` + generateEveningReminder(displayName, summary);
+      return sendTelegramMessage(botToken, chatId, previewMsg, {
+        reply_markup: KEYBOARD
+      });
+    }
     if (data === 'toggle_reminder') {
       const userUid = uid || (await ensureTelegramUser(chatId, cb.from, db));
       let isEnabled = true;
@@ -253,16 +312,22 @@ export async function handleTelegramUpdate(update, db, botToken) {
       await answerTelegramCallback(botToken, cb.id, isEnabled ? '🔔 Pengingat diaktifkan!' : '🔕 Pengingat dinonaktifkan!');
       const messageId = cb.message?.message_id;
       if (messageId) {
-        const reminderText = `🔔 *Pengaturan Pengingat Harian Pocky*\n\n` +
+        const reminderText = `🔔 *Pengaturan & Preview Pengingat Pocky*\n\n` +
           `Status: *${isEnabled ? 'Aktif' : 'Nonaktif'}* ${isEnabled ? '✅' : '⏸️'}\n\n` +
-          `⏰ *Jadwal Pengingat:*\n` +
-          `• 🌅 *08:00 WIB* — Info sisa saldo & motivasi hemat\n` +
+          `Pocky akan mengingatkanmu otomatis 2x sehari:\n` +
+          `• 🌅 *08:00 WIB* — Info sisa saldo, semua target impian & tips hemat\n` +
           `• 🌙 *20:00 WIB* — Rekap pengeluaran hari ini & ajakan catat\n\n` +
           `${isEnabled ? 'Pocky akan mengingatkanmu setiap hari agar catatan keuangan tetap rapi! ✨' : 'Pengingat otomatis dijeda. Kamu bisa mengaktifkannya kembali kapan saja.'}`;
         await editTelegramMessage(botToken, chatId, messageId, reminderText, {
           reply_markup: {
             inline_keyboard: [
-              [{ text: isEnabled ? '🔕 Nonaktifkan Pengingat' : '🔔 Aktifkan Pengingat', callback_data: 'toggle_reminder' }]
+              [
+                { text: '🌅 Preview Pesan Pagi', callback_data: 'preview_morning' },
+                { text: '🌙 Preview Pesan Malam', callback_data: 'preview_evening' }
+              ],
+              [
+                { text: isEnabled ? '🔕 Nonaktifkan Pengingat' : '🔔 Aktifkan Pengingat', callback_data: 'toggle_reminder' }
+              ]
             ]
           }
         });
@@ -491,16 +556,22 @@ export async function handleTelegramUpdate(update, db, botToken) {
       const uDoc = await uRef.get();
       isEnabled = uDoc.data()?.dailyReminderEnabled !== false;
     }
-    const msgText = `🔔 *Pengaturan Pengingat Harian Pocky*\n\n` +
+    const msgText = `🔔 *Pengaturan & Preview Pengingat Pocky*\n\n` +
       `Status saat ini: *${isEnabled ? 'Aktif' : 'Nonaktif'}* ${isEnabled ? '✅' : '⏸️'}\n\n` +
-      `⏰ *Jadwal Pengingat Harian:*\n` +
-      `• 🌅 *08:00 WIB* — Info sisa saldo & motivasi hemat harian\n` +
-      `• 🌙 *20:00 WIB* — Rekap pengeluaran hari ini & ajakan catat\n\n` +
-      `${isEnabled ? 'Pocky otomatis membantumu menjaga catatan keuangan tetap rapi!' : 'Pengingat otomatis dijeda. Kamu bisa mengaktifkannya kembali kapan saja.'}`;
+      `Pocky otomatis mengingatkanmu 2x sehari:\n` +
+      `🌅 *Pagi (08:00 WIB)* — Saldo terkini, progres semua target tabungan & motivasi hemat\n` +
+      `🌙 *Malam (20:00 WIB)* — Rekap total belanja, pemasukan & ajakan catat transaksi\n\n` +
+      `💡 _Ingin coba lihat format pesannya? Tekan tombol preview di bawah:_`;
     return sendTelegramMessage(botToken, chatId, msgText, {
       reply_markup: {
         inline_keyboard: [
-          [{ text: isEnabled ? '🔕 Nonaktifkan Pengingat' : '🔔 Aktifkan Pengingat', callback_data: 'toggle_reminder' }]
+          [
+            { text: '🌅 Preview Pesan Pagi', callback_data: 'preview_morning' },
+            { text: '🌙 Preview Pesan Malam', callback_data: 'preview_evening' }
+          ],
+          [
+            { text: isEnabled ? '🔕 Nonaktifkan Pengingat' : '🔔 Aktifkan Pengingat', callback_data: 'toggle_reminder' }
+          ]
         ]
       }
     });
@@ -832,14 +903,31 @@ async function sendWebAccess(chatId, uid, db, botToken) {
   return sent;
 }
 
-export function generateMorningReminder(userName, balance = 0, topGoal = null) {
+export function generateMorningReminder(userName, balance = 0, goals = []) {
   const name = escapeMarkdown(userName || 'Teman');
+  const goalsList = Array.isArray(goals) ? goals.filter(Boolean) : (goals && goals.name ? [goals] : []);
+
   let goalText = '';
-  if (topGoal && topGoal.name) {
-    const cur = Number(topGoal.amount) || 0;
-    const tgt = Number(topGoal.target) || 0;
-    goalText = `\n🎯 *Target Tabungan:* ${escapeMarkdown(topGoal.name)} (${formatRupiah(cur)} / ${formatRupiah(tgt)})\n`;
+  if (goalsList.length === 1) {
+    const g = goalsList[0];
+    const tgt = Number(g.target) || 0;
+    const cur = tgt > 0 ? Math.min(Math.max(0, balance), tgt) : 0;
+    const pct = tgt > 0 ? Math.min(100, Math.round((Math.max(0, balance) / tgt) * 100)) : 0;
+    const isDone = tgt > 0 && balance >= tgt;
+    const status = isDone ? ' 🏆 *BISA DIBELI!*' : ` • ${pct}%`;
+    goalText = `\n🎯 *Target Tabungan:* ${escapeMarkdown(g.name)} (${formatRupiah(cur)} / ${formatRupiah(tgt)}${status})\n`;
+  } else if (goalsList.length > 1) {
+    goalText = `\n🎯 *Target Tabungan (${goalsList.length}):*\n`;
+    goalsList.forEach((g) => {
+      const tgt = Number(g.target) || 0;
+      const cur = tgt > 0 ? Math.min(Math.max(0, balance), tgt) : 0;
+      const pct = tgt > 0 ? Math.min(100, Math.round((Math.max(0, balance) / tgt) * 100)) : 0;
+      const isDone = tgt > 0 && balance >= tgt;
+      const badge = isDone ? ' 🏆 *BISA DIBELI!*' : ` • ${pct}%`;
+      goalText += `• *${escapeMarkdown(g.name)}* (${formatRupiah(cur)} / ${formatRupiah(tgt)}${badge})\n`;
+    });
   }
+
   return (
     `🌅 *Selamat Pagi, ${name}!* ☀️\n\n` +
     `Pocky siap menemani harimu. Cek kondisi dompet sebelum beraktivitas ya:\n\n` +
@@ -900,12 +988,12 @@ export async function dispatchDailyReminders(db, botToken, type = 'morning', for
       const displayName = userData.name || firstName || username || 'Teman';
 
       if (type === 'morning') {
-        let topGoal = null;
-        const goalSnap = await userRef.collection('goals').limit(1).get();
+        let goals = [];
+        const goalSnap = await userRef.collection('goals').get();
         if (!goalSnap.empty) {
-          topGoal = goalSnap.docs[0].data();
+          goals = goalSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         }
-        const text = generateMorningReminder(displayName, bal, topGoal);
+        const text = generateMorningReminder(displayName, bal, goals);
         await sendTelegramMessage(botToken, chatId, text, {
           reply_markup: {
             inline_keyboard: [

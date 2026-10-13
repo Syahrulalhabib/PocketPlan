@@ -208,15 +208,36 @@ async function testBot() {
   await handleTelegramUpdate({
     message: { chat: { id: 999 }, text: '/pengingat', from: { first_name: 'Budi' } }
   }, null, 'token');
-  assert(replies[0].text.includes('Pengaturan Pengingat Harian'));
+  assert(replies[0].text.includes('Pengingat'));
   assert(replies[0].text.includes('08:00 WIB'));
   assert(replies[0].text.includes('20:00 WIB'));
 
-  // Test reminder generators
-  const morningMsg = generateMorningReminder('Budi', 500000, { name: 'Liburan', amount: 100000, target: 1000000 });
+  // Test preview callbacks
+  replies = [];
+  await handleTelegramUpdate({
+    callback_query: { id: 'cb_pm', data: 'preview_morning', message: { chat: { id: 999 }, message_id: 1 }, from: { first_name: 'Budi' } }
+  }, null, 'token');
+  assert(replies.some((r) => r.text && r.text.includes('Preview Pengingat Pagi')));
+
+  replies = [];
+  await handleTelegramUpdate({
+    callback_query: { id: 'cb_pe', data: 'preview_evening', message: { chat: { id: 999 }, message_id: 1 }, from: { first_name: 'Budi' } }
+  }, null, 'token');
+  assert(replies.some((r) => r.text && r.text.includes('Preview Rekap Malam')));
+
+  // Test reminder generators (multiple goals + progress against balance)
+  const morningMsg = generateMorningReminder('Budi', 500000, [
+    { name: 'Liburan', target: 1000000 },
+    { name: 'Beli Rumah', target: 50000000 }
+  ]);
   assert(morningMsg.includes('Selamat Pagi, Budi!'));
   assert(morningMsg.includes('500.000'));
   assert(morningMsg.includes('Liburan'));
+  assert(morningMsg.includes('Beli Rumah'));
+  assert(morningMsg.includes('1.000.000'));
+  assert(morningMsg.includes('50.000.000'));
+  assert(morningMsg.includes('50%'));
+  assert(morningMsg.includes('1%'));
 
   const eveningMsg = generateEveningReminder('Budi', { totalExpense: 75000, currentBalance: 425000, expenseCount: 2 });
   assert(eveningMsg.includes('Rekap Malam'));
