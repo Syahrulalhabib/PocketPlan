@@ -82,26 +82,55 @@ async function handleStreakAfterTransaction(chatId, uid, db, botToken) {
 }
 
 // Fase 4: Achievement card system
+function stripEmoji(s) {
+  return String(s || '').replace(/[\u{1F300}-\u{1F9FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').replace(/\s+/g, ' ').trim();
+}
+
 function getAchievementTheme(type, percent, streakDays, barW) {
   const isStreak = type === 'streak';
   const pct = Math.min(100, Math.max(0, percent || 0));
   if (isStreak) {
+    const days = streakDays || 0;
+    const checks = [0, 1, 2, 3, 4, 5, 6].map(i => {
+      const cx = 35 + i * 90;
+      return `<circle cx="${cx}" cy="22" r="18" fill="#FF5722"/>` +
+        `<path d="M${cx - 6} 22 L${cx - 2} 26 L${cx + 6} 17" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+    }).join('');
+
     return {
       bg0: '#080C14', bg1: '#0F172A', glow: '#FF5722', glow2: '#FF9800',
-      b1: '#FF6B35', b2: '#FF0055', b3: '#6366F1', n1: '#FFFFFF', n2: '#FFB74D',
+      b1: '#FF6B35', b2: '#FF0055', b3: '#6366F1',
+      numColor: '#FFB74D',
       badgeBg: '#FF5722', badgeTxt: '#FF9E80', badgeLbl: 'STREAK MILESTONE',
-      num: streakDays || 0, subLbl: 'HARI BERTURUT-TURUT',
-      hero: '<g transform="translate(485, 280) scale(2.3)"><path d="M24 2 C25 8 31 13 31 21 C31 28 25 34 18 34 C10 34 5 28 5 20 C5 14 9 9 13 5 C13 11 17 14 18 19 C18 21 16 23 14 23 C12 23 11 21 11 19 C11 15 16 9 24 2 Z" fill="url(#flame)"/><path d="M20 18 C20 22 17 26 14 26 C12 26 10 24 10 21 C10 18 12 15 15 13 C15 16 17 17 18 18 Z" fill="#FFF9C4" opacity="0.8"/></g>',
-      tracker: '<g transform="translate(180, 840)"><rect width="720" height="110" rx="24" fill="#0A0F1D" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/><text x="360" y="38" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif" font-size="16" font-weight="800" fill="#64748B" letter-spacing="3">REKOR CATATAN AKTIF</text><g transform="translate(55, 54)">' + [0,1,2,3,4,5,6].map(i => `<circle cx="${35 + i*90}" cy="22" r="18" fill="#FF5722"/><text x="${35 + i*90}" y="28" text-anchor="middle" font-size="16" fill="#FFF" font-weight="bold">&#x2713;</text>`).join('') + '</g></g>'
+      num: days, subLbl: 'HARI BERTURUT-TURUT',
+      hero: `<g transform="translate(540, 330)">` +
+        `<path d="M0 -72 C16 -46 36 -20 36 16 C36 44 19 66 0 66 C-19 66 -36 44 -36 16 C-36 -20 -16 -46 0 -72 Z" fill="url(#flame)"/>` +
+        `<path d="M0 -45 C11 -28 24 -10 24 16 C24 35 12 50 0 50 C-12 50 -24 35 -24 16 C-24 -10 -11 -28 0 -45 Z" fill="#FF9800"/>` +
+        `<path d="M0 -20 C6 -8 14 5 14 20 C14 30 7 38 0 38 C-7 38 -14 30 -14 20 C-14 5 -6 -8 0 -20 Z" fill="#FFF176"/>` +
+        `</g>`,
+      tracker: `<g transform="translate(180, 840)">` +
+        `<rect width="720" height="110" rx="24" fill="#0A0F1D" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>` +
+        `<text x="360" y="38" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="bold" fill="#64748B">REKOR CATATAN AKTIF</text>` +
+        `<g transform="translate(55, 54)">${checks}</g>` +
+        `</g>`
     };
   }
   return {
     bg0: '#051512', bg1: '#0A221C', glow: '#10B981', glow2: '#06B6D4',
-    b1: '#10B981', b2: '#06B6D4', b3: '#3B82F6', n1: '#FFFFFF', n2: '#A7F3D0',
+    b1: '#10B981', b2: '#06B6D4', b3: '#3B82F6',
+    numColor: '#34D399',
     badgeBg: '#10B981', badgeTxt: '#6EE7B7', badgeLbl: 'TARGET MILESTONE',
     num: `${pct}%`, subLbl: 'TARGET TERCAPAI',
-    hero: '<circle cx="540" cy="340" r="65" fill="none" stroke="#10B981" stroke-width="6"/><circle cx="540" cy="340" r="40" fill="none" stroke="#06B6D4" stroke-width="6"/><circle cx="540" cy="340" r="18" fill="#FFFFFF"/>',
-    tracker: `<g transform="translate(180, 870)"><rect width="720" height="36" rx="18" fill="#061A14" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/><rect width="${barW}" height="36" rx="18" fill="url(#bGrad)"/><text x="360" y="70" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif" font-size="20" font-weight="800" fill="#6EE7B7" letter-spacing="2">${pct}% OF GOAL</text></g>`
+    hero: `<g transform="translate(540, 330)">` +
+      `<circle cx="0" cy="0" r="65" fill="none" stroke="#10B981" stroke-width="7"/>` +
+      `<circle cx="0" cy="0" r="42" fill="none" stroke="#06B6D4" stroke-width="7"/>` +
+      `<circle cx="0" cy="0" r="20" fill="#FFFFFF"/>` +
+      `</g>`,
+    tracker: `<g transform="translate(180, 860)">` +
+      `<rect width="720" height="36" rx="18" fill="#061A14" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>` +
+      `<rect width="${barW}" height="36" rx="18" fill="#10B981"/>` +
+      `<text x="360" y="70" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" fill="#6EE7B7">${pct}% OF GOAL</text>` +
+      `</g>`
   };
 }
 
@@ -111,8 +140,8 @@ function generateAchievementSvg({ type, title, subtitle, percent, streakDays }) 
   const pct = Math.min(100, Math.max(0, percent || 0));
   const barW = Math.round((pct / 100) * 720);
   const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  const safeTitle = esc(title || (isStreak ? `Streak ${streakDays || 0} Hari!` : 'Target Tabungan'));
-  const safeSub = esc(subtitle || (isStreak ? 'Disiplin finansial makin konsisten' : `Progres ${pct}% tercapai`));
+  const safeTitle = esc(stripEmoji(title || (isStreak ? `Streak ${streakDays || 0} Hari!` : 'Target Tabungan')));
+  const safeSub = esc(stripEmoji(subtitle || (isStreak ? 'Disiplin finansial makin konsisten' : `Progres ${pct}% tercapai`)));
   const dateStr = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
   const t = getAchievementTheme(type, percent, streakDays, barW);
 
@@ -121,27 +150,26 @@ function generateAchievementSvg({ type, title, subtitle, percent, streakDays }) 
     <linearGradient id="bg" x1="0" y1="0" x2="0.8" y2="1"><stop offset="0%" stop-color="${t.bg0}"/><stop offset="50%" stop-color="${t.bg1}"/><stop offset="100%" stop-color="#020408"/></linearGradient>
     <radialGradient id="glow" cx="50%" cy="30%" r="42%"><stop offset="0%" stop-color="${t.glow}" stop-opacity="0.45"/><stop offset="60%" stop-color="${t.glow2}" stop-opacity="0.12"/><stop offset="100%" stop-color="${t.bg1}" stop-opacity="0"/></radialGradient>
     <linearGradient id="border" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${t.b1}"/><stop offset="50%" stop-color="${t.b2}"/><stop offset="100%" stop-color="${t.b3}"/></linearGradient>
-    <linearGradient id="num" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${t.n1}"/><stop offset="100%" stop-color="${t.n2}"/></linearGradient>
     <linearGradient id="flame" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#D84315"/><stop offset="50%" stop-color="#FF5722"/><stop offset="100%" stop-color="#FFD54F"/></linearGradient>
     <linearGradient id="bGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#10B981"/><stop offset="100%" stop-color="#06B6D4"/></linearGradient>
   </defs>
   <rect width="1080" height="1350" fill="url(#bg)"/>
-  <circle cx="540" cy="350" r="450" fill="url(#glow)"/>
+  <circle cx="540" cy="330" r="450" fill="url(#glow)"/>
   <rect x="50" y="50" width="980" height="1250" rx="44" fill="${t.bg1}" fill-opacity="0.85" stroke="url(#border)" stroke-width="2.5"/>
   <rect x="360" y="110" width="360" height="54" rx="27" fill="${t.badgeBg}" fill-opacity="0.15" stroke="${t.badgeBg}" stroke-opacity="0.4" stroke-width="1.5"/>
-  <text x="540" y="145" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="20" font-weight="800" fill="${t.badgeTxt}" letter-spacing="3">${t.badgeLbl}</text>
-  <circle cx="540" cy="340" r="120" fill="#0E1626" stroke="url(#border)" stroke-width="4"/>
-  <circle cx="540" cy="340" r="95" fill="url(#glow)"/>
+  <text x="540" y="145" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" fill="${t.badgeTxt}">${t.badgeLbl}</text>
+  <circle cx="540" cy="330" r="110" fill="#0E1626" stroke="url(#border)" stroke-width="4"/>
+  <circle cx="540" cy="330" r="85" fill="url(#glow)"/>
   ${t.hero}
-  <text x="540" y="575" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="140" font-weight="900" fill="url(#num)">${t.num}</text>
-  <text x="540" y="635" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="26" font-weight="800" fill="#94A3B8" letter-spacing="6">${t.subLbl}</text>
-  <text x="540" y="730" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="44" font-weight="800" fill="#FFFFFF">${safeTitle}</text>
-  <text x="540" y="780" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="24" font-weight="500" fill="#94A3B8">${safeSub}</text>
+  <text x="540" y="560" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="130" font-weight="bold" fill="${t.numColor}">${t.num}</text>
+  <text x="540" y="620" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="bold" fill="#94A3B8">${t.subLbl}</text>
+  <text x="540" y="715" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="44" font-weight="bold" fill="#FFFFFF">${safeTitle}</text>
+  <text x="540" y="765" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="normal" fill="#CBD5E1">${safeSub}</text>
   ${t.tracker}
   <line x1="120" y1="1025" x2="960" y2="1025" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
-  <text x="540" y="1085" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="28" font-weight="800" fill="#FFFFFF" letter-spacing="2">POCKY • POCKETPLAN</text>
-  <text x="540" y="1125" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="20" font-weight="500" fill="#64748B">${dateStr} • pocketplan.id</text>
-  <text x="540" y="1180" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="16" font-weight="500" fill="#475569">Nominal &amp; Saldo Pribadi Tetap Terlindungi</text>
+  <text x="540" y="1085" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="bold" fill="#FFFFFF">POCKY • POCKETPLAN</text>
+  <text x="540" y="1125" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="normal" fill="#94A3B8">${dateStr} • pocketplan-rul.vercel.app</text>
+  <text x="540" y="1180" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="normal" fill="#64748B">Nominal &amp; Saldo Pribadi Tetap Terlindungi</text>
 </svg>`;
 }
 
