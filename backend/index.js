@@ -428,7 +428,7 @@ if (!process.env.VERCEL) {
     console.log(`Pocketplan API running on http://localhost:${PORT}`);
   });
 
-  // Background reminder scheduler (checks once every 60s for 08:00 WIB and 20:00 WIB)
+  // Background reminder scheduler (checks once every 60s for 06:00 WIB and 23:00 WIB)
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (botToken) {
     syncBotCommands(botToken).catch((e) => console.error('syncBotCommands error:', e));
@@ -443,9 +443,9 @@ if (!process.env.VERCEL) {
         }).formatToParts(now);
         const hour = parts.find((p) => p.type === 'hour')?.value;
         const minute = parts.find((p) => p.type === 'minute')?.value;
-        if (hour === '08' && minute === '00') {
+        if (hour === '06' && minute === '00') {
           dispatchDailyReminders(getDb(), botToken, 'morning').catch((e) => console.error('Auto morning reminder error:', e));
-        } else if (hour === '20' && minute === '00') {
+        } else if (hour === '23' && minute === '00') {
           dispatchDailyReminders(getDb(), botToken, 'evening').catch((e) => console.error('Auto evening reminder error:', e));
         }
       } catch (err) {

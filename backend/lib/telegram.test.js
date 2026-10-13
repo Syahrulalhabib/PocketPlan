@@ -323,8 +323,8 @@ async function testBot() {
     message: { chat: { id: 999 }, text: '/pengingat', from: { first_name: 'Budi' } }
   }, null, 'token');
   assert(replies[0].text.includes('Pengingat'));
-  assert(replies[0].text.includes('08:00 WIB'));
-  assert(replies[0].text.includes('20:00 WIB'));
+  assert(replies[0].text.includes('06:00 WIB'));
+  assert(replies[0].text.includes('23:00 WIB'));
 
   // Test DEFAULT_BOT_COMMANDS includes pengingat
   assert(DEFAULT_BOT_COMMANDS.some((c) => c.command === 'pengingat'));

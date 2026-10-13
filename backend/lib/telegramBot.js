@@ -275,8 +275,8 @@ export async function handleTelegramUpdate(update, db, botToken) {
         const reminderText = `🔔 *Pengaturan Pengingat Harian Pocky*\n\n` +
           `Status: *${isEnabled ? 'Aktif' : 'Nonaktif'}* ${isEnabled ? '✅' : '⏸️'}\n\n` +
           `Pocky otomatis mengingatkanmu 2x sehari:\n` +
-          `• 🌅 *08:00 WIB* — Info sisa saldo & progres semua target tabungan\n` +
-          `• 🌙 *20:00 WIB* — Rekap pengeluaran hari ini & ajakan catat\n\n` +
+          `• 🌅 *06:00 WIB* — Info sisa saldo & progres semua target tabungan\n` +
+          `• 🌙 *23:00 WIB* — Rekap pengeluaran hari ini & ajakan catat\n\n` +
           `${isEnabled ? 'Pengingat aktif. Pocky akan mengirimkan notifikasi tepat waktu! ✨' : 'Pengingat otomatis dijeda. Kamu bisa mengaktifkannya kembali kapan saja.'}`;
         await editTelegramMessage(botToken, chatId, messageId, reminderText, {
           reply_markup: {
@@ -539,8 +539,8 @@ export async function handleTelegramUpdate(update, db, botToken) {
     const msgText = `🔔 *Pengaturan Pengingat Harian Pocky*\n\n` +
       `Status saat ini: *${isEnabled ? 'Aktif' : 'Nonaktif'}* ${isEnabled ? '✅' : '⏸️'}\n\n` +
       `Pocky otomatis mengingatkanmu 2x sehari:\n` +
-      `• 🌅 *08:00 WIB* — Info sisa saldo & progres semua target tabungan\n` +
-      `• 🌙 *20:00 WIB* — Rekap pengeluaran hari ini & ajakan catat\n\n` +
+      `• 🌅 *06:00 WIB* — Info sisa saldo & progres semua target tabungan\n` +
+      `• 🌙 *23:00 WIB* — Rekap pengeluaran hari ini & ajakan catat\n\n` +
       `${isEnabled ? 'Pengingat aktif. Pocky akan mengirimkan notifikasi tepat waktu! ✨' : 'Pengingat dinonaktifkan. Tekan tombol di bawah untuk mengaktifkan kembali.'}`;
     return sendTelegramMessage(botToken, chatId, msgText, {
       reply_markup: {
