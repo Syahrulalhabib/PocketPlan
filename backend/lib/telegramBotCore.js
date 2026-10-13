@@ -17,7 +17,16 @@ export async function sendTelegramMessage(botToken, chatId, text, options = {}) 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown', ...options })
     });
-    return await res.json();
+    const data = await res.json();
+    if (!data.ok && typeof data.description === 'string' && data.description.includes("can't parse entities")) {
+      const retryRes = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text, ...options, parse_mode: undefined })
+      });
+      return await retryRes.json();
+    }
+    return data;
   } catch (err) {
     console.error('Telegram sendMessage error:', err.message);
     return null;

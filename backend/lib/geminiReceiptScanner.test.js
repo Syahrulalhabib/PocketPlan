@@ -133,7 +133,7 @@ const testKeyPool = new KeyPool(['mock_key']);
 const originalFetch = global.fetch;
 
 global.fetch = async (url) => {
-  assert.ok(url.includes('models/gemini-3.5-flash:generateContent'));
+  assert.ok(url.includes('models/gemini-3-flash-preview:generateContent'));
   return {
     ok: true,
     json: async () => ({
@@ -191,7 +191,34 @@ const fallbackRes = await scanReceiptWithGemini({
 });
 assert.strictEqual(fallbackRes.ok, true);
 assert.strictEqual(callCount, 2);
-assert.strictEqual(fallbackRes.modelUsed, 'gemini-3.1-flash-lite');
+assert.strictEqual(fallbackRes.modelUsed, 'gemini-3.1-flash-lite-preview');
+
+// 7. Test non-receipt detection
+global.fetch = async () => ({
+  ok: true,
+  status: 200,
+  json: async () => ({
+    candidates: [{
+      content: {
+        parts: [{
+          text: JSON.stringify({
+            is_receipt: false,
+            rejection_reason: 'foto kucing peliharaan'
+          })
+        }]
+      }
+    }]
+  })
+});
+
+const nonReceiptRes = await scanReceiptWithGemini({
+  imageBase64: 'fakeBase64String',
+  mimeType: 'image/jpeg',
+  keyPool: testKeyPool
+});
+assert.strictEqual(nonReceiptRes.ok, false);
+assert.strictEqual(nonReceiptRes.notReceipt, true);
+assert.strictEqual(nonReceiptRes.reason, 'foto kucing peliharaan');
 
 // Restore fetch
 global.fetch = originalFetch;

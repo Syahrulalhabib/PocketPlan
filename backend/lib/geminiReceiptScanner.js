@@ -193,31 +193,30 @@ export async function scanReceiptWithGemini({
   mimeType = 'image/jpeg',
   keyPool = defaultKeyPool,
   maxRetries = 3,
-  preferredModel = 'gemini-3.5-flash'
+  preferredModel = 'gemini-3-flash-preview'
 }) {
   if (!imageBase64) throw new Error('Data gambar (base64) wajib disediakan.');
 
-  const promptText = `Anda adalah Pocky, asisten cerdas pembaca dokumen finansial: struk kasir, invoice tagihan, dan bukti transfer perbankan/e-wallet (BCA, Mandiri, BRI, BNI, QRIS, GoPay, OVO, Dana, ShopeePay, dll).
+  const promptText = `Anda adalah Pocky, asisten finansial cerdas pembaca dokumen transaksi di PocketPlan.
 Analisis gambar ini secara teliti:
-1. Tentukan jenis dokumen (doc_type):
-   - "receipt": struk fisik/nota belanja kasir (minimarket, toko, resto, cafe, SPBU).
-   - "transfer_out": bukti transfer keluar / bayar QRIS / kirim uang lewat m-banking atau e-wallet.
-   - "transfer_in": bukti transfer masuk / terima dana / top up saldo masuk.
-   - "bill": bukti bayar atau tagihan listrik PLN, air PDAM, WiFi internet, BPJS, pulsa.
-   - "other": dokumen transaksi lainnya.
-2. Tentukan tipe arus uang (type):
-   - "Expense" jika uang keluar (struk belanja, transfer keluar, bayar QRIS, tagihan).
-   - "Income" jika uang masuk (transfer masuk, terima uang, transfer dana dari orang/perusahaan).
-3. Ekstrak data:
-   - merchant_name: nama toko/merchant (jika struk), nama tujuan/penerima (jika transfer keluar), nama pengirim/sumber (jika transfer masuk), atau penyedia layanan (jika tagihan).
-   - date: format YYYY-MM-DD.
-   - items: rincian barang/transaksi jika ada.
-   - subtotal, tax, total_amount: angka nominal dalam Rupiah murni (angka saja).
-   - payment_method: CASH | QRIS | DEBIT | CREDIT | TRANSFER | UNKNOWN.
-   - category: Food | Shopping | Transport | Bills | Health | Education | Entertainment | Charity | Salary | Other.
+1. Periksa apakah gambar ini benar dokumen transaksi finansial:
+   - Struk fisik / nota belanja kasir (minimarket, supermarket, toko, cafe, resto, SPBU).
+   - Bukti transfer m-banking / e-wallet / QRIS (BCA, Mandiri, BRI, BNI, GoPay, OVO, Dana, ShopeePay, dll).
+   - Bukti bayar / tagihan resmi (listrik PLN, air PDAM, WiFi internet, BPJS, pulsa).
+   - Invoice / kwitansi pembayaran.
 
-Ekstrak seluruh informasi ke format JSON valid berikut:
+2. JIKA GAMBAR BUKAN DOKUMEN TRANSAKSI (contoh: foto selfie, wajah, hewan/kucing, pemandangan, kendaraan, makanan tanpa struk nota, foto objek acak tanpa harga struk, screenshot chat santai, meme, atau wallpaper):
+WAJIB balas HANYA dengan format JSON berikut:
 {
+  "is_receipt": false,
+  "rejection_reason": "alasan singkat ramah objek gambar (contoh: foto selfie / foto kucing / foto pemandangan / foto makanan tanpa struk / tangkapan layar percakapan)",
+  "doc_type": "unknown"
+}
+
+3. JIKA GAMBAR ADALAH DOKUMEN TRANSAKSI:
+Ekstrak ke format JSON:
+{
+  "is_receipt": true,
   "doc_type": "receipt | transfer_out | transfer_in | bill | other",
   "type": "Expense | Income",
   "merchant_name": "Nama toko / penerima / pengirim / penyedia",
@@ -240,12 +239,11 @@ Hanya balas dengan JSON murni tanpa markdown fences.`;
 
   const fallbackList = [
     preferredModel,
-    'gemini-3.5-flash',
-    'gemini-3.1-flash-lite',
     'gemini-3-flash-preview',
-    'gemini-3.6-flash',
+    'gemini-3.1-flash-lite-preview',
     'gemini-flash-latest',
-    'gemini-3.5-flash-lite'
+    'gemini-3.5-flash',
+    'gemini-3.8-flash'
   ];
   const modelsToTry = [...new Set(fallbackList)];
   let lastError = null;
@@ -271,7 +269,7 @@ Hanya balas dengan JSON murni tanpa markdown fences.`;
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
 
       const res = await fetch(url, {
         method: 'POST',
@@ -281,7 +279,15 @@ Hanya balas dengan JSON murni tanpa markdown fences.`;
       }).finally(() => clearTimeout(timeoutId));
 
       if (res.status === 429) {
-        keyPool.markCooldown(apiKey, 60000);
+        keyPool.markCooldown(apiKey, 30000);
+        lastError = new Error(`Pocky antrean padat (status 429): kuota sibuk`);
+        if (keyPool.keys.length > 1) {
+          const nextKey = keyPool.getKey();
+          if (nextKey !== apiKey) {
+            attempt--; // Try next key on same model
+            continue;
+          }
+        }
         continue;
       }
 
@@ -303,10 +309,22 @@ Hanya balas dengan JSON murni tanpa markdown fences.`;
       const resJson = await res.json();
       const textPart = resJson.candidates?.[0]?.content?.parts?.find(p => p.text);
       const rawText = textPart?.text;
-      if (!rawText) throw new Error('Gemini tidak mengembalikan teks konten');
+      if (!rawText) throw new Error('Pocky tidak mengembalikan teks konten');
 
       const cleanJson = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
       const parsed = JSON.parse(cleanJson);
+
+      if (parsed.is_receipt === false || parsed.doc_type === 'unknown') {
+        const reason = String(parsed.rejection_reason || 'gambar bukan bukti transaksi').trim();
+        return {
+          ok: false,
+          notReceipt: true,
+          reason,
+          modelUsed: model,
+          error: `Pocky mendeteksi gambar ini sepertinya ${reason}. Pocky hanya bisa mencatat transaksi dari struk kasir, nota belanja, tagihan, atau bukti transfer yaa ✨`
+        };
+      }
+
       const normalized = normalizeReceipt(parsed);
 
       return {
@@ -317,10 +335,10 @@ Hanya balas dengan JSON murni tanpa markdown fences.`;
     } catch (err) {
       lastError = err;
       if (err.name === 'AbortError') {
-        lastError = new Error(`Model ${model} timeout (>8s)`);
+        lastError = new Error(`Model ${model} timeout (>12s)`);
       }
       if (attempt < maxRetries && attempt < modelsToTry.length - 1) {
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 400));
       }
     }
   }

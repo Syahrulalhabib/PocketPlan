@@ -30,6 +30,7 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
   const [errorTitle, setErrorTitle] = useState('🙈 Aduh, mata Pocky agak burem baca gambar ini!');
   const [errorMsg, setErrorMsg] = useState('');
   const [engineUsed, setEngineUsed] = useState('Pocky Scan');
+  const [isNotReceipt, setIsNotReceipt] = useState(false);
   const fileRef = useRef(null);
 
   const reset = useCallback(() => {
@@ -41,6 +42,7 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
     setErrorTitle('🙈 Aduh, mata Pocky agak burem baca gambar ini!');
     setErrorMsg('');
     setEngineUsed('Pocky Scan');
+    setIsNotReceipt(false);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -77,6 +79,16 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
 
         if (res.ok) {
           const json = await res.json();
+          if (json.notReceipt) {
+            setErrorTitle('🙈 Ups, ini bukan struk atau bukti transaksi!');
+            setErrorMsg(
+              json.error ||
+              `Pocky mendeteksi gambar ini sepertinya ${json.reason || 'bukan struk belanja atau bukti transfer'}. Pocky hanya bisa mencatat transaksi dari struk kasir, nota, tagihan, atau bukti transfer yaa ✨`
+            );
+            setIsNotReceipt(true);
+            setStatus(STATUS.ERROR);
+            return;
+          }
           if (json.ok && json.data) {
             const d = json.data;
             const inferredType = (d.type === 'Income' || d.doc_type === 'transfer_in') ? 'Income' : 'Expense';
@@ -98,6 +110,16 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
           }
         } else {
           const errData = await res.json().catch(() => ({}));
+          if (errData.notReceipt) {
+            setErrorTitle('🙈 Ups, ini bukan struk atau bukti transaksi!');
+            setErrorMsg(
+              errData.error ||
+              `Pocky mendeteksi gambar ini sepertinya ${errData.reason || 'bukan struk belanja atau bukti transfer'}. Pocky hanya bisa mencatat transaksi dari struk kasir, nota, tagihan, atau bukti transfer yaa ✨`
+            );
+            setIsNotReceipt(true);
+            setStatus(STATUS.ERROR);
+            return;
+          }
           lastError = errData.error || `Gagal membaca gambar (${res.status})`;
         }
       } catch (backendErr) {
@@ -216,17 +238,28 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
             <p className="pocky-error-detail">{errorMsg}</p>
 
             <div className="pocky-error-tips">
-              <p>💡 Tips dari Pocky biar gambar terbaca jelas:</p>
+              <p>{isNotReceipt ? '💡 Dokumen yang bisa dibaca Pocky:' : '💡 Tips dari Pocky biar gambar terbaca jelas:'}</p>
               <ul>
-                <li>Pastikan cahaya cukup terang dan tidak ada pantulan cahaya silau</li>
-                <li>Posisikan struk / bukti transfer tegak lurus dan nominal terlihat penuh</li>
-                <li>Kirimkan kembali foto yang lebih tajam dan fokus yaa</li>
-                <li>Atau kamu bisa catat cepat di bot Telegram: <code>kopi 25k</code></li>
+                {isNotReceipt ? (
+                  <>
+                    <li>🧾 Struk belanja kasir fisik (Indomaret, Alfamart, resto, cafe, SPBU)</li>
+                    <li>💳 Screenshot bukti transfer m-banking & e-wallet (BCA, Mandiri, BRI, QRIS, GoPay, Dana)</li>
+                    <li>📄 Bukti bayar tagihan resmi (PLN, PDAM, pulsa)</li>
+                    <li>Atau kamu bisa catat manual di bot Telegram: <code>kopi 25k</code></li>
+                  </>
+                ) : (
+                  <>
+                    <li>Pastikan cahaya cukup terang dan tidak ada pantulan cahaya silau</li>
+                    <li>Posisikan struk / bukti transfer tegak lurus dan nominal terlihat penuh</li>
+                    <li>Kirimkan kembali foto yang lebih tajam dan fokus yaa</li>
+                    <li>Atau kamu bisa catat cepat di bot Telegram: <code>kopi 25k</code></li>
+                  </>
+                )}
               </ul>
             </div>
 
             <button type="button" className="pill btn-secondary" onClick={reset}>
-              🔄 Coba Kirim Ulang Bareng Pocky
+              {isNotReceipt ? '🔄 Coba Kirim Struk Lain' : '🔄 Coba Kirim Ulang Bareng Pocky'}
             </button>
           </div>
         )}

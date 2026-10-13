@@ -100,7 +100,7 @@ function checkScanRateLimit(chatId) {
   const now = Date.now();
   const window = 60 * 60 * 1000; // 1 hour
   const hits = (_scanHits.get(key) || []).filter(t => t > now - window);
-  if (hits.length >= 10) { _scanHits.set(key, hits); return false; }
+  if (hits.length >= 25) { _scanHits.set(key, hits); return false; }
   hits.push(now);
   _scanHits.set(key, hits);
   return true;
@@ -313,10 +313,10 @@ export async function handleTelegramUpdate(update, db, botToken) {
       );
     }
 
-    // Rate limit: max 10 scans per hour per chat
+    // Rate limit: max 25 scans per hour per chat
     if (!checkScanRateLimit(chatId)) {
       return sendTelegramMessage(botToken, chatId,
-        '⏳ *Terlalu banyak scan foto, istirahat dulu ya!*\nMaksimal 10 scan per jam. Coba lagi nanti atau catat manual: `kopi 25k`',
+        '⏳ *Pocky istirahat sejenak ya!*\nKamu sudah mengirim 25 foto dalam 1 jam terakhir. Istirahat sejenak dulu yaa, atau kamu bisa catat manual: `kopi 25k` ✨',
         { reply_markup: KEYBOARD }
       );
     }
@@ -339,6 +339,17 @@ export async function handleTelegramUpdate(update, db, botToken) {
       const imageBase64 = Buffer.from(arrayBuf).toString('base64');
 
       const scanRes = await scanReceiptWithGemini({ imageBase64, mimeType });
+      if (scanRes.notReceipt) {
+        const reasonDesc = scanRes.reason ? `sepertinya *${escapeMarkdown(scanRes.reason)}*` : 'bukan struk belanja atau bukti transfer';
+        const notReceiptMsg = `🙈 *Ups, ini bukan struk atau bukti transaksi!*\n\n` +
+          `Pocky mendeteksi gambar ini ${reasonDesc}.\n\n` +
+          `Pocky hanya bisa membaca dan mencatat dari:\n` +
+          `🧾 *Struk / nota kasir* (minimarket, cafe, resto, SPBU)\n` +
+          `💳 *Bukti transfer* m-banking & e-wallet (BCA, Mandiri, BRI, QRIS, GoPay, Dana)\n` +
+          `📄 *Bukti bayar tagihan* (listrik PLN, PDAM, pulsa)\n\n` +
+          `Yuk kirimkan foto struk atau bukti transfer kamu yaa! ✨`;
+        return sendTelegramMessage(botToken, chatId, notReceiptMsg, { reply_markup: KEYBOARD });
+      }
       const r = scanRes.data;
 
       const txType = r.type === 'Income' ? 'Income' : 'Expense';

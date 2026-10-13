@@ -12,6 +12,11 @@ assert.strictEqual(parseAmount('50k'), 50000);
 assert.strictEqual(parseAmount('50rb'), 50000);
 assert.strictEqual(parseAmount('1.5jt'), 1500000);
 assert.strictEqual(parseAmount('Rp 75.000'), 75000);
+assert.strictEqual(parseAmount('25k,-'), 25000);
+assert.strictEqual(parseAmount('Rp 25.000,-'), 25000);
+assert.strictEqual(parseAmount('(50k)'), 50000);
+assert.strictEqual(parseAmount('☕25k'), 25000);
+assert.strictEqual(parseAmount('50k🍔'), 50000);
 
 // 2. Command parser
 const tx1 = parseTransactionCommand('/catat 50000 makan nasi padang');
@@ -37,7 +42,19 @@ const tx5 = parseTransactionCommand('kopi kenangan 50k');
 assert.strictEqual(tx5.type, 'Expense');
 assert.strictEqual(tx5.amount, 50000);
 assert.strictEqual(tx5.category, 'Food');
-assert.strictEqual(tx2.category, 'Salary');
+
+const txEmoji1 = parseTransactionCommand('☕ 25k');
+assert.strictEqual(txEmoji1.amount, 25000);
+assert.strictEqual(txEmoji1.category, 'Food');
+
+const txEmoji2 = parseTransactionCommand('bensin ⛽ 50k');
+assert.strictEqual(txEmoji2.amount, 50000);
+assert.strictEqual(txEmoji2.category, 'Transport');
+
+const txEmoji3 = parseTransactionCommand('+500k 💰 freelance');
+assert.strictEqual(txEmoji3.type, 'Income');
+assert.strictEqual(txEmoji3.amount, 500000);
+assert.strictEqual(txEmoji3.category, 'Salary');
 
 // 3. Bot commands flow
 async function testBot() {
@@ -228,6 +245,37 @@ async function testBot() {
     message: { chat: { id: 888 }, photo: [{ file_id: 'blurry_pic' }], from: { first_name: 'User' } }
   }, null, 'token');
   assert(replies.some(r => (r.text || '').includes('burem') && (r.text || '').includes('kirimkan kembali')));
+
+  // Test non-receipt photo detection
+  global.fetch = async (url, opts) => {
+    if (opts?.body) {
+      try { replies.push(JSON.parse(opts.body)); } catch {}
+    }
+    if (typeof url === 'string' && url.includes('/getFile')) {
+      return { ok: true, json: async () => ({ ok: true, result: { file_path: 'photo.jpg' } }) };
+    }
+    if (typeof url === 'string' && url.includes('/file/')) {
+      return { ok: true, arrayBuffer: async () => Buffer.from('fake-image-bytes') };
+    }
+    if (typeof url === 'string' && url.includes('models/')) {
+      return {
+        ok: true,
+        json: async () => ({
+          candidates: [{
+            content: { parts: [{ text: JSON.stringify({ is_receipt: false, rejection_reason: 'foto kucing' }) }] }
+          }]
+        })
+      };
+    }
+    return { ok: true, json: async () => ({ ok: true, result: true }) };
+  };
+
+  replies = [];
+  await handleTelegramUpdate({
+    update_id: 99993,
+    message: { chat: { id: 888 }, photo: [{ file_id: 'cat_pic' }], from: { first_name: 'User' } }
+  }, null, 'token');
+  assert(replies.some(r => (r.text || '').includes('Ups, ini bukan struk') && (r.text || '').includes('foto kucing')));
 
   global.fetch = oldFetch;
 

@@ -116,24 +116,95 @@ const INFERRED_KEYWORDS = {
   // Income
   bonus: 'Salary',
   thr: 'Salary',
-  freelance: 'Freelance',
-  penjualan: 'Income',
-  bisnis: 'Business',
-  investasi: 'Investment',
-  dividen: 'Investment',
-  transfer: 'Transfer'
+  freelance: 'Salary',
+  penjualan: 'Salary',
+  bisnis: 'Salary',
+  investasi: 'Salary',
+  dividen: 'Salary',
+  transfer: 'Salary',
+
+  // Emoji shortcuts
+  '🍔': 'Food',
+  '☕': 'Food',
+  '🍜': 'Food',
+  '🍕': 'Food',
+  '🍗': 'Food',
+  '🍚': 'Food',
+  '🍱': 'Food',
+  '🍰': 'Food',
+  '🍦': 'Food',
+  '🍞': 'Food',
+  '🧋': 'Food',
+  '🍳': 'Food',
+  '🥗': 'Food',
+  '🍣': 'Food',
+  '🍲': 'Food',
+  '🥟': 'Food',
+  '🥤': 'Food',
+  '🥪': 'Food',
+  '⛽': 'Transport',
+  '🛵': 'Transport',
+  '🚗': 'Transport',
+  '🚕': 'Transport',
+  '🚌': 'Transport',
+  '🚆': 'Transport',
+  '✈️': 'Transport',
+  '🚲': 'Transport',
+  '🏍️': 'Transport',
+  '🛒': 'Shopping',
+  '🛍️': 'Shopping',
+  '🛍': 'Shopping',
+  '👕': 'Shopping',
+  '👗': 'Shopping',
+  '👟': 'Shopping',
+  '👠': 'Shopping',
+  '📱': 'Bills',
+  '💡': 'Bills',
+  '⚡': 'Bills',
+  '💧': 'Bills',
+  '📶': 'Bills',
+  '🧾': 'Bills',
+  '🏠': 'Bills',
+  '💊': 'Health',
+  '🏥': 'Health',
+  '🩺': 'Health',
+  '🩹': 'Health',
+  '📚': 'Education',
+  '🎓': 'Education',
+  '✏️': 'Education',
+  '📝': 'Education',
+  '🎬': 'Entertainment',
+  '🎮': 'Entertainment',
+  '🎟️': 'Entertainment',
+  '🍿': 'Entertainment',
+  '🎧': 'Entertainment',
+  '🎤': 'Entertainment',
+  '🕌': 'Charity',
+  '🤲': 'Charity',
+  '🎁': 'Charity',
+  '🤍': 'Charity',
+  '❤️': 'Charity',
+  '💰': 'Salary',
+  '💵': 'Salary',
+  '💸': 'Salary',
+  '🤑': 'Salary',
+  '📈': 'Salary'
 };
 
 /**
  * Parse string nominal into number
- * Supports: 50000, 50.000, 50,000, 50k, 50rb, 1.5jt, Rp 50.000
+ * Supports: 50000, 50.000, 50,000, 50k, 50rb, 1.5jt, Rp 50.000, 25k,-, ☕25k, 50k🍔
  */
 export function parseAmount(raw) {
   if (!raw) return 0;
   let clean = String(raw).trim().toLowerCase();
-  clean = clean.replace(/^[([{\s'":\-]+|[)\]}\s'":,\-]+$/g, '');
-  clean = clean.replace(/^(rp\.?|idr)\s*/i, '');
-  clean = clean.trim();
+  // Strip outer punctuation/symbols
+  clean = clean.replace(/^[([{\s'"`~!\$@%^&*\-_+=|:;<>?/]+|[)\]}\s'"`~!\$@%^&*\-_+=|:;<>?,/]+$/g, '');
+  // Strip outer emojis without touching numbers
+  clean = clean.replace(/^[\p{Extended_Pictographic}\s]+/gu, '');
+  clean = clean.replace(/[\p{Extended_Pictographic}\s]+$/gu, '');
+  clean = clean.replace(/^(rp\.?|idr|\$)\s*/i, '');
+  clean = clean.replace(/^[.,]+|[.,\-_/]+$/g, '').trim();
 
   let multiplier = 1;
   if (/([0-9.,]+)\s*(jt|juta|m)\b/.test(clean)) {
@@ -260,6 +331,14 @@ export function parseTransactionCommand(text, defaultType = 'Expense') {
           category = INFERRED_KEYWORDS[k];
           break;
         }
+        // Substring or emoji match
+        for (const [key, cat] of Object.entries(INFERRED_KEYWORDS)) {
+          if (k.includes(key)) {
+            category = cat;
+            break;
+          }
+        }
+        if (category !== (type === 'Income' ? 'Salary' : 'Other')) break;
       }
     }
   }
@@ -270,7 +349,11 @@ export function parseTransactionCommand(text, defaultType = 'Expense') {
 
   const capitalizedDesc = description
     .split(' ')
-    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : ''))
+    .map((w) => {
+      if (!w) return '';
+      const chars = Array.from(w);
+      return chars[0].toUpperCase() + chars.slice(1).join('');
+    })
     .join(' ');
 
   const today = new Date().toISOString().slice(0, 10);

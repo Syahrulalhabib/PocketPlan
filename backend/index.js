@@ -105,8 +105,8 @@ const requireAuth = async (req, res, next) => {
 app.get('/health', (_, res) => res.json({ ok: true, useFirestore }));
 
 app.post('/api/scan-receipt', requireAuth, async (req, res) => {
-  // Rate limit: 20 scans per 15 minutes per user
-  const rl = checkRateLimit(`scan:${req.user.uid}`, 20);
+  // Rate limit: 30 scans per 15 minutes per user
+  const rl = checkRateLimit(`scan:${req.user.uid}`, 30);
   if (!rl.allowed) return res.status(429).json({ ok: false, error: `Pocky lagi istirahat sejenak. Tolong coba lagi dalam ${rl.retryAfterSec} detik ya! ⏳` });
 
   const { imageBase64, mimeType } = req.body || {};
@@ -118,6 +118,9 @@ app.post('/api/scan-receipt', requireAuth, async (req, res) => {
       imageBase64,
       mimeType: mimeType || 'image/jpeg'
     });
+    if (result && result.notReceipt) {
+      return res.status(422).json(result);
+    }
     res.json(result);
   } catch (err) {
     console.error('Scan receipt error:', err);
