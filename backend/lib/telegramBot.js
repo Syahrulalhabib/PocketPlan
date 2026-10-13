@@ -114,7 +114,26 @@ setInterval(() => {
   }
 }, 10 * 60 * 1000).unref();
 
+const _processedUpdates = new Map();
+const UPDATE_EXPIRY_MS = 10 * 60 * 1000;
+
+function isDuplicateUpdate(updateId) {
+  if (!updateId) return false;
+  const now = Date.now();
+  if (_processedUpdates.has(updateId)) return true;
+  _processedUpdates.set(updateId, now);
+  if (_processedUpdates.size > 500) {
+    for (const [id, ts] of _processedUpdates.entries()) {
+      if (now - ts > UPDATE_EXPIRY_MS) _processedUpdates.delete(id);
+    }
+  }
+  return false;
+}
+
 export async function handleTelegramUpdate(update, db, botToken) {
+  if (update?.update_id && isDuplicateUpdate(update.update_id)) {
+    return;
+  }
   if (update?.callback_query) {
     const cb = update.callback_query;
     const chatId = cb.message?.chat?.id;
@@ -389,10 +408,18 @@ export async function handleTelegramUpdate(update, db, botToken) {
       });
     } catch (err) {
       console.error('Telegram receipt scanner error:', err);
+      let userNotice = 'Gambarnya kurang terbaca atau buram.';
+      const msgStr = String(err?.message || '');
+      if (/503|UNAVAILABLE|sibuk|high demand/i.test(msgStr)) {
+        userNotice = 'Layanan AI pembaca struk sedang mengalami antrean padat.';
+      } else if (/timeout|abort/i.test(msgStr)) {
+        userNotice = 'Waktu baca gambar habis karena koneksi lambat.';
+      }
+
       return sendTelegramMessage(
         botToken,
         chatId,
-        `🙈 *Aduh, mata Pocky agak burem baca gambar ini!*\n\n_${escapeMarkdown(err.message || 'Gambarnya kurang terbaca')}_\n\nCoba kirim foto struk atau bukti transfer yang lebih terang, tegak, dan jelas yaa ✨\nAtau kamu bisa minta Pocky catat manual: \`kopi 25k\` atau \`/catat makan 50k\``,
+        `🙈 *Aduh, mata Pocky agak burem baca gambar ini!*\n\n⚠️ _${userNotice}_\n\nCoba kirim foto struk atau bukti transfer yang lebih terang, tegak, dan jelas yaa ✨\nAtau kamu bisa minta Pocky catat manual: \`kopi 25k\` atau \`/catat makan 50k\``,
         { reply_markup: KEYBOARD }
       );
     }

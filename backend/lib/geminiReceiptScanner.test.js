@@ -133,7 +133,7 @@ const testKeyPool = new KeyPool(['mock_key']);
 const originalFetch = global.fetch;
 
 global.fetch = async (url) => {
-  assert.ok(url.includes('models/gemini-3.5-flash-lite:generateContent'));
+  assert.ok(url.includes('models/gemini-3.5-flash:generateContent'));
   return {
     ok: true,
     json: async () => ({
@@ -157,6 +157,41 @@ const scanRes = await scanReceiptWithGemini({
 assert.strictEqual(scanRes.ok, true);
 assert.strictEqual(scanRes.data.merchant_name, 'Indomaret Point');
 assert.strictEqual(scanRes.data.total_amount, 52800);
+
+// 6. Test 503 fallback to next model
+let callCount = 0;
+global.fetch = async (url) => {
+  callCount++;
+  if (callCount === 1) {
+    return {
+      status: 503,
+      ok: false,
+      text: async () => JSON.stringify({ error: { message: 'High demand' } })
+    };
+  }
+  return {
+    ok: true,
+    status: 200,
+    json: async () => ({
+      candidates: [{
+        content: {
+          parts: [{
+            text: JSON.stringify(rawReceipt)
+          }]
+        }
+      }]
+    })
+  };
+};
+
+const fallbackRes = await scanReceiptWithGemini({
+  imageBase64: 'fakeBase64String',
+  mimeType: 'image/jpeg',
+  keyPool: testKeyPool
+});
+assert.strictEqual(fallbackRes.ok, true);
+assert.strictEqual(callCount, 2);
+assert.strictEqual(fallbackRes.modelUsed, 'gemini-3.1-flash-lite');
 
 // Restore fetch
 global.fetch = originalFetch;

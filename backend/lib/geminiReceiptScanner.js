@@ -193,7 +193,7 @@ export async function scanReceiptWithGemini({
   mimeType = 'image/jpeg',
   keyPool = defaultKeyPool,
   maxRetries = 3,
-  preferredModel = 'gemini-3.5-flash-lite'
+  preferredModel = 'gemini-3.5-flash'
 }) {
   if (!imageBase64) throw new Error('Data gambar (base64) wajib disediakan.');
 
@@ -238,12 +238,21 @@ Ekstrak seluruh informasi ke format JSON valid berikut:
 }
 Hanya balas dengan JSON murni tanpa markdown fences.`;
 
-  const modelsToTry = [preferredModel, 'gemini-3.5-flash', 'gemini-flash-latest'];
+  const fallbackList = [
+    preferredModel,
+    'gemini-3.5-flash',
+    'gemini-3.1-flash-lite',
+    'gemini-3-flash-preview',
+    'gemini-3.6-flash',
+    'gemini-flash-latest',
+    'gemini-3.5-flash-lite'
+  ];
+  const modelsToTry = [...new Set(fallbackList)];
   let lastError = null;
 
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+  for (let attempt = 0; attempt <= maxRetries && attempt < modelsToTry.length; attempt++) {
     const apiKey = keyPool.getKey();
-    const model = modelsToTry[Math.min(attempt, modelsToTry.length - 1)];
+    const model = modelsToTry[attempt];
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const payload = {
@@ -261,16 +270,25 @@ Hanya balas dengan JSON murni tanpa markdown fences.`;
     };
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      }).finally(() => clearTimeout(timeoutId));
 
       if (res.status === 429) {
         keyPool.markCooldown(apiKey, 60000);
-        const backoffDelay = Math.min(10000, 1000 * Math.pow(2, attempt));
-        await new Promise(r => setTimeout(r, backoffDelay));
+        continue;
+      }
+
+      // If high demand / unavailable / server error, immediately try next fallback model
+      if (res.status === 503 || res.status === 502 || res.status === 504 || res.status === 500) {
+        const errText = await res.text().catch(() => '');
+        lastError = new Error(`Model ${model} sedang sibuk (status ${res.status}): ${errText}`);
         continue;
       }
 
@@ -298,9 +316,11 @@ Hanya balas dengan JSON murni tanpa markdown fences.`;
       };
     } catch (err) {
       lastError = err;
-      if (attempt < maxRetries) {
-        const backoffDelay = 1000 * Math.pow(2, attempt);
-        await new Promise(r => setTimeout(r, backoffDelay));
+      if (err.name === 'AbortError') {
+        lastError = new Error(`Model ${model} timeout (>15s)`);
+      }
+      if (attempt < maxRetries && attempt < modelsToTry.length - 1) {
+        await new Promise(r => setTimeout(r, 500));
       }
     }
   }
