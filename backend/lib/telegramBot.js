@@ -999,7 +999,46 @@ export async function handleTelegramUpdate(update, db, botToken) {
     return sendTelegramMessage(
       botToken,
       chatId,
-      '📖 *PANDUAN LENGKAP POCKY* 🪙\n\n*🧾 SCAN STRUK BARENG POCKY*\n• Cukup kirim foto struk belanja atau bukti transfer langsung ke chat ini!\n• Pocky otomatis membaca nama toko, daftar barang, & total transaksi.\n\n*📝 CATAT PENGELUARAN*\n• `kopi susu 25k` — ketik langsung\n• `25k kopi susu` — nominal duluan juga bisa\n• `/catat bensin 50k` — pakai perintah\n• `/keluar makan siang 35k`\n\n*💰 CATAT PEMASUKAN*\n• `/masuk gaji 2jt`\n• `/masuk freelance 500k`\n\n*🎯 TARGET IMPIAN*\n• `/goal Laptop Baru 10jt` — buat target\n• `/goals` — lihat semua target & progres\n• `/beligoal Laptop` — beli target tercapai\n\n*💰 BUDGET BULANAN*\n• `/budget Makan 1jt` — atur batas\n• `/budget` — lihat semua budget\n• `/budget hapus Makan` — hapus budget\n\n*🎉 AJAK TEMAN*\n• `/ajak` — dapatkan link referral\n\n*🏆 TANTANGAN*\n• `/tantangan` — lihat tantangan aktif\n• `/tantangan buat no_spend Kopi "30 Hari Tanpa Kopi"` — buat tantangan\n\n*⏰ PENGINGAT HARIAN*\n• `/pengingat` — kelola pengingat pagi & malam\n\n*📊 INFO KEUANGAN*\n• `/saldo` — cek sisa saldo\n• `/riwayat` — 5 transaksi terakhir\n• `/batal` — batalkan transaksi terakhir\n\n*🔗 LAINNYA*\n• `/web` — kode login website\n• `/link KODE` — hubungkan akun website\n• `/menu` — tampilkan keyboard menu\n\n💡 _Nominal bisa ditulis: 50k, 50rb, 50.000, 1.5jt, Rp50000_',
+      '📖 *PANDUAN LENGKAP POCKY* 🪙\n\n' +
+      '*🧾 SCAN STRUK BARENG POCKY*\n' +
+      '• Cukup kirim foto struk belanja atau bukti transfer langsung ke chat ini!\n' +
+      '• Pocky otomatis membaca nama toko, daftar barang, & total transaksi.\n\n' +
+      '*📝 CATAT PENGELUARAN*\n' +
+      '• `kopi susu 25k` — ketik langsung\n' +
+      '• `25k kopi susu` — nominal duluan juga bisa\n' +
+      '• `/catat bensin 50k` — pakai perintah\n' +
+      '• `/keluar makan siang 35k`\n\n' +
+      '*💰 CATAT PEMASUKAN*\n' +
+      '• `/masuk gaji 2jt`\n' +
+      '• `/masuk freelance 500k`\n\n' +
+      '*🎯 TARGET IMPIAN*\n' +
+      '• `/goal Laptop Baru 10jt` — buat target\n' +
+      '• `/goals` — lihat semua target & progres\n' +
+      '• `/beligoal Laptop` — beli target tercapai\n\n' +
+      '*💰 BUDGET BULANAN*\n' +
+      '• `/budget Makan 1jt` — atur batas\n' +
+      '• `/budget` — lihat semua budget\n' +
+      '• `/budget hapus Makan` — hapus budget\n\n' +
+      '*🎉 AJAK TEMAN*\n' +
+      '• `/ajak` — dapatkan link referral untuk ajak teman\n\n' +
+      '*🏆 TANTANGAN NABUNG BARENG (30 HARI)*\n' +
+      '• `/tantangan` — cek tantangan & progres peserta\n' +
+      '• *Tipe no_spend (Puasa Belanja)*: tantangan menahan diri tidak beli barang tertentu (kopi, boba, jajan, rokok, dll).\n' +
+      '  Format: `/tantangan buat no_spend Kopi 30 Hari Tanpa Kopi`\n' +
+      '• *Tipe daily_log (Rajin Catat)*: tantangan disiplin catat keuangan minimal 1x sehari bareng teman tanpa bolong.\n' +
+      '  Format: `/tantangan buat daily_log Nabung Konsisten 30 Hari`\n' +
+      '• `/tantangan gabung <ID>` — gabung lewat ID (atau klik link undangan teman)\n\n' +
+      '*⏰ PENGINGAT HARIAN*\n' +
+      '• `/pengingat` — kelola pengingat pagi & malam\n\n' +
+      '*📊 INFO KEUANGAN*\n' +
+      '• `/saldo` — cek sisa saldo\n' +
+      '• `/riwayat` — 5 transaksi terakhir\n' +
+      '• `/batal` — batalkan transaksi terakhir\n\n' +
+      '*🔗 LAINNYA*\n' +
+      '• `/web` — kode login website\n' +
+      '• `/link KODE` — hubungkan akun website\n' +
+      '• `/menu` — tampilkan keyboard menu\n\n' +
+      '💡 _Nominal bisa ditulis: 50k, 50rb, 50.000, 1.5jt, Rp50000_',
       { reply_markup: KEYBOARD }
     );
   }
@@ -1170,7 +1209,16 @@ export async function handleTelegramUpdate(update, db, botToken) {
     }
     if (args.startsWith('buat')) {
       return sendTelegramMessage(botToken, chatId,
-        '🏆 *Format Buat Tantangan:*\n\n`/tantangan buat no_spend Kopi "30 Hari Tanpa Kopi"`\n`/tantangan buat daily_log - "Catat Tiap Hari"`\n\nTipe:\n• `no_spend` — tanpa belanja kategori X\n• `daily_log` — catat tiap hari',
+        '🏆 *Cara Buat Tantangan Bareng Teman (30 Hari):*\n\n' +
+        '*1. Puasa Belanja (`no_spend`)*:\n' +
+        'Tahan diri tidak beli barang tertentu (kopi, boba, jajan, rokok, dll).\n' +
+        'Format: `/tantangan buat no_spend <Kategori> <Judul>`\n' +
+        'Contoh: `/tantangan buat no_spend Kopi 30 Hari Tanpa Kopi`\n\n' +
+        '*2. Rajin Catat (`daily_log`)*:\n' +
+        'Disiplin catat keuangan minimal 1x setiap hari bareng teman tanpa bolong.\n' +
+        'Format: `/tantangan buat daily_log <Kategori> <Judul>`\n' +
+        'Contoh: `/tantangan buat daily_log Nabung 30 Hari Rajin Catat`\n\n' +
+        '💡 _Setelah dibuat, Pocky beri link khusus untuk dibagikan ke teman!_',
         { reply_markup: KEYBOARD }
       );
     }
@@ -1213,7 +1261,13 @@ export async function handleTelegramUpdate(update, db, botToken) {
       });
       if (mine.length === 0) {
         return sendTelegramMessage(botToken, chatId,
-          '🏆 *Belum ada tantangan aktif*\n\nBuat tantangan baru:\n`/tantangan buat no_spend Kopi "30 Hari Tanpa Kopi"`',
+          '🏆 *Belum ada tantangan aktif*\n\n' +
+          'Yuk mulai tantangan 30 hari bareng teman:\n\n' +
+          '🚫 *Puasa Belanja (`no_spend`)*:\n' +
+          '`/tantangan buat no_spend Kopi 30 Hari Tanpa Kopi`\n\n' +
+          '📝 *Rajin Catat (`daily_log`)*:\n' +
+          '`/tantangan buat daily_log Nabung 30 Hari Rajin Catat`\n\n' +
+          '💡 _Pocky otomatis kirim link undangan untuk temanmu bergabung!_',
           { reply_markup: KEYBOARD }
         );
       }
