@@ -2,14 +2,11 @@ import { useMemo, useState } from 'react';
 import { useData } from '../providers/DataProvider.jsx';
 import {
   formatRupiah,
-  formatDisplayNumber,
-  parseFormattedNumber,
-  adjustMoney,
   capitalizeWords
 } from '../utils/formatters.js';
 import Modal from '../components/Modal.jsx';
 import GoalFormModal from '../components/GoalFormModal.jsx';
-import { PlusIcon, SearchIcon, ViewIcon, EditIcon, TrashIcon, TargetIcon, CloseIcon, ProgressCoinIcon, SmilingCoinIcon } from '../components/Icons.jsx';
+import { PlusIcon, SearchIcon, ViewIcon, EditIcon, TrashIcon, CloseIcon, ProgressCoinIcon, SmilingCoinIcon } from '../components/Icons.jsx';
 import LuckyCoinMascot from '../components/LuckyCoinMascot.jsx';
 
 const emptyForm = {

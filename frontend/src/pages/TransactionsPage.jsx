@@ -2,14 +2,11 @@ import { useMemo, useState } from 'react';
 import { useData } from '../providers/DataProvider.jsx';
 import {
   formatRupiah,
-  formatDisplayNumber,
-  parseFormattedNumber,
-  adjustMoney,
   capitalizeWords
 } from '../utils/formatters.js';
 import Modal from '../components/Modal.jsx';
 import TransactionFormModal from '../components/TransactionFormModal.jsx';
-import { PlusIcon, SearchIcon, ViewIcon, EditIcon, TrashIcon, ReceiptIcon, CloseIcon, ScanIcon } from '../components/Icons.jsx';
+import { PlusIcon, SearchIcon, ViewIcon, EditIcon, TrashIcon, CloseIcon, ScanIcon } from '../components/Icons.jsx';
 import LuckyCoinMascot from '../components/LuckyCoinMascot.jsx';
 import ReceiptScannerModal from '../components/ReceiptScannerModal.jsx';
 

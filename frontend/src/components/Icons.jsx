@@ -128,15 +128,6 @@ export const MoonIcon = ({ size = 16, className = '' }) => (
   </svg>
 );
 
-export const DashboardIcon = ({ size = 18, className = '' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-    <rect x="3" y="3" width="7" height="7" rx="1.5" />
-    <rect x="14" y="3" width="7" height="7" rx="1.5" />
-    <rect x="14" y="14" width="7" height="7" rx="1.5" />
-    <rect x="3" y="14" width="7" height="7" rx="1.5" />
-  </svg>
-);
-
 export const ScanIcon = ({ size = 18, className = '' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
     <path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" />
@@ -301,16 +292,6 @@ export const TelegramIcon = ({ size = 16, className = '' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
     <path d="m22 2-7 20-4-9-9-4Z" />
     <path d="M22 2 11 13" />
-  </svg>
-);
-
-export const BotIcon = ({ size = 16, className = '' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-    <rect x="3" y="11" width="18" height="10" rx="2" />
-    <circle cx="12" cy="5" r="2" />
-    <path d="M12 7v4" />
-    <line x1="8" y1="16" x2="8" y2="16" />
-    <line x1="16" y1="16" x2="16" y2="16" />
   </svg>
 );
 

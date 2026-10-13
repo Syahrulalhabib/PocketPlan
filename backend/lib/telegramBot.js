@@ -17,7 +17,7 @@ import {
 } from './telegramBotCore.js';
 import { scanReceiptWithGemini } from './geminiReceiptScanner.js';
 
-export { generateLinkCode, getLinkStatus, unlinkAccount, sendTelegramMessage };
+export { generateLinkCode, getLinkStatus, unlinkAccount };
 
 const KEYBOARD = {
   keyboard: [
