@@ -435,6 +435,8 @@ export const DEFAULT_BOT_COMMANDS = [
   { command: 'saldo', description: 'Cek total saldo dompet 📊' },
   { command: 'riwayat', description: '5 transaksi terakhir 📜' },
   { command: 'goals', description: 'Cek target & progres celengan 🎯' },
+  { command: 'streak', description: 'Cek streak & kartu achievement 🔥' },
+
   { command: 'pengingat', description: 'Atur pengingat harian otomatis ⏰' },
   { command: 'koreksi', description: 'Koreksi nominal struk/catatan ✏️' },
   { command: 'budget', description: 'Atur batas budget per kategori 💰' },

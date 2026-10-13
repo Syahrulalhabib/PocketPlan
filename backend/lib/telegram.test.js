@@ -553,6 +553,8 @@ async function testBot() {
   assert(DEFAULT_BOT_COMMANDS.some(c => c.command === 'budget'), 'budget in bot commands');
   assert(DEFAULT_BOT_COMMANDS.some(c => c.command === 'ajak'), 'ajak in bot commands');
   assert(DEFAULT_BOT_COMMANDS.some(c => c.command === 'tantangan'), 'tantangan in bot commands');
+  assert(DEFAULT_BOT_COMMANDS.some(c => c.command === 'streak'), 'streak in bot commands');
+
 
   // --- Fase 3: Referral system ---
   invalidateUidCache();
@@ -671,6 +673,12 @@ async function testBot() {
   replies = [];
   await handleTelegramUpdate({ message: { chat: { id: 8392548889 }, text: '/teststreak 7', from: { first_name: 'Dev' } } }, mdb, 'token');
   assert(replies.some(r => (r.text || '').includes('Streak Milestone')), '/teststreak sends milestone notification');
+
+  // /streak command handling
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 8392548889 }, text: '/streak', from: { first_name: 'Dev' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Streak Keuangan Kamu')), '/streak returns user streak info');
+
 
 
 

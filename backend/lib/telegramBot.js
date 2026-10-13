@@ -24,7 +24,8 @@ const KEYBOARD = {
   keyboard: [
     [{ text: '💸 Catat Keluar' }, { text: '💰 Catat Masuk' }],
     [{ text: '📊 Cek Saldo' }, { text: '🎯 Target Impian' }],
-    [{ text: '📜 Riwayat' }, { text: '🌐 Buka di Web' }]
+    [{ text: '📜 Riwayat' }, { text: '🔥 Cek Streak' }],
+    [{ text: '🌐 Buka di Web' }]
   ],
   resize_keyboard: true
 };
@@ -600,10 +601,10 @@ export async function handleTelegramUpdate(update, db, botToken) {
           opts = { type: 'streak', title: 'Achievement', subtitle: achKey, streakDays: 0 };
         }
         const png = await generateAchievementCard(opts);
-        await sendTelegramPhoto(botToken, chatId, png,
-          'Ini kartu achievement kamu! Simpan gambarnya lalu bagikan ke status WA/IG kalau mau 🪙',
-          { parse_mode: 'Markdown' }
-        );
+        const caption = opts.type === 'streak'
+          ? `🎨 *Kartu Achievement: Streak ${opts.streakDays} Hari!* 🔥\n\nSelamat atas konsistensi mencatat keuangan selama *${opts.streakDays} hari* berturut-turut! 🪙\n\n_Bagikan kartu ini ke status WA/IG kalau mau pamer kedisiplinan finansialmu._`
+          : `🎨 *Kartu Achievement: Target Tabungan* 🎯\n\nTarget tabungan sudah mencapai *${opts.percent}%*! Terus melangkah menuju kebebasan finansial. 💰`;
+        await sendTelegramPhoto(botToken, chatId, png, caption, { parse_mode: 'Markdown' });
       } catch (err) {
         console.error('achievement card error:', err?.message);
         await sendTelegramMessage(botToken, chatId, '😅 Gagal membuat kartu. Coba lagi nanti ya!');
@@ -1135,6 +1136,36 @@ export async function handleTelegramUpdate(update, db, botToken) {
       { reply_markup: KEYBOARD }
     );
   }
+  // /streak — check current streak status & view live achievement card
+  if (cmdText === '/streak' || cmdText.startsWith('/streak ') || text === '🔥 Cek Streak') {
+    let streak = 0;
+    let longest = 0;
+    let lastDate = '-';
+    if (db && uid) {
+      try {
+        const uDoc = await db.collection('users').doc(uid).get();
+        const uData = uDoc.data() || {};
+        streak = Number(uData.currentStreak) || 0;
+        longest = Number(uData.longestStreak) || 0;
+        lastDate = uData.lastStreakDate || '-';
+      } catch {}
+    }
+    const buttons = [];
+    if (streak > 0) {
+      buttons.push([{ text: `🎨 Buat Kartu Streak (${streak} Hari)`, callback_data: `ach:streak_${streak}` }]);
+    }
+    return sendTelegramMessage(botToken, chatId,
+      `🔥 *Status Streak Keuangan Kamu*\n\n` +
+      `• Streak Saat Ini: *${streak} hari* berturut-turut\n` +
+      `• Rekor Terpanjang: *${longest} hari*\n` +
+      `• Tanggal Terakhir: \`${lastDate}\`\n\n` +
+      (streak > 0
+        ? `Hebat! Konsistensimu luar biasa. Ketuk tombol di bawah untuk cetak kartu pencapaian. 🪙`
+        : `Yuk catat transaksi hari ini (misal: \`25k makan siang\`) untuk menyalakan streak baru! 💪`),
+      buttons.length > 0 ? { reply_markup: { inline_keyboard: buttons } } : { reply_markup: KEYBOARD }
+    );
+  }
+
   // Developer test command — preview streak / goal achievement card
   if (cmdText === '/teststreak' || cmdText.startsWith('/teststreak ') || cmdText === '/testkartu' || cmdText.startsWith('/testkartu ')) {
     const rawArgs = text.replace(/^\/(teststreak|testkartu)(@\S+)?\s*/i, '').trim();
@@ -1148,14 +1179,15 @@ export async function handleTelegramUpdate(update, db, botToken) {
     }
     const opts = isGoal
       ? { type: 'goal', title: 'Target Tabungan', subtitle: 'Target Rp 10.000.000', percent: 75 }
-      : { type: 'streak', title: `Streak ${days} Hari! 🔥`, subtitle: `${days} hari berturut-turut catat keuangan`, streakDays: days };
+      : { type: 'streak', title: `Streak ${days} Hari!`, subtitle: `${days} hari berturut-turut catat keuangan`, streakDays: days };
 
     try {
       const png = await generateAchievementCard(opts);
-      await sendTelegramPhoto(botToken, targetChatId, png,
-        `🎨 *Kartu Achievement (${opts.type.toUpperCase()})*\n\nSimpan atau bagikan kartu ini ke status IG/WA! 🪙`,
-        { parse_mode: 'Markdown' }
-      );
+      const caption = opts.type === 'streak'
+        ? `🎨 *Kartu Achievement: Streak ${days} Hari!* 🔥\n\n• Streak: *${days} hari* berturut-turut\n• Status: *Aktif*\n\nSimpan atau bagikan kartu ini ke status IG/WA! 🪙`
+        : `🎨 *Kartu Achievement: Target Tabungan* 🎯\n\n• Progres: *${opts.percent}%* tercapai\n\nSimpan atau bagikan kartu ini ke status IG/WA! 💰`;
+
+      await sendTelegramPhoto(botToken, targetChatId, png, caption, { parse_mode: 'Markdown' });
       if (String(targetChatId) !== String(chatId)) {
         await sendTelegramMessage(botToken, chatId, `✅ Kartu achievement berhasil dikirim ke Chat ID: \`${targetChatId}\``);
       }
