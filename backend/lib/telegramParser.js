@@ -375,3 +375,41 @@ export function formatRupiah(num) {
     maximumFractionDigits: 0
   }).format(num || 0);
 }
+
+export const CATEGORY_LABELS = {
+  Food: 'Makanan (Food)',
+  Shopping: 'Belanja (Shopping)',
+  Transport: 'Transportasi',
+  Bills: 'Tagihan (Bills)',
+  Health: 'Kesehatan (Health)',
+  Education: 'Pendidikan (Education)',
+  Entertainment: 'Hiburan (Entertainment)',
+  Charity: 'Amal & Sedekah',
+  Salary: 'Gaji / Pendapatan',
+  Other: 'Lain-lain'
+};
+
+export const CATEGORY_ICONS = {
+  Food: '🍔',
+  Shopping: '🛍️',
+  Transport: '🚗',
+  Bills: '📄',
+  Health: '💊',
+  Education: '📚',
+  Entertainment: '🎮',
+  Charity: '🤝',
+  Salary: '💵',
+  Other: '📦'
+};
+
+export function normalizeBudgetCategory(raw) {
+  if (!raw) return 'Other';
+  const clean = String(raw).trim().toLowerCase();
+  if (EXPLICIT_CATEGORIES[clean]) return EXPLICIT_CATEGORIES[clean];
+  if (INFERRED_KEYWORDS[clean]) return INFERRED_KEYWORDS[clean];
+  const canonical = ['Food', 'Shopping', 'Transport', 'Bills', 'Health', 'Education', 'Entertainment', 'Charity', 'Salary', 'Other']
+    .find(c => c.toLowerCase() === clean);
+  if (canonical) return canonical;
+  return clean.charAt(0).toUpperCase() + clean.slice(1);
+}
+

@@ -109,6 +109,17 @@ export async function migrateTelegramDataToUser(chatId, targetUid, db) {
       }
       await batch.commit();
     }
+    const budgetSnap = await db.collection('users').doc(sourceUid).collection('budgets').get();
+    if (!budgetSnap.empty) {
+      const batch = db.batch();
+      for (const d of budgetSnap.docs) {
+        const newRef = db.collection('users').doc(targetUid).collection('budgets').doc(d.id);
+        batch.set(newRef, d.data(), { merge: true });
+        batch.delete(d.ref);
+      }
+      await batch.commit();
+    }
+
   } catch (err) {
     console.error('Failed to migrate Telegram data to linked user:', err);
   }

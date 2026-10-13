@@ -539,6 +539,34 @@ async function testBot() {
   await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/budget', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
   assert(replies.some(r => (r.text || '').includes('Makan')), 'Budget list shows Makan');
 
+  // Add income 1jt then /catat 450k makan → triggers 80% warning (450k / 500k = 90%)
+  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/masuk gaji 1jt', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/catat 450k makan', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('hampir habis')), 'Budget warning 80% triggered on expense');
+  // User scenario: /budget transport 200rb, /budget lists it, /catat 180k bensin (warning 80%), /catat 30k bensin (warning 100%)
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/budget transport 200rb', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('200.000')), 'Budget transport 200rb set');
+
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/budget', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Transportasi')), 'Budget list shows Transportasi');
+
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/catat 180k bensin', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('hampir habis')), '180k expense on 200k transport budget triggers warning 80%');
+
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/catat 30k bensin', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('habis') && (r.text || '').includes('🚨')), 'Over limit expense triggers warning 100%');
+
+  // /budget hapus transport → delete
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/budget hapus transport', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('dihapus')), 'Budget transport deleted');
+
+
   // /budget hapus Makan → delete
   replies = [];
   await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/budget hapus Makan', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
@@ -669,14 +697,22 @@ async function testBot() {
   assert(goalCardSvg.includes('TARGET MILESTONE'), 'Card SVG has goal badge');
   assert(goalCardSvg.includes('80% OF GOAL'), 'Card SVG has goal progress');
 
-  // /teststreak command handling
+  // /teststreak command handling (dev gate test)
+  process.env.DEV_TELEGRAM_IDS = '88888888';
+
+  // Unauthorized user calling /teststreak -> ignored silently
   replies = [];
-  await handleTelegramUpdate({ message: { chat: { id: 8392548889 }, text: '/teststreak 7', from: { first_name: 'Dev' } } }, mdb, 'token');
+  await handleTelegramUpdate({ message: { chat: { id: 999999999 }, text: '/teststreak 7', from: { first_name: 'RegularUser' } } }, mdb, 'token');
+  assert.strictEqual(replies.length, 0, 'Unauthorized /teststreak ignored silently');
+
+  // Authorized dev user calling /teststreak -> works
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 88888888 }, text: '/teststreak 7', from: { first_name: 'Dev' } } }, mdb, 'token');
   assert(replies.some(r => (r.text || '').includes('Streak Milestone')), '/teststreak sends milestone notification');
 
   // /streak command handling
   replies = [];
-  await handleTelegramUpdate({ message: { chat: { id: 8392548889 }, text: '/streak', from: { first_name: 'Dev' } } }, mdb, 'token');
+  await handleTelegramUpdate({ message: { chat: { id: 88888888 }, text: '/streak', from: { first_name: 'Dev' } } }, mdb, 'token');
   assert(replies.some(r => (r.text || '').includes('Streak Keuangan Kamu')), '/streak returns user streak info');
 
 

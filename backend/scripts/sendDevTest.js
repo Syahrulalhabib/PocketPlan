@@ -12,8 +12,9 @@ dotenv.config();
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const args = process.argv.slice(2);
 
-// Default to developer chat ID: 8392548889
-let targetChatId = '8392548889';
+// Default to developer chat ID from env or fallback placeholder
+let targetChatId = process.env.DEV_TELEGRAM_IDS?.split(',')[0]?.trim() || '';
+
 let type = 'streak';
 let days = 7;
 let percent = 75;
