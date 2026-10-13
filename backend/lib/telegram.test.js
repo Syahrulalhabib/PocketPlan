@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { parseAmount, parseTransactionCommand, formatRupiah } from './telegramParser.js';
-import { generateLinkCode, getLinkStatus, unlinkAccount, linkChatWithCode, cancelLinkCode, DEFAULT_BOT_COMMANDS } from './telegramBotCore.js';
+import { generateLinkCode, getLinkStatus, unlinkAccount, linkChatWithCode, cancelLinkCode, DEFAULT_BOT_COMMANDS, invalidateUidCache } from './telegramBotCore.js';
 import { handleTelegramUpdate } from './telegramBot.js';
 
 console.log('Running Telegram integration tests...');
@@ -357,6 +357,306 @@ async function testBot() {
   // Test findLinkedUid caching
   const cachedUid = await findLinkedUid(888, null);
   assert.strictEqual(cachedUid, 'user-888');
+
+  // --- Fase 1: Link nudge at 20th transaction ---
+  // Mock a minimal Firestore-like db for nudge test
+  invalidateUidCache(); // clear stale cache from earlier tests
+  const nudgeStore = { users: {}, telegram_links: {} };
+  function mockDb() {
+    const makeTopDocRef = (name, id) => {
+      const topRef = {
+        delete: async () => { if (nudgeStore[name]) delete nudgeStore[name][id]; },
+        set: async (d, o) => {
+          nudgeStore[name] = nudgeStore[name] || {};
+          nudgeStore[name][id] = o?.merge ? Object.assign(nudgeStore[name][id] || {}, d) : { ...d };
+        },
+        update: async (d) => {
+          nudgeStore[name] = nudgeStore[name] || {};
+          nudgeStore[name][id] = Object.assign(nudgeStore[name][id] || {}, d);
+        }
+      };
+      const hasData = Boolean(nudgeStore[name]?.[id] && Object.keys(nudgeStore[name][id]).some(k => k !== '_sub'));
+      return {
+        id,
+        ref: topRef,
+        exists: hasData,
+        data: () => nudgeStore[name]?.[id] || {}
+      };
+    };
+    return {
+      collection: (name) => ({
+        doc: (id) => {
+          const topDoc = makeTopDocRef(name, id);
+          return {
+            id,
+            ref: topDoc.ref,
+            get: async () => makeTopDocRef(name, id),
+            set: topDoc.ref.set,
+            update: topDoc.ref.update,
+            collection: (sub) => {
+              nudgeStore[name] = nudgeStore[name] || {};
+              nudgeStore[name][id] = nudgeStore[name][id] || {};
+              const docData = nudgeStore[name][id];
+              docData._sub = docData._sub || {};
+              docData._sub[sub] = docData._sub[sub] || {};
+              const subStore = docData._sub[sub];
+              const makeDocRef = (k) => ({
+                id: k,
+                ref: {
+                  delete: async () => { delete subStore[k]; },
+                  set: async (d, o) => { Object.assign(subStore[k], d); },
+                  update: async (d) => { Object.assign(subStore[k], d); }
+                },
+                exists: true,
+                data: () => subStore[k]
+              });
+              return {
+                add: async (d) => { const k = `${sub[0]}-${Date.now()}-${Math.random()}`; subStore[k] = { ...d }; return { id: k }; },
+                doc: (k) => {
+                  subStore[k] = subStore[k] || {};
+                  return makeDocRef(k);
+                },
+                count: () => ({ get: async () => ({ data: () => ({ count: Object.keys(subStore).length }) }) }),
+                get: async () => {
+                  const docs = Object.keys(subStore).map(makeDocRef);
+                  return { empty: docs.length === 0, docs, forEach: fn => docs.forEach(fn) };
+                },
+                where: (field, op, val) => {
+                  const filter = (items) => items.filter(([, v]) => {
+                    const fv = v[field]; if (op === '==') return fv === val; if (op === '>=') return fv >= val;
+                    if (op === '<=') return fv <= val; if (op === '<') return fv < val; if (op === '>') return fv > val; return true;
+                  });
+                  const buildChain = (filterFn) => ({
+                    where: (f2, o2, v2) => buildChain((items) => filterFn(items).filter(([, v]) => {
+                      const fv = v[f2]; if (o2 === '==') return fv === v2; if (o2 === '>=') return fv >= v2;
+                      if (o2 === '<=') return fv <= v2; if (o2 === '<') return fv < v2; if (o2 === '>') return fv > v2; return true;
+                    })),
+                    limit: (n) => ({ get: async () => {
+                      const filtered = filterFn(Object.entries(subStore)).slice(0, n);
+                      const docs = filtered.map(([k]) => makeDocRef(k));
+                      return { empty: docs.length === 0, docs, forEach: fn => docs.forEach(fn) };
+                    }}),
+                    get: async () => {
+                      const filtered = filterFn(Object.entries(subStore));
+                      const docs = filtered.map(([k]) => makeDocRef(k));
+                      return { empty: docs.length === 0, docs, forEach: fn => docs.forEach(fn) };
+                    }
+                  });
+                  return buildChain(filter);
+                },
+                orderBy: () => ({ limit: () => ({ get: async () => ({ empty: true, docs: [] }) }) })
+              };
+            }
+          };
+        },
+        add: async (d) => {
+          nudgeStore[name] = nudgeStore[name] || {};
+          const k = `${name[0]}-${Date.now()}-${Math.random()}`;
+          nudgeStore[name][k] = { ...d };
+          return { id: k };
+        },
+        where: (field, op, val) => {
+          nudgeStore[name] = nudgeStore[name] || {};
+          const store = nudgeStore[name];
+          const filter = (items) => items.filter(([, v]) => {
+            const fv = v[field]; if (op === '==') return fv === val; if (op === '>=') return fv >= val;
+            if (op === '<=') return fv <= val; if (op === '<') return fv < val; return true;
+          });
+          return {
+            get: async () => {
+              const filtered = filter(Object.entries(store));
+              const docs = filtered.map(([k]) => makeTopDocRef(name, k));
+              return { empty: docs.length === 0, docs, forEach: fn => docs.forEach(fn) };
+            },
+            limit: (n) => ({ get: async () => {
+              const filtered = filter(Object.entries(store)).slice(0, n);
+              const docs = filtered.map(([k]) => makeTopDocRef(name, k));
+              return { empty: docs.length === 0, docs, forEach: fn => docs.forEach(fn) };
+            }})
+          };
+        },
+        get: async () => {
+          const ids = Object.keys(nudgeStore[name] || {});
+          const docs = ids.map(id => makeTopDocRef(name, id));
+          return { empty: docs.length === 0, docs, forEach: fn => docs.forEach(fn) };
+        }
+      })
+    };
+  }
+  const mdb = mockDb();
+  // Set up a tg_ user (unlinked)
+  nudgeStore.users['tg_5000'] = { name: 'NudgeUser', isTelegramUser: true };
+  nudgeStore.telegram_links['5000'] = { uid: 'tg_5000' };
+
+  // Record 19 transactions — no nudge expected
+  replies = [];
+  for (let i = 0; i < 19; i++) {
+    await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: `/masuk gaji ${i + 1}k`, from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  }
+  const nudgeBefore20 = replies.filter(r => (r.text || '').includes('20 transaksi'));
+  assert.strictEqual(nudgeBefore20.length, 0, 'No nudge before 20th tx');
+
+  // 20th transaction — nudge should fire
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/masuk gaji 20k', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  const nudgeAt20 = replies.filter(r => (r.text || '').includes('20 transaksi'));
+  assert.strictEqual(nudgeAt20.length, 1, 'Nudge sent at 20th tx');
+  assert.strictEqual(nudgeStore.users['tg_5000'].linkNudgeSent, true, 'linkNudgeSent flag set');
+
+  // 21st transaction — no nudge again
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/masuk gaji 21k', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  const nudgeAt21 = replies.filter(r => (r.text || '').includes('20 transaksi'));
+  assert.strictEqual(nudgeAt21.length, 0, 'No nudge at 21st tx');
+
+  // Linked user (uid does not start with tg_) — no nudge
+  nudgeStore.users['web-user-linked'] = { name: 'Linked' };
+  nudgeStore.telegram_links['6000'] = { uid: 'web-user-linked' };
+  invalidateUidCache();
+  replies = [];
+  for (let i = 0; i < 21; i++) {
+    await handleTelegramUpdate({ message: { chat: { id: 6000 }, text: `/masuk gaji ${i + 1}k`, from: { first_name: 'Linked' } } }, mdb, 'token');
+  }
+  const nudgeLinked = replies.filter(r => (r.text || '').includes('20 transaksi'));
+  assert.strictEqual(nudgeLinked.length, 0, 'No nudge for linked user');
+
+  // --- Fase 2: Budget command + budget warnings ---
+  // Use user tg_5000 with mock db (already has income from nudge tests)
+  invalidateUidCache();
+
+  // /budget with no budgets set → shows empty message
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/budget', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Belum ada budget')), 'Empty budget list');
+
+  // /budget Makan 500k → set budget
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/budget Makan 500k', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Budget') && (r.text || '').includes('diatur')), 'Budget set confirmation');
+
+  // /budget → list should show Makan budget
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/budget', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Makan')), 'Budget list shows Makan');
+
+  // /budget hapus Makan → delete
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/budget hapus Makan', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('dihapus')), 'Budget deleted');
+
+  // /budget hapus NonExistent → not found
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/budget hapus NonExistent', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('tidak ditemukan')), 'Budget not found');
+
+  // Test DEFAULT_BOT_COMMANDS includes budget, ajak, tantangan
+  assert(DEFAULT_BOT_COMMANDS.some(c => c.command === 'budget'), 'budget in bot commands');
+  assert(DEFAULT_BOT_COMMANDS.some(c => c.command === 'ajak'), 'ajak in bot commands');
+  assert(DEFAULT_BOT_COMMANDS.some(c => c.command === 'tantangan'), 'tantangan in bot commands');
+
+  // --- Fase 3: Referral system ---
+  invalidateUidCache();
+  nudgeStore.users['tg_7000'] = { name: 'RefA', isTelegramUser: true };
+  nudgeStore.telegram_links['7000'] = { uid: 'tg_7000' };
+
+  // /ajak command
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 7000 }, text: '/ajak', from: { first_name: 'RefA' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('ref_7000')), '/ajak shows referral link');
+
+  // New user via /start ref_7000
+  invalidateUidCache();
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 8000 }, text: '/start ref_7000', from: { first_name: 'NewUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('diajak teman')), 'Referral greeting mentions friend');
+  assert.strictEqual(nudgeStore.users['tg_8000']?.referredBy, '7000', 'referredBy set');
+  assert(replies.some(r => (r.text || '').includes('Yeay')), 'Referrer notified');
+  assert.strictEqual(nudgeStore.users['tg_7000']?.referralCount, 1, 'referralCount=1');
+
+  // Duplicate referral — no double count
+  invalidateUidCache();
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 8000 }, text: '/start ref_7000', from: { first_name: 'NewUser' } } }, mdb, 'token');
+  assert.strictEqual(nudgeStore.users['tg_7000']?.referralCount, 1, 'No double referralCount');
+
+  // Self-referral — ignored
+  invalidateUidCache();
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 7000 }, text: '/start ref_7000', from: { first_name: 'RefA' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Pocky')), 'Self-ref gets greeting');
+
+  // /start ref_ngawur → normal greeting
+  invalidateUidCache();
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 9000 }, text: '/start ref_ngawur', from: { first_name: 'Stranger' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Pocky')), 'Invalid ref_ gets greeting');
+
+  // --- Fase 5: Streak system ---
+  const { updateStreak } = await import('./streak.js');
+  nudgeStore.users['tg_streak1'] = { name: 'StreakUser' };
+  nudgeStore.users['tg_streak1']._sub = { transactions: {} };
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+  // Generate 7 consecutive dates ending at today (WIB). Use date arithmetic in WIB.
+  for (let i = 0; i < 7; i++) {
+    // Compute WIB date i days ago
+    const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+    d.setDate(d.getDate() - i);
+    const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    nudgeStore.users['tg_streak1']._sub.transactions[`tx${i}`] = { date: ds, type: 'Income', amount: 1000 };
+  }
+  const sr1 = await updateStreak('tg_streak1', mdb);
+  assert.strictEqual(sr1.currentStreak, 7, 'Streak=7 for 7 days');
+  assert.strictEqual(sr1.milestone, 7, 'Milestone 7');
+
+  const sr2 = await updateStreak('tg_streak1', mdb);
+  assert.strictEqual(sr2.milestone, null, 'Milestone 7 not repeated');
+
+  // Dup tx same day
+  nudgeStore.users['tg_streak1']._sub.transactions['txdup'] = { date: today, type: 'Expense', amount: 500 };
+  const sr3 = await updateStreak('tg_streak1', mdb);
+  assert.strictEqual(sr3.currentStreak, 7, 'Dup tx same day still 7');
+
+  // Gap detection
+  const threeDaysAgo = (() => {
+    const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+    d.setDate(d.getDate() - 3);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
+  nudgeStore.users['tg_streak2'] = { name: 'S2', currentStreak: 5, lastStreakDate: threeDaysAgo };
+  nudgeStore.users['tg_streak2']._sub = { transactions: {} };
+  nudgeStore.users['tg_streak2']._sub.transactions['tx0'] = { date: today, type: 'Income', amount: 1000 };
+  const sr4 = await updateStreak('tg_streak2', mdb);
+  assert.strictEqual(sr4.currentStreak, 1, 'Gap: streak=1');
+  assert.strictEqual(sr4.broken, true, 'Gap: broken=true');
+
+  // Morning reminder streak — generateMorningReminder already imported above
+  const ms1 = generateMorningReminder('Budi', 500000, [], 12);
+  assert(ms1.includes('Streak'), 'Morning includes streak');
+  assert(ms1.includes('12'), 'Morning includes 12');
+  const ms2 = generateMorningReminder('Budi', 500000, [], 1);
+  assert(!ms2.includes('Streak'), 'No streak if <2');
+
+  // --- Fase 6: Challenge (basic) ---
+  nudgeStore.challenges = {};
+  invalidateUidCache();
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/tantangan', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Belum ada tantangan')), 'No challenges');
+
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/tantangan buat no_spend Kopi 30 Hari Tanpa Kopi', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Tantangan Dibuat')), 'Challenge created');
+  assert(replies.some(r => (r.text || '').includes('join_')), 'Join link shown');
+  // No Rp amounts in challenge messages
+  for (const r of replies) {
+    if ((r.text || '').includes('Tantangan')) assert(!r.text.match(/Rp\s*[\d.,]+/), 'No Rp in challenge msg');
+  }
+
+  // /start join_idngawur → greeting
+  invalidateUidCache();
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 8000 }, text: '/start join_idngawur', from: { first_name: 'NewUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Pocky') || (r.text || '').includes('diajak')), 'Invalid join_ greeting');
 
   console.log('All Telegram integration tests passed!');
 }

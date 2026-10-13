@@ -8,7 +8,9 @@ import {
   generateLinkCode,
   getLinkStatus,
   unlinkAccount,
-  dispatchDailyReminders
+  dispatchDailyReminders,
+  dispatchWeeklyRecap,
+  dispatchChallengeEvaluation
 } from './lib/telegramBot.js';
 import {
   verifyWebLoginCode,
@@ -18,6 +20,7 @@ import {
   syncBotCommands
 } from './lib/telegramBotCore.js';
 import { scanReceiptWithGemini } from './lib/geminiReceiptScanner.js';
+import { updateStreak } from './lib/streak.js';
 
 dotenv.config();
 initFirebaseAdmin();
@@ -318,6 +321,8 @@ app.post('/api/transactions', requireAuth, async (req, res) => {
   try {
     const db = getDb();
     const docRef = await db.collection('users').doc(uid).collection('transactions').add(payload);
+    // Update streak for web transactions too
+    updateStreak(uid, db).catch(e => console.error('web streak error:', e));
     res.status(201).json({ id: docRef.id });
   } catch (err) {
     console.error('POST /api/transactions error:', err);
@@ -445,6 +450,12 @@ if (!process.env.VERCEL) {
         const minute = parts.find((p) => p.type === 'minute')?.value;
         if (hour === '06' && minute === '00') {
           dispatchDailyReminders(getDb(), botToken, 'morning').catch((e) => console.error('Auto morning reminder error:', e));
+          dispatchChallengeEvaluation(getDb(), botToken).catch((e) => console.error('Auto challenge eval error:', e));
+          // Weekly recap on Monday 06:00 WIB
+          const dayOfWeek = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', weekday: 'short' }).format(now);
+          if (dayOfWeek === 'Mon') {
+            dispatchWeeklyRecap(getDb(), botToken).catch((e) => console.error('Auto weekly recap error:', e));
+          }
         } else if (hour === '23' && minute === '00') {
           dispatchDailyReminders(getDb(), botToken, 'evening').catch((e) => console.error('Auto evening reminder error:', e));
         }
