@@ -136,12 +136,13 @@ app.post('/api/telegram-webhook', async (req, res) => {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return res.status(500).json({ error: 'TELEGRAM_BOT_TOKEN not configured' });
 
-  // Acknowledge Telegram immediately to avoid timeout-induced webhook retry spam
-  res.status(200).json({ ok: true });
-
-  handleTelegramUpdate(req.body, getDb(), token).catch(err => {
+  try {
+    await handleTelegramUpdate(req.body, getDb(), token);
+    res.status(200).json({ ok: true });
+  } catch (err) {
     console.error('Telegram webhook processing error:', err);
-  });
+    res.status(200).json({ ok: false, error: 'Internal error' });
+  }
 });
 
 // Telegram Link endpoints

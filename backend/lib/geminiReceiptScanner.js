@@ -271,7 +271,7 @@ Hanya balas dengan JSON murni tanpa markdown fences.`;
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
 
       const res = await fetch(url, {
         method: 'POST',
@@ -317,7 +317,7 @@ Hanya balas dengan JSON murni tanpa markdown fences.`;
     } catch (err) {
       lastError = err;
       if (err.name === 'AbortError') {
-        lastError = new Error(`Model ${model} timeout (>15s)`);
+        lastError = new Error(`Model ${model} timeout (>8s)`);
       }
       if (attempt < maxRetries && attempt < modelsToTry.length - 1) {
         await new Promise(r => setTimeout(r, 500));
