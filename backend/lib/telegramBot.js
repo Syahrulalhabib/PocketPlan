@@ -358,7 +358,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
         type: txType,
         amount: Number(r.total_amount) || 0,
         description: r.merchant_name || (txType === 'Income' ? 'Transfer Masuk' : 'Struk Belanja'),
-        date: r.date || new Date().toISOString().slice(0, 10),
+        date: r.date || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date()),
         createdAt: new Date().toISOString(),
         paymentMethod: r.payment_method || (r.doc_type?.startsWith('transfer') ? 'TRANSFER' : 'CASH'),
         receiptItems: r.items || [],

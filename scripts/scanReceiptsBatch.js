@@ -107,14 +107,24 @@ async function main() {
         keyPool
       });
 
+      // Handle non-receipt images explicitly
+      if (scanResult.notReceipt) {
+        const reason = scanResult.reason || 'bukan struk';
+        console.log(`   ⚠️ Bukan struk: '${file}' — ${reason}`);
+        countSkipped++;
+        // Rate pacing on non-receipt too
+        if (i < files.length - 1) await sleep(4000);
+        continue;
+      }
+
       const receipt = scanResult.data;
 
-      // 1. Export JSON
-      saveJsonReceipt(jsonOutPath, receipt);
-
-      // 2. Export CSV
+      // 1. Export CSV first (idempotency: CSV before JSON marker)
       const rows = flattenReceiptForCsv(receipt, file);
       appendCsvRows(csvFile, rows);
+
+      // 2. Export JSON (acts as "done" marker for idempotency skip)
+      saveJsonReceipt(jsonOutPath, receipt);
 
       // 3. Sync to Firestore (optional)
       if (db) {
@@ -141,6 +151,8 @@ async function main() {
     } catch (err) {
       console.error(`   ❌ Gagal memproses '${file}':`, err.message);
       countFailed++;
+      // Rate pacing on failure too (L3: avoid hammering API after errors)
+      if (i < files.length - 1) await sleep(4000);
     }
   }
 

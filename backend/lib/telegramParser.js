@@ -356,7 +356,7 @@ export function parseTransactionCommand(text, defaultType = 'Expense') {
     })
     .join(' ');
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
 
   return {
     type,

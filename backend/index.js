@@ -22,8 +22,17 @@ import { scanReceiptWithGemini } from './lib/geminiReceiptScanner.js';
 dotenv.config();
 initFirebaseAdmin();
 
+// Production safety: refuse to start in production without Firestore configured
+if (process.env.NODE_ENV === 'production' && !getDb()) {
+  console.error('FATAL: NODE_ENV=production but Firestore is not configured. Refusing to start in demo mode.');
+  process.exit(1);
+}
+
 const app = express();
-app.use(cors());
+
+// CORS: restrict to FRONTEND_ORIGIN in production, fallback to * for local dev
+const corsOrigin = process.env.FRONTEND_ORIGIN || (process.env.NODE_ENV === 'production' ? undefined : '*');
+app.use(cors(corsOrigin ? { origin: corsOrigin } : undefined));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan('dev'));
@@ -93,11 +102,7 @@ const requireAuth = async (req, res, next) => {
     req.user = { uid: decoded.uid };
     next();
   } catch (err) {
-    // If token is direct uid during fallback/offline
-    if (token.startsWith('tg_')) {
-      req.user = { uid: token };
-      return next();
-    }
+    // tg_ fallback only allowed in demo/offline mode (useFirestore=false)
     res.status(401).json({ error: 'Invalid token' });
   }
 };
@@ -148,8 +153,12 @@ app.post('/api/scan-receipt', requireAuth, async (req, res) => {
 // Telegram Webhook
 app.post('/api/telegram-webhook', async (req, res) => {
   const webhookSecret = (process.env.TELEGRAM_WEBHOOK_SECRET || '').trim().replace(/^["']|["']$/g, '');
+  if (!webhookSecret) {
+    console.error('SECURITY: TELEGRAM_WEBHOOK_SECRET is not configured — rejecting webhook request');
+    return res.status(403).json({ error: 'Webhook secret not configured' });
+  }
   const incomingSecret = (req.headers['x-telegram-bot-api-secret-token'] || '').trim();
-  if (webhookSecret && incomingSecret !== webhookSecret) {
+  if (incomingSecret !== webhookSecret) {
     return res.status(403).json({ error: 'Forbidden' });
   }
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -190,11 +199,12 @@ app.post('/api/telegram/cancel-link-code', requireAuth, async (req, res) => {
 
 app.post('/api/cron/reminders', async (req, res) => {
   const secret = process.env.CRON_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET;
-  if (secret) {
-    const incoming = req.headers['authorization']?.replace('Bearer ', '') || req.query?.secret;
-    if (incoming !== secret) {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
+  if (!secret) {
+    return res.status(401).json({ error: 'CRON_SECRET or TELEGRAM_WEBHOOK_SECRET must be configured' });
+  }
+  const incoming = req.headers['authorization']?.replace('Bearer ', '') || req.query?.secret;
+  if (incoming !== secret) {
+    return res.status(403).json({ error: 'Forbidden' });
   }
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return res.status(500).json({ error: 'TELEGRAM_BOT_TOKEN not configured' });
@@ -293,7 +303,7 @@ app.post('/api/transactions', requireAuth, async (req, res) => {
   if (!amount || amount <= 0) return res.status(400).json({ error: 'amount harus angka > 0' });
   const category = String(b.category || 'Other');
   const description = String(b.description || '');
-  const date = String(b.date || new Date().toISOString().slice(0, 10));
+  const date = String(b.date || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date()));
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'date harus format YYYY-MM-DD' });
 
   const payload = { type, amount, category, description, date, createdAt: new Date().toISOString() };
@@ -321,12 +331,16 @@ app.delete('/api/transactions/:id', requireAuth, async (req, res) => {
   if (!useFirestore) {
     const list = getDemoTransactions(uid);
     const idx = list.findIndex((t) => t.id === id);
-    if (idx >= 0) list.splice(idx, 1);
+    if (idx < 0) return res.status(404).json({ error: 'Transaksi tidak ditemukan' });
+    list.splice(idx, 1);
     return res.json({ ok: true });
   }
   try {
     const db = getDb();
-    await db.collection('users').doc(uid).collection('transactions').doc(id).delete();
+    const docRef = db.collection('users').doc(uid).collection('transactions').doc(id);
+    const snap = await docRef.get();
+    if (!snap.exists) return res.status(404).json({ error: 'Transaksi tidak ditemukan' });
+    await docRef.delete();
     res.json({ ok: true });
   } catch (err) {
     console.error('DELETE /api/transactions error:', err);
@@ -383,17 +397,29 @@ app.delete('/api/goals/:id', requireAuth, async (req, res) => {
   if (!useFirestore) {
     const list = getDemoGoals(uid);
     const idx = list.findIndex((g) => g.id === id);
-    if (idx >= 0) list.splice(idx, 1);
+    if (idx < 0) return res.status(404).json({ error: 'Target tidak ditemukan' });
+    list.splice(idx, 1);
     return res.json({ ok: true });
   }
   try {
     const db = getDb();
-    await db.collection('users').doc(uid).collection('goals').doc(id).delete();
+    const docRef = db.collection('users').doc(uid).collection('goals').doc(id);
+    const snap = await docRef.get();
+    if (!snap.exists) return res.status(404).json({ error: 'Target tidak ditemukan' });
+    await docRef.delete();
     res.json({ ok: true });
   } catch (err) {
     console.error('DELETE /api/goals error:', err);
     res.status(500).json({ error: 'Gagal menghapus target.' });
   }
+});
+
+// Custom error handler: prevent stack trace leaks in production
+app.use((err, req, res, _next) => {
+  console.error('Unhandled error:', err);
+  res.status(err.status || 500).json({
+    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : (err.message || 'Internal server error')
+  });
 });
 
 // Export for Vercel serverless. When running locally (npm run dev/start), still listen on PORT.

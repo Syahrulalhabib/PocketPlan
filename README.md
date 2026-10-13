@@ -73,20 +73,40 @@ Managing personal finances often feels intimidating, tedious, or dry. Spreadshee
 
 ```text
 PocketPlan/
-├── api/                # Serverless deployment adapter
-├── backend/            # Express REST API & Firebase Admin
-│   ├── index.js        # Server entry point & route definitions
+├── api/                  # Serverless deployment adapter (Vercel)
+├── backend/              # Express REST API & Firebase Admin
+│   ├── index.js          # Server entry point & route definitions
+│   ├── lib/
+│   │   ├── firebaseAdmin.js        # Firebase Admin SDK init
+│   │   ├── geminiReceiptScanner.js  # Gemini API receipt OCR scanner
+│   │   ├── telegramBot.js          # Telegram bot update handler & reminders
+│   │   ├── telegramBotCore.js      # Telegram API helpers & link-code logic
+│   │   ├── telegramParser.js       # Natural-language transaction parser
+│   │   ├── telegram.test.js        # Telegram bot unit tests
+│   │   ├── isolation.test.js       # REST API & data isolation tests
+│   │   └── geminiReceiptScanner.test.js  # Gemini scanner unit tests
+│   ├── scripts/
+│   │   └── pollTelegram.js         # Long-polling mode for local dev
 │   └── package.json
-├── frontend/           # Vite React client
-│   ├── public/         # Static assets, SVG logos & avatars
+├── scripts/
+│   └── scanReceiptsBatch.js  # Batch receipt scanner (struk_input/ → output_json/)
+├── frontend/             # Vite React client
+│   ├── public/           # Static assets, SVG logos & avatars
 │   ├── src/
-│   │   ├── components/ # Mascots, Navigation, Charts, Layout
-│   │   ├── pages/      # Dashboard, Transactions, Goals, Profile, About
-│   │   ├── providers/  # Auth & Data context providers
-│   │   └── styles/     # Modular CSS (base, responsive, mascots, etc.)
+│   │   ├── components/   # Mascots, Navigation, Charts, Layout, ReceiptScannerModal
+│   │   ├── pages/        # Dashboard, Transactions, Goals, Profile, About
+│   │   ├── providers/    # Auth & Data context providers
+│   │   ├── services/     # Firebase & Telegram API clients
+│   │   ├── utils/        # Formatters & chart helpers
+│   │   └── styles/       # Modular CSS (base, responsive, mascots, etc.)
+│   ├── test/
+│   │   └── chartLogic.test.js  # Chart utility unit tests
 │   └── package.json
-├── firestore.rules     # Cloud Firestore security rules
-└── vercel.json         # Vercel deployment routing configuration
+├── struk_input/          # (gitignored) Input folder for batch receipt scanner
+├── output_json/          # (gitignored) JSON output from batch scanner
+├── firestore.rules       # Cloud Firestore security rules
+├── vercel.json           # Vercel deployment routing configuration
+└── LICENSE               # MIT License
 ```
 
 ---
@@ -154,17 +174,20 @@ Base URL: `http://localhost:4000`
 | Method | Endpoint | Description | Auth Required |
 |---|---|---|---|
 | `GET` | `/health` | Health check endpoint | No |
+| `POST` | `/api/scan-receipt` | Scan receipt/transfer image via Gemini OCR | Yes (Bearer Token) |
 | `POST` | `/api/telegram-webhook` | Incoming Telegram webhook updates | No (Telegram Secret) |
 | `POST` | `/api/telegram/link-code` | Generate 6-char link code for account pairing | Yes (Bearer Token) |
+| `POST` | `/api/telegram/cancel-link-code` | Cancel active link code | Yes (Bearer Token) |
 | `GET` | `/api/telegram/status` | Check Telegram link status | Yes (Bearer Token) |
 | `POST` | `/api/telegram/unlink` | Disconnect Telegram from user account | Yes (Bearer Token) |
 | `POST` | `/api/telegram/web-login` | Exchange 6-char bot code for web session | No |
+| `POST` | `/api/cron/reminders` | Trigger daily morning/evening reminders | Secret (`CRON_SECRET`) |
 | `GET` | `/api/transactions` | Fetch user transactions | Optional (Token) |
 | `POST` | `/api/transactions` | Create new transaction | Optional (Token) |
-| `DELETE` | `/api/transactions/:id` | Remove transaction | Optional (Token) |
+| `DELETE` | `/api/transactions/:id` | Remove transaction (404 if not found) | Optional (Token) |
 | `GET` | `/api/goals` | Fetch user savings goals | Optional (Token) |
 | `POST` | `/api/goals` | Create new savings goal | Optional (Token) |
-| `DELETE` | `/api/goals/:id` | Remove savings goal | Optional (Token) |
+| `DELETE` | `/api/goals/:id` | Remove savings goal (404 if not found) | Optional (Token) |
 
 ---
 

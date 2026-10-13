@@ -139,7 +139,7 @@ export function normalizeReceipt(raw = {}) {
     date = match ? match[0] : null;
   }
   if (!date) {
-    date = new Date().toISOString().slice(0, 10);
+    date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
   }
 
   const items = Array.isArray(raw.items) ? raw.items.map(it => {

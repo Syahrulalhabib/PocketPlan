@@ -77,10 +77,9 @@ async function testRestApiIsolation() {
     const r5 = await req(server, 'GET', '/api/transactions');
     assert.strictEqual(r5.body.length, initLen);
 
-    // DELETE non-existent ID = safe no-op
+    // DELETE non-existent ID = 404
     const r6 = await req(server, 'DELETE', '/api/transactions/bogus-xyz');
-    assert.strictEqual(r6.status, 200);
-    assert.deepStrictEqual(r6.body, { ok: true });
+    assert.strictEqual(r6.status, 404);
 
     // Goals CRUD
     const g1 = await req(server, 'GET', '/api/goals');
@@ -93,9 +92,9 @@ async function testRestApiIsolation() {
     const addedG = g3.body.find(g => g.name === 'Camera');
     assert.ok(addedG);
     assert.strictEqual((await req(server, 'DELETE', `/api/goals/${addedG.id}`)).status, 200);
-    assert.strictEqual((await req(server, 'DELETE', '/api/goals/bogus-xyz')).status, 200);
+    assert.strictEqual((await req(server, 'DELETE', '/api/goals/bogus-xyz')).status, 404);
 
-    console.log('    ✔ REST CRUD + safe no-op DELETE passed');
+    console.log('    ✔ REST CRUD + DELETE 404 for non-existent passed');
 
     // Per-uid Map isolation (unit level, same pattern as getDemoTransactions)
     const mapA = new Map(), mapB = new Map();
