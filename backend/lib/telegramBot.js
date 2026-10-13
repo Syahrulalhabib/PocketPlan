@@ -18,7 +18,7 @@ import {
 import { scanReceiptWithGemini } from './geminiReceiptScanner.js';
 import { updateStreak } from './streak.js';
 
-export { generateLinkCode, getLinkStatus, unlinkAccount };
+export { generateLinkCode, getLinkStatus, unlinkAccount, generateAchievementCard, generateAchievementSvg, sendTelegramPhoto };
 
 const KEYBOARD = {
   keyboard: [
@@ -82,38 +82,66 @@ async function handleStreakAfterTransaction(chatId, uid, db, botToken) {
 }
 
 // Fase 4: Achievement card system
+function getAchievementTheme(type, percent, streakDays, barW) {
+  const isStreak = type === 'streak';
+  const pct = Math.min(100, Math.max(0, percent || 0));
+  if (isStreak) {
+    return {
+      bg0: '#080C14', bg1: '#0F172A', glow: '#FF5722', glow2: '#FF9800',
+      b1: '#FF6B35', b2: '#FF0055', b3: '#6366F1', n1: '#FFFFFF', n2: '#FFB74D',
+      badgeBg: '#FF5722', badgeTxt: '#FF9E80', badgeLbl: 'STREAK MILESTONE',
+      num: streakDays || 0, subLbl: 'HARI BERTURUT-TURUT',
+      hero: '<g transform="translate(485, 280) scale(2.3)"><path d="M24 2 C25 8 31 13 31 21 C31 28 25 34 18 34 C10 34 5 28 5 20 C5 14 9 9 13 5 C13 11 17 14 18 19 C18 21 16 23 14 23 C12 23 11 21 11 19 C11 15 16 9 24 2 Z" fill="url(#flame)"/><path d="M20 18 C20 22 17 26 14 26 C12 26 10 24 10 21 C10 18 12 15 15 13 C15 16 17 17 18 18 Z" fill="#FFF9C4" opacity="0.8"/></g>',
+      tracker: '<g transform="translate(180, 840)"><rect width="720" height="110" rx="24" fill="#0A0F1D" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/><text x="360" y="38" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif" font-size="16" font-weight="800" fill="#64748B" letter-spacing="3">REKOR CATATAN AKTIF</text><g transform="translate(55, 54)">' + [0,1,2,3,4,5,6].map(i => `<circle cx="${35 + i*90}" cy="22" r="18" fill="#FF5722"/><text x="${35 + i*90}" y="28" text-anchor="middle" font-size="16" fill="#FFF" font-weight="bold">&#x2713;</text>`).join('') + '</g></g>'
+    };
+  }
+  return {
+    bg0: '#051512', bg1: '#0A221C', glow: '#10B981', glow2: '#06B6D4',
+    b1: '#10B981', b2: '#06B6D4', b3: '#3B82F6', n1: '#FFFFFF', n2: '#A7F3D0',
+    badgeBg: '#10B981', badgeTxt: '#6EE7B7', badgeLbl: 'TARGET MILESTONE',
+    num: `${pct}%`, subLbl: 'TARGET TERCAPAI',
+    hero: '<circle cx="540" cy="340" r="65" fill="none" stroke="#10B981" stroke-width="6"/><circle cx="540" cy="340" r="40" fill="none" stroke="#06B6D4" stroke-width="6"/><circle cx="540" cy="340" r="18" fill="#FFFFFF"/>',
+    tracker: `<g transform="translate(180, 870)"><rect width="720" height="36" rx="18" fill="#061A14" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/><rect width="${barW}" height="36" rx="18" fill="url(#bGrad)"/><text x="360" y="70" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif" font-size="20" font-weight="800" fill="#6EE7B7" letter-spacing="2">${pct}% OF GOAL</text></g>`
+  };
+}
+
+
 function generateAchievementSvg({ type, title, subtitle, percent, streakDays }) {
   const isStreak = type === 'streak';
-  const bg1 = isStreak ? '#FF6B35' : '#4ECDC4';
-  const bg2 = isStreak ? '#FFD166' : '#45B7D1';
-  const icon = isStreak ? '🔥' : '🎯';
-  const pct = percent || 0;
-  const barWidth = Math.round((pct / 100) * 800);
-  // ponytail: SVG text-escaped. No nominal, no full name, no username per spec.
-  const safeTitle = String(title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  const safeSub = String(subtitle || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const pct = Math.min(100, Math.max(0, percent || 0));
+  const barW = Math.round((pct / 100) * 720);
+  const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const safeTitle = esc(title || (isStreak ? `Streak ${streakDays || 0} Hari!` : 'Target Tabungan'));
+  const safeSub = esc(subtitle || (isStreak ? 'Disiplin finansial makin konsisten' : `Progres ${pct}% tercapai`));
   const dateStr = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
+  const t = getAchievementTheme(type, percent, streakDays, barW);
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="${bg1}"/>
-      <stop offset="100%" stop-color="${bg2}"/>
-    </linearGradient>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.8" y2="1"><stop offset="0%" stop-color="${t.bg0}"/><stop offset="50%" stop-color="${t.bg1}"/><stop offset="100%" stop-color="#020408"/></linearGradient>
+    <radialGradient id="glow" cx="50%" cy="30%" r="42%"><stop offset="0%" stop-color="${t.glow}" stop-opacity="0.45"/><stop offset="60%" stop-color="${t.glow2}" stop-opacity="0.12"/><stop offset="100%" stop-color="${t.bg1}" stop-opacity="0"/></radialGradient>
+    <linearGradient id="border" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${t.b1}"/><stop offset="50%" stop-color="${t.b2}"/><stop offset="100%" stop-color="${t.b3}"/></linearGradient>
+    <linearGradient id="num" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${t.n1}"/><stop offset="100%" stop-color="${t.n2}"/></linearGradient>
+    <linearGradient id="flame" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#D84315"/><stop offset="50%" stop-color="#FF5722"/><stop offset="100%" stop-color="#FFD54F"/></linearGradient>
+    <linearGradient id="bGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#10B981"/><stop offset="100%" stop-color="#06B6D4"/></linearGradient>
   </defs>
-  <rect width="1080" height="1350" rx="40" fill="url(#bg)"/>
-  <rect x="60" y="60" width="960" height="1230" rx="30" fill="white" opacity="0.95"/>
-  <text x="540" y="200" text-anchor="middle" font-family="Arial,sans-serif" font-size="72" font-weight="bold" fill="${bg1}">ACHIEVEMENT</text>
-  <text x="540" y="420" text-anchor="middle" font-size="160">${icon}</text>
-  <text x="540" y="580" text-anchor="middle" font-family="Arial,sans-serif" font-size="48" font-weight="bold" fill="#333">${safeTitle}</text>
-  <text x="540" y="650" text-anchor="middle" font-family="Arial,sans-serif" font-size="32" fill="#666">${safeSub}</text>
-  ${isStreak ? `<text x="540" y="780" text-anchor="middle" font-family="Arial,sans-serif" font-size="120" font-weight="bold" fill="${bg1}">${streakDays || 0}</text>
-  <text x="540" y="840" text-anchor="middle" font-family="Arial,sans-serif" font-size="36" fill="#999">hari berturut-turut</text>` :
-  `<rect x="140" y="740" width="800" height="40" rx="20" fill="#eee"/>
-  <rect x="140" y="740" width="${barWidth}" height="40" rx="20" fill="${bg1}"/>
-  <text x="540" y="830" text-anchor="middle" font-family="Arial,sans-serif" font-size="48" font-weight="bold" fill="${bg1}">${pct}%</text>`}
-  <text x="540" y="1050" text-anchor="middle" font-family="Arial,sans-serif" font-size="36" fill="#999">Pocky &amp; PocketPlan</text>
-  <text x="540" y="1110" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" fill="#bbb">${dateStr}</text>
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+  <circle cx="540" cy="350" r="450" fill="url(#glow)"/>
+  <rect x="50" y="50" width="980" height="1250" rx="44" fill="${t.bg1}" fill-opacity="0.85" stroke="url(#border)" stroke-width="2.5"/>
+  <rect x="360" y="110" width="360" height="54" rx="27" fill="${t.badgeBg}" fill-opacity="0.15" stroke="${t.badgeBg}" stroke-opacity="0.4" stroke-width="1.5"/>
+  <text x="540" y="145" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="20" font-weight="800" fill="${t.badgeTxt}" letter-spacing="3">${t.badgeLbl}</text>
+  <circle cx="540" cy="340" r="120" fill="#0E1626" stroke="url(#border)" stroke-width="4"/>
+  <circle cx="540" cy="340" r="95" fill="url(#glow)"/>
+  ${t.hero}
+  <text x="540" y="575" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="140" font-weight="900" fill="url(#num)">${t.num}</text>
+  <text x="540" y="635" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="26" font-weight="800" fill="#94A3B8" letter-spacing="6">${t.subLbl}</text>
+  <text x="540" y="730" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="44" font-weight="800" fill="#FFFFFF">${safeTitle}</text>
+  <text x="540" y="780" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="24" font-weight="500" fill="#94A3B8">${safeSub}</text>
+  ${t.tracker}
+  <line x1="120" y1="1025" x2="960" y2="1025" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
+  <text x="540" y="1085" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="28" font-weight="800" fill="#FFFFFF" letter-spacing="2">POCKY • POCKETPLAN</text>
+  <text x="540" y="1125" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="20" font-weight="500" fill="#64748B">${dateStr} • pocketplan.id</text>
+  <text x="540" y="1180" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" font-size="16" font-weight="500" fill="#475569">Nominal &amp; Saldo Pribadi Tetap Terlindungi</text>
 </svg>`;
 }
 
@@ -1079,6 +1107,39 @@ export async function handleTelegramUpdate(update, db, botToken) {
       { reply_markup: KEYBOARD }
     );
   }
+  // Developer test command — preview streak / goal achievement card
+  if (cmdText === '/teststreak' || cmdText.startsWith('/teststreak ') || cmdText === '/testkartu' || cmdText.startsWith('/testkartu ')) {
+    const rawArgs = text.replace(/^\/(teststreak|testkartu)(@\S+)?\s*/i, '').trim();
+    const isGoal = rawArgs.toLowerCase().startsWith('goal');
+    let days = 7;
+    let targetChatId = chatId;
+    const parts = rawArgs.split(/\s+/).filter(Boolean);
+    for (const p of parts) {
+      if (/^\d{7,12}$/.test(p)) targetChatId = p;
+      else if (/^\d+$/.test(p)) days = parseInt(p, 10);
+    }
+    const opts = isGoal
+      ? { type: 'goal', title: 'Target Tabungan', subtitle: 'Target Rp 10.000.000', percent: 75 }
+      : { type: 'streak', title: `Streak ${days} Hari! 🔥`, subtitle: `${days} hari berturut-turut catat keuangan`, streakDays: days };
+
+    try {
+      const png = await generateAchievementCard(opts);
+      await sendTelegramPhoto(botToken, targetChatId, png,
+        `🎨 *Kartu Achievement (${opts.type.toUpperCase()})*\n\nSimpan atau bagikan kartu ini ke status IG/WA! 🪙`,
+        { parse_mode: 'Markdown' }
+      );
+      if (String(targetChatId) !== String(chatId)) {
+        await sendTelegramMessage(botToken, chatId, `✅ Kartu achievement berhasil dikirim ke Chat ID: \`${targetChatId}\``);
+      }
+      return sendTelegramMessage(botToken, targetChatId,
+        `🔥 *Tes Notifikasi Streak Milestone*\n\nSelamat! Kamu telah mencapai streak *${days} hari* berturut-turut! 🎉\n\n_Pocky Developer Preview_`
+      );
+    } catch (err) {
+      return sendTelegramMessage(botToken, chatId, `⚠️ Gagal generate kartu: ${err?.message}`);
+    }
+  }
+
+
 
   if (cmdText === '/batal' || cmdText === '/hapus') {
     if (db) {

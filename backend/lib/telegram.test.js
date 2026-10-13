@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { parseAmount, parseTransactionCommand, formatRupiah } from './telegramParser.js';
 import { generateLinkCode, getLinkStatus, unlinkAccount, linkChatWithCode, cancelLinkCode, DEFAULT_BOT_COMMANDS, invalidateUidCache } from './telegramBotCore.js';
-import { handleTelegramUpdate } from './telegramBot.js';
+import { handleTelegramUpdate, generateAchievementSvg } from './telegramBot.js';
 
 console.log('Running Telegram integration tests...');
 
@@ -657,6 +657,22 @@ async function testBot() {
   replies = [];
   await handleTelegramUpdate({ message: { chat: { id: 8000 }, text: '/start join_idngawur', from: { first_name: 'NewUser' } } }, mdb, 'token');
   assert(replies.some(r => (r.text || '').includes('Pocky') || (r.text || '').includes('diajak')), 'Invalid join_ greeting');
+  // --- Fase 7: Achievement card & dev teststreak ---
+  const streakCardSvg = generateAchievementSvg({ type: 'streak', streakDays: 7, title: 'Streak 7 Hari!' });
+  assert(streakCardSvg.includes('STREAK MILESTONE'), 'Card SVG has streak badge');
+  assert(streakCardSvg.includes('HARI BERTURUT-TURUT'), 'Card SVG has streak label');
+  assert(streakCardSvg.includes('POCKY • POCKETPLAN'), 'Card SVG has footer branding');
+
+  const goalCardSvg = generateAchievementSvg({ type: 'goal', percent: 80, title: 'Beli Rumah' });
+  assert(goalCardSvg.includes('TARGET MILESTONE'), 'Card SVG has goal badge');
+  assert(goalCardSvg.includes('80% OF GOAL'), 'Card SVG has goal progress');
+
+  // /teststreak command handling
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 8392548889 }, text: '/teststreak 7', from: { first_name: 'Dev' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Streak Milestone')), '/teststreak sends milestone notification');
+
+
 
   console.log('All Telegram integration tests passed!');
 }
