@@ -1,5 +1,12 @@
 const demoCodes = new Map();
 const demoLinks = new Map();
+const _uidCache = new Map();
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+export function invalidateUidCache(chatId) {
+  if (chatId) _uidCache.delete(String(chatId));
+  else _uidCache.clear();
+}
 
 export async function sendTelegramMessage(botToken, chatId, text, options = {}) {
   if (!botToken || !chatId) return null;
@@ -130,12 +137,16 @@ export async function unlinkAccount(uid, db) {
     const snap = await userRef.get();
     const data = snap.data();
     if (data?.telegramChatId) {
+      invalidateUidCache(data.telegramChatId);
       await db.collection('telegram_links').doc(String(data.telegramChatId)).delete();
       await userRef.update({ telegramChatId: null, telegramUsername: null });
     }
   } else {
     for (const [chatId, link] of demoLinks.entries()) {
-      if (link.uid === uid) demoLinks.delete(chatId);
+      if (link.uid === uid) {
+        invalidateUidCache(chatId);
+        demoLinks.delete(chatId);
+      }
     }
   }
   return { success: true };
@@ -143,12 +154,23 @@ export async function unlinkAccount(uid, db) {
 
 export async function findLinkedUid(chatId, db) {
   const strId = String(chatId);
+  const now = Date.now();
+  const cached = _uidCache.get(strId);
+  if (cached && cached.exp > now) {
+    return cached.uid;
+  }
+
+  let resolvedUid = null;
   if (db) {
     const snap = await db.collection('telegram_links').doc(strId).get();
-    return snap.exists ? snap.data().uid : null;
+    resolvedUid = snap.exists ? snap.data().uid : null;
+  } else {
+    const found = demoLinks.get(strId);
+    resolvedUid = found ? found.uid : null;
   }
-  const found = demoLinks.get(strId);
-  return found ? found.uid : null;
+
+  _uidCache.set(strId, { uid: resolvedUid, exp: now + CACHE_TTL_MS });
+  return resolvedUid;
 }
 
 export async function linkChatWithCode(chatId, code, userFrom, db) {
@@ -196,6 +218,7 @@ export async function linkChatWithCode(chatId, code, userFrom, db) {
       )
     ]);
 
+    _uidCache.set(strId, { uid, exp: Date.now() + CACHE_TTL_MS });
     migrateTelegramDataToUser(strId, uid, db).catch((err) => console.error('Migration error:', err));
     return uid;
   }
@@ -209,6 +232,7 @@ export async function linkChatWithCode(chatId, code, userFrom, db) {
   const uid = entry.uid;
   demoCodes.delete(cleanCode);
   demoLinks.set(strId, { uid, linkedAt: Date.now(), username: userFrom.username || null });
+  _uidCache.set(strId, { uid, exp: Date.now() + CACHE_TTL_MS });
   return uid;
 }
 export async function answerTelegramCallback(botToken, callbackQueryId, text = '') {
@@ -267,6 +291,7 @@ export async function ensureTelegramUser(chatId, userFrom, db) {
     demoLinks.set(strId, { uid: newUid, username: userFrom?.username || null });
   }
 
+  _uidCache.set(strId, { uid: newUid, exp: Date.now() + CACHE_TTL_MS });
   return newUid;
 }
 
@@ -349,4 +374,50 @@ export async function verifyWebLoginCode(code, db) {
     messageId: entry.messageId || null
   };
 }
+
+export async function cancelWebLoginCode(code, db) {
+  const cleanCode = String(code || '').trim().toUpperCase();
+  if (!cleanCode) return { success: false };
+  if (db) {
+    const doc = await db.collection('telegram_web_codes').doc(cleanCode).get();
+    if (doc.exists) {
+      const data = doc.data();
+      await doc.ref.delete();
+      return { success: true, messageId: data?.messageId || null, chatId: data?.chatId || null };
+    }
+    return { success: false };
+  }
+  const entry = demoWebCodes.get(cleanCode);
+  if (entry) {
+    demoWebCodes.delete(cleanCode);
+    return { success: true, messageId: entry.messageId || null, chatId: entry.chatId || null };
+  }
+  return { success: false };
+}
+
+export async function cancelLinkCode(uid, db) {
+  if (!uid) return { success: false };
+  if (db) {
+    const userRef = db.collection('users').doc(uid);
+    const snap = await userRef.get();
+    if (snap.exists) {
+      const data = snap.data();
+      const code = data?.telegramLinkCode;
+      await userRef.update({
+        telegramLinkCode: null,
+        telegramCodeExpiresAt: null
+      });
+      if (code) {
+        await db.collection('telegram_codes').doc(code).delete().catch(() => {});
+      }
+      return { success: true };
+    }
+    return { success: false };
+  }
+  for (const [code, val] of demoCodes.entries()) {
+    if (val.uid === uid) demoCodes.delete(code);
+  }
+  return { success: true };
+}
+
 

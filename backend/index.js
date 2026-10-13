@@ -7,9 +7,15 @@ import {
   handleTelegramUpdate,
   generateLinkCode,
   getLinkStatus,
-  unlinkAccount
+  unlinkAccount,
+  dispatchDailyReminders
 } from './lib/telegramBot.js';
-import { verifyWebLoginCode, sendTelegramMessage, deleteTelegramMessage } from './lib/telegramBotCore.js';
+import {
+  verifyWebLoginCode,
+  sendTelegramMessage,
+  deleteTelegramMessage,
+  cancelLinkCode
+} from './lib/telegramBotCore.js';
 import { scanReceiptWithGemini } from './lib/geminiReceiptScanner.js';
 
 dotenv.config();
@@ -147,6 +153,38 @@ app.post('/api/telegram/link-code', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('link-code error:', err);
     res.status(500).json({ error: 'Gagal membuat kode link.' });
+  }
+});
+
+app.post('/api/telegram/cancel-link-code', requireAuth, async (req, res) => {
+  const uid = req.user?.uid || 'demo-user';
+  try {
+    const result = await cancelLinkCode(uid, getDb());
+    res.json(result);
+  } catch (err) {
+    console.error('cancel-link-code error:', err);
+    res.status(500).json({ error: 'Gagal membatalkan kode link.' });
+  }
+});
+
+app.post('/api/cron/reminders', async (req, res) => {
+  const secret = process.env.CRON_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET;
+  if (secret) {
+    const incoming = req.headers['authorization']?.replace('Bearer ', '') || req.query?.secret;
+    if (incoming !== secret) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+  }
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) return res.status(500).json({ error: 'TELEGRAM_BOT_TOKEN not configured' });
+  const type = req.query?.type === 'evening' ? 'evening' : 'morning';
+  const force = req.query?.force === 'true' || req.query?.force === '1';
+  try {
+    const result = await dispatchDailyReminders(getDb(), token, type, force);
+    res.json({ ok: true, type, ...result });
+  } catch (err) {
+    console.error('Cron reminders error:', err);
+    res.status(500).json({ error: 'Internal cron error' });
   }
 });
 
@@ -342,6 +380,31 @@ if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`Pocketplan API running on http://localhost:${PORT}`);
   });
+
+  // Background reminder scheduler (checks once every 60s for 08:00 WIB and 20:00 WIB)
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (botToken) {
+    setInterval(() => {
+      try {
+        const now = new Date();
+        const parts = new Intl.DateTimeFormat('id-ID', {
+          timeZone: 'Asia/Jakarta',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        }).formatToParts(now);
+        const hour = parts.find((p) => p.type === 'hour')?.value;
+        const minute = parts.find((p) => p.type === 'minute')?.value;
+        if (hour === '08' && minute === '00') {
+          dispatchDailyReminders(getDb(), botToken, 'morning').catch((e) => console.error('Auto morning reminder error:', e));
+        } else if (hour === '20' && minute === '00') {
+          dispatchDailyReminders(getDb(), botToken, 'evening').catch((e) => console.error('Auto evening reminder error:', e));
+        }
+      } catch (err) {
+        console.error('Reminder interval error:', err);
+      }
+    }, 60 * 1000).unref();
+  }
 }
 
 export default app;

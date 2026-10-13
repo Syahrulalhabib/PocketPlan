@@ -12,7 +12,8 @@ import {
   generateWebLoginCode,
   migrateTelegramDataToUser,
   attachMessageToWebCode,
-  deleteTelegramMessage
+  deleteTelegramMessage,
+  cancelWebLoginCode
 } from './telegramBotCore.js';
 import { scanReceiptWithGemini } from './geminiReceiptScanner.js';
 
@@ -44,13 +45,16 @@ function escapeMarkdown(text) {
   return String(text).replace(/([*_`\[\]])/g, '\\$1');
 }
 
-// TODO(perf): getBalance reads all transactions; add server-side balance caching if collection grows large
+// Optimized getBalance using parallel Firestore reads
 async function getBalance(uid, db) {
   let inc = 0, exp = 0, base = 0;
   if (db && uid) {
-    const uDoc = await db.collection('users').doc(uid).get();
+    const userRef = db.collection('users').doc(uid);
+    const [uDoc, snap] = await Promise.all([
+      userRef.get(),
+      userRef.collection('transactions').get()
+    ]);
     base = Number(uDoc.data()?.baseBalance || 0);
-    const snap = await db.collection('users').doc(uid).collection('transactions').get();
     snap.forEach((d) => {
       const t = d.data();
       const a = Number(t.amount) || 0;
@@ -218,6 +222,52 @@ export async function handleTelegramUpdate(update, db, botToken) {
       }
       const userUid = uid || (await ensureTelegramUser(chatId, cb.from, db));
       return sendWebAccess(chatId, userUid, db, botToken);
+    }
+    if (data.startsWith('cancel_web_code:')) {
+      const code = data.replace('cancel_web_code:', '');
+      await answerTelegramCallback(botToken, cb.id, '❌ Kode login dibatalkan');
+      if (code) {
+        await cancelWebLoginCode(code, db);
+      }
+      const messageId = cb.message?.message_id;
+      if (messageId) {
+        await editTelegramMessage(
+          botToken,
+          chatId,
+          messageId,
+          '🚫 *Kode login website telah dibatalkan.*\n\nKetik `/web` kapan saja jika ingin masuk ke website lagi.'
+        );
+      }
+      return;
+    }
+    if (data === 'toggle_reminder') {
+      const userUid = uid || (await ensureTelegramUser(chatId, cb.from, db));
+      let isEnabled = true;
+      if (db && userUid) {
+        const uRef = db.collection('users').doc(userUid);
+        const uDoc = await uRef.get();
+        const current = uDoc.data()?.dailyReminderEnabled !== false;
+        isEnabled = !current;
+        await uRef.set({ dailyReminderEnabled: isEnabled }, { merge: true });
+      }
+      await answerTelegramCallback(botToken, cb.id, isEnabled ? '🔔 Pengingat diaktifkan!' : '🔕 Pengingat dinonaktifkan!');
+      const messageId = cb.message?.message_id;
+      if (messageId) {
+        const reminderText = `🔔 *Pengaturan Pengingat Harian Pocky*\n\n` +
+          `Status: *${isEnabled ? 'Aktif' : 'Nonaktif'}* ${isEnabled ? '✅' : '⏸️'}\n\n` +
+          `⏰ *Jadwal Pengingat:*\n` +
+          `• 🌅 *08:00 WIB* — Info sisa saldo & motivasi hemat\n` +
+          `• 🌙 *20:00 WIB* — Rekap pengeluaran hari ini & ajakan catat\n\n` +
+          `${isEnabled ? 'Pocky akan mengingatkanmu setiap hari agar catatan keuangan tetap rapi! ✨' : 'Pengingat otomatis dijeda. Kamu bisa mengaktifkannya kembali kapan saja.'}`;
+        await editTelegramMessage(botToken, chatId, messageId, reminderText, {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: isEnabled ? '🔕 Nonaktifkan Pengingat' : '🔔 Aktifkan Pengingat', callback_data: 'toggle_reminder' }]
+            ]
+          }
+        });
+      }
+      return;
     }
     await answerTelegramCallback(botToken, cb.id);
     return;
@@ -432,6 +482,28 @@ export async function handleTelegramUpdate(update, db, botToken) {
 
   if (text === '/web' || text.startsWith('/web@') || text === '🌐 Buka di Web' || text === '🌐 Akses Web') {
     return sendWebAccess(chatId, uid, db, botToken);
+  }
+
+  if (text === '/pengingat' || text.startsWith('/pengingat@') || text === '🔔 Pengingat') {
+    let isEnabled = true;
+    if (db && uid) {
+      const uRef = db.collection('users').doc(uid);
+      const uDoc = await uRef.get();
+      isEnabled = uDoc.data()?.dailyReminderEnabled !== false;
+    }
+    const msgText = `🔔 *Pengaturan Pengingat Harian Pocky*\n\n` +
+      `Status saat ini: *${isEnabled ? 'Aktif' : 'Nonaktif'}* ${isEnabled ? '✅' : '⏸️'}\n\n` +
+      `⏰ *Jadwal Pengingat Harian:*\n` +
+      `• 🌅 *08:00 WIB* — Info sisa saldo & motivasi hemat harian\n` +
+      `• 🌙 *20:00 WIB* — Rekap pengeluaran hari ini & ajakan catat\n\n` +
+      `${isEnabled ? 'Pocky otomatis membantumu menjaga catatan keuangan tetap rapi!' : 'Pengingat otomatis dijeda. Kamu bisa mengaktifkannya kembali kapan saja.'}`;
+    return sendTelegramMessage(botToken, chatId, msgText, {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: isEnabled ? '🔕 Nonaktifkan Pengingat' : '🔔 Aktifkan Pengingat', callback_data: 'toggle_reminder' }]
+        ]
+      }
+    });
   }
 
   if (text.startsWith('/beligoal')) {
@@ -747,7 +819,10 @@ async function sendWebAccess(chatId, uid, db, botToken) {
   const sent = await sendTelegramMessage(botToken, chatId, text, {
     reply_markup: {
       inline_keyboard: [
-        [{ text: '🔄 Buat Kode Baru', callback_data: 'refresh_web_code' }]
+        [
+          { text: '🔄 Buat Kode Baru', callback_data: 'refresh_web_code' },
+          { text: '❌ Batalkan Kode', callback_data: `cancel_web_code:${code}` }
+        ]
       ]
     }
   });
@@ -755,4 +830,126 @@ async function sendWebAccess(chatId, uid, db, botToken) {
     await attachMessageToWebCode(code, sent.result.message_id, chatId, db);
   }
   return sent;
+}
+
+export function generateMorningReminder(userName, balance = 0, topGoal = null) {
+  const name = escapeMarkdown(userName || 'Teman');
+  let goalText = '';
+  if (topGoal && topGoal.name) {
+    const cur = Number(topGoal.amount) || 0;
+    const tgt = Number(topGoal.target) || 0;
+    goalText = `\n🎯 *Target Tabungan:* ${escapeMarkdown(topGoal.name)} (${formatRupiah(cur)} / ${formatRupiah(tgt)})\n`;
+  }
+  return (
+    `🌅 *Selamat Pagi, ${name}!* ☀️\n\n` +
+    `Pocky siap menemani harimu. Cek kondisi dompet sebelum beraktivitas ya:\n\n` +
+    `💳 *Sisa Saldo:* \`${formatRupiah(balance)}\`\n` +
+    goalText +
+    `\n💡 *Tips Pocky:* Jangan lupa catat setiap pengeluaran hari ini ya! Cukup ketik langsung seperti \`kopi 20k\` atau kirim foto struk belanjaanmu 🧾`
+  );
+}
+
+export function generateEveningReminder(userName, summary = {}) {
+  const name = escapeMarkdown(userName || 'Teman');
+  const exp = Number(summary?.totalExpense) || 0;
+  const inc = Number(summary?.totalIncome) || 0;
+  const bal = Number(summary?.currentBalance) || 0;
+  const count = Number(summary?.expenseCount) || 0;
+
+  return (
+    `🌙 *Waktunya Rekap Malam bareng Pocky!* ✨\n\n` +
+    `Hai ${name}, yuk intip aktivitas keuanganmu hari ini:\n\n` +
+    `🔴 *Total Pengeluaran:* \`${formatRupiah(exp)}\` (${count} transaksi)\n` +
+    (inc > 0 ? `🟢 *Pemasukan Hari Ini:* \`${formatRupiah(inc)}\`\n` : '') +
+    `💳 *Sisa Saldo:* \`${formatRupiah(bal)}\`\n\n` +
+    (count === 0
+      ? `🤔 *Belum ada catatan hari ini?*\nKalau tadi sempat jajan atau belanja, yuk catat sekarang sebelum lupa! Ketik langsung: \`makan siang 35k\` 📝`
+      : `👍 *Catatan tercatat rapi!* Kalau ada belanjaan lain yang belum masuk, langsung kirim ke Pocky ya ✨`)
+  );
+}
+
+export async function dispatchDailyReminders(db, botToken, type = 'morning', force = false) {
+  if (!db || !botToken) return { sent: 0, skipped: 0 };
+  const todayWib = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+  const linkSnap = await db.collection('telegram_links').get();
+  let sent = 0;
+  let skipped = 0;
+
+  for (const doc of linkSnap.docs) {
+    const chatId = doc.id;
+    const { uid, firstName, username } = doc.data() || {};
+    if (!uid || !chatId) continue;
+
+    try {
+      const userRef = db.collection('users').doc(uid);
+      const userDoc = await userRef.get();
+      const userData = userDoc.data() || {};
+
+      if (userData.dailyReminderEnabled === false) {
+        skipped++;
+        continue;
+      }
+
+      const dateField = type === 'morning' ? 'lastMorningReminderDate' : 'lastEveningReminderDate';
+      if (!force && userData[dateField] === todayWib) {
+        skipped++;
+        continue;
+      }
+
+      const { bal } = await getBalance(uid, db);
+      const displayName = userData.name || firstName || username || 'Teman';
+
+      if (type === 'morning') {
+        let topGoal = null;
+        const goalSnap = await userRef.collection('goals').limit(1).get();
+        if (!goalSnap.empty) {
+          topGoal = goalSnap.docs[0].data();
+        }
+        const text = generateMorningReminder(displayName, bal, topGoal);
+        await sendTelegramMessage(botToken, chatId, text, {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '💳 Cek Saldo', callback_data: 'saldo' }, { text: '🎯 Target Impian', callback_data: 'goals' }]
+            ]
+          }
+        });
+      } else {
+        const txSnap = await userRef.collection('transactions').where('date', '==', todayWib).get();
+        let totalExpense = 0;
+        let totalIncome = 0;
+        let expenseCount = 0;
+        txSnap.forEach((tDoc) => {
+          const t = tDoc.data();
+          const amt = Number(t.amount) || 0;
+          if (t.type === 'Income') totalIncome += amt;
+          else {
+            totalExpense += amt;
+            expenseCount++;
+          }
+        });
+        const summary = {
+          date: todayWib,
+          totalExpense,
+          totalIncome,
+          expenseCount,
+          currentBalance: bal
+        };
+        const text = generateEveningReminder(displayName, summary);
+        await sendTelegramMessage(botToken, chatId, text, {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '💳 Cek Saldo', callback_data: 'saldo' }]
+            ]
+          }
+        });
+      }
+
+      await userRef.set({ [dateField]: todayWib }, { merge: true });
+      sent++;
+    } catch (err) {
+      console.error(`Error sending ${type} reminder to chatId ${chatId}:`, err?.message);
+    }
+  }
+
+  return { sent, skipped };
 }

@@ -155,6 +155,30 @@ export async function requestUnlink() {
   return { success: true };
 }
 
+export async function cancelLinkCode() {
+  try {
+    const headers = await getHeaders();
+    const res = await fetch('/api/telegram/cancel-link-code', {
+      method: 'POST',
+      headers
+    });
+    if (res.ok) return await res.json();
+  } catch {
+    // Backend API unreachable, fall through to client-side Firestore
+  }
+
+  const user = getAuthUser();
+  if (firebaseEnabled && user?.uid) {
+    await updateUserDoc(user.uid, {
+      telegramLinkCode: null,
+      telegramCodeExpiresAt: null
+    });
+  }
+
+  return { success: true };
+}
+
+
 export async function telegramWebLogin(code) {
   const res = await fetch('/api/telegram/web-login', {
     method: 'POST',

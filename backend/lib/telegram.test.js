@@ -167,7 +167,17 @@ async function testBot() {
 
 
   // Auto-provision & Web Login Code test
-  const { ensureTelegramUser, generateWebLoginCode, verifyWebLoginCode, attachMessageToWebCode } = await import('./telegramBotCore.js');
+  const {
+    ensureTelegramUser,
+    generateWebLoginCode,
+    verifyWebLoginCode,
+    attachMessageToWebCode,
+    cancelWebLoginCode,
+    cancelLinkCode,
+    findLinkedUid
+  } = await import('./telegramBotCore.js');
+  const { generateMorningReminder, generateEveningReminder } = await import('./telegramBot.js');
+
   const newUid = await ensureTelegramUser(999, { first_name: 'Budi' }, null);
   assert.strictEqual(newUid, 'tg_999');
 
@@ -178,6 +188,44 @@ async function testBot() {
   const verified = await verifyWebLoginCode(webCode, null);
   assert.strictEqual(verified.uid, 'tg_999');
   assert.strictEqual(verified.messageId, 12345);
+
+  // Test cancelWebLoginCode
+  const { code: webCode2 } = await generateWebLoginCode(newUid, null);
+  const cancelRes = await cancelWebLoginCode(webCode2, null);
+  assert.strictEqual(cancelRes.success, true);
+  const verifyAfterCancel = await verifyWebLoginCode(webCode2, null);
+  assert.strictEqual(verifyAfterCancel, null);
+
+  // Test cancelLinkCode
+  const { code: linkCodeToCancel } = await generateLinkCode('user-cancel', null, 'TestBot');
+  const cancelLinkRes = await cancelLinkCode('user-cancel', null);
+  assert.strictEqual(cancelLinkRes.success, true);
+  const linkAttempt = await linkChatWithCode(9999, linkCodeToCancel, { first_name: 'Test' }, null);
+  assert.strictEqual(linkAttempt, null);
+
+  // Test /pengingat command
+  replies = [];
+  await handleTelegramUpdate({
+    message: { chat: { id: 999 }, text: '/pengingat', from: { first_name: 'Budi' } }
+  }, null, 'token');
+  assert(replies[0].text.includes('Pengaturan Pengingat Harian'));
+  assert(replies[0].text.includes('08:00 WIB'));
+  assert(replies[0].text.includes('20:00 WIB'));
+
+  // Test reminder generators
+  const morningMsg = generateMorningReminder('Budi', 500000, { name: 'Liburan', amount: 100000, target: 1000000 });
+  assert(morningMsg.includes('Selamat Pagi, Budi!'));
+  assert(morningMsg.includes('500.000'));
+  assert(morningMsg.includes('Liburan'));
+
+  const eveningMsg = generateEveningReminder('Budi', { totalExpense: 75000, currentBalance: 425000, expenseCount: 2 });
+  assert(eveningMsg.includes('Rekap Malam'));
+  assert(eveningMsg.includes('75.000'));
+  assert(eveningMsg.includes('425.000'));
+
+  // Test findLinkedUid caching
+  const cachedUid = await findLinkedUid(888, null);
+  assert.strictEqual(cachedUid, 'user-888');
 
   console.log('All Telegram integration tests passed!');
 }

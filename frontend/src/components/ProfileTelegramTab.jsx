@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { TelegramIcon, CheckIcon } from './Icons.jsx';
-import { getTelegramStatus, requestLinkCode, requestUnlink } from '../services/telegramApi.js';
+import { getTelegramStatus, requestLinkCode, requestUnlink, cancelLinkCode } from '../services/telegramApi.js';
 import { getUserDocRef, listenDoc, firebaseEnabled } from '../services/firebase.js';
 import { PockySvg } from './FloatingMascot.jsx';
 
@@ -27,6 +27,7 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
   const [requestingCode, setRequestingCode] = useState(false);
   const [copied, setCopied] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
+  const [cancellingCode, setCancellingCode] = useState(false);
   const timerRef = useRef(null);
   const prevLinkedRef = useRef(isTgAccount || Boolean(initialChatId));
 
@@ -136,6 +137,22 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
     navigator.clipboard?.writeText(generatedCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCancelCode = async () => {
+    try {
+      setCancellingCode(true);
+      if (timerRef.current) clearInterval(timerRef.current);
+      await cancelLinkCode();
+      setGeneratedCode(null);
+      setDeepLink(null);
+      setRemaining(0);
+      setStatusMessage?.({ type: 'info', text: 'Kode integrasi dibatalkan.' });
+    } catch (err) {
+      setStatusMessage?.({ type: 'error', text: err?.message || 'Gagal membatalkan kode' });
+    } finally {
+      setCancellingCode(false);
+    }
   };
 
   const handleUnlink = async () => {
@@ -275,12 +292,23 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
               </p>
               <p className="code-hint-text">Kirim perintah berikut ke Pocky di Telegram:</p>
               <div className="code-cmd-preview"><code>/link {generatedCode}</code></div>
-              {deepLink && (
-                <a href={deepLink} target="_blank" rel="noopener noreferrer" className="pill btn-primary telegram-deeplink-btn">
-                  <TelegramIcon size={18} />
-                  <span>Buka Bot Telegram (@yourpocketplan_bot)</span>
-                </a>
-              )}
+              <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                {deepLink && (
+                  <a href={deepLink} target="_blank" rel="noopener noreferrer" className="pill btn-primary telegram-deeplink-btn" style={{ flex: 1, margin: 0, justifyContent: 'center' }}>
+                    <TelegramIcon size={18} />
+                    <span>Buka Bot Telegram</span>
+                  </a>
+                )}
+                <button
+                  type="button"
+                  className="pill btn-secondary"
+                  onClick={handleCancelCode}
+                  disabled={cancellingCode}
+                  style={{ padding: '0.6rem 1rem', fontSize: '0.85rem' }}
+                >
+                  {cancellingCode ? 'Membatalkan...' : '❌ Batalkan'}
+                </button>
+              </div>
             </div>
           )}
         </div>
