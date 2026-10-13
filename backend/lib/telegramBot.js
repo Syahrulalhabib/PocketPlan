@@ -299,7 +299,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
   const chatId = msg.chat.id;
   const userFrom = msg.from || {};
 
-  // Handle photo or document image receipt with Gemini AI
+  // Handle photo or document image receipt with Pocky Scan
   const isPhoto = msg.photo && msg.photo.length > 0;
   const isImageDoc = msg.document && msg.document.mime_type?.startsWith('image/');
 
@@ -408,18 +408,23 @@ export async function handleTelegramUpdate(update, db, botToken) {
       });
     } catch (err) {
       console.error('Telegram receipt scanner error:', err);
-      let userNotice = 'Gambarnya kurang terbaca atau buram.';
       const msgStr = String(err?.message || '');
-      if (/503|UNAVAILABLE|sibuk|high demand/i.test(msgStr)) {
-        userNotice = 'Layanan AI pembaca struk sedang mengalami antrean padat.';
-      } else if (/timeout|abort/i.test(msgStr)) {
-        userNotice = 'Waktu baca gambar habis karena koneksi lambat.';
+      const isQueue = /503|UNAVAILABLE|sibuk|high demand|antrean/i.test(msgStr);
+      const isTimeout = /timeout|abort/i.test(msgStr);
+
+      let messageText;
+      if (isQueue) {
+        messageText = '⏳ *Pocky lagi ramai antreannya nih!*\n\nBanyak yang sedang minta bantuan Pocky membaca struk secara bersamaan. Tolong coba kirim lagi beberapa detik kembali yaa! ✨\n\nAtau kamu bisa catat manual dulu: `kopi 25k` atau `/catat makan 50k`';
+      } else if (isTimeout) {
+        messageText = '⏳ *Waktu baca gambar habis nih!*\n\nKoneksi agak lambat saat Pocky memproses gambarmu. Tolong coba kirim lagi beberapa detik kembali yaa! ✨\n\nAtau kamu bisa catat manual dulu: `kopi 25k` atau `/catat makan 50k`';
+      } else {
+        messageText = '🙈 *Aduh, mata Pocky agak burem baca gambar ini!*\n\nGambarnya agak burem atau kurang terbaca nih. Tolong kirimkan kembali foto struk atau bukti transfer yang lebih jelas, terang, dan tegak lurus yaa ✨\n\nAtau kamu bisa minta Pocky catat manual: `kopi 25k` atau `/catat makan 50k`';
       }
 
       return sendTelegramMessage(
         botToken,
         chatId,
-        `🙈 *Aduh, mata Pocky agak burem baca gambar ini!*\n\n⚠️ _${userNotice}_\n\nCoba kirim foto struk atau bukti transfer yang lebih terang, tegak, dan jelas yaa ✨\nAtau kamu bisa minta Pocky catat manual: \`kopi 25k\` atau \`/catat makan 50k\``,
+        messageText,
         { reply_markup: KEYBOARD }
       );
     }
@@ -624,7 +629,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
     return sendTelegramMessage(
       botToken,
       chatId,
-      '📖 *PANDUAN LENGKAP POCKY* 🪙\n\n*🧾 SCAN STRUK DENGAN AI*\n• Cukup kirim foto struk belanja langsung ke chat ini!\n• AI Gemini otomatis membaca merchant, daftar barang, & total pengeluaran.\n\n*📝 CATAT PENGELUARAN*\n• `kopi susu 25k` — ketik langsung\n• `25k kopi susu` — nominal duluan juga bisa\n• `/catat bensin 50k` — pakai perintah\n• `/keluar makan siang 35k`\n\n*💰 CATAT PEMASUKAN*\n• `/masuk gaji 2jt`\n• `/masuk freelance 500k`\n\n*🎯 TARGET IMPIAN*\n• `/goal Laptop Baru 10jt` — buat target\n• `/goals` — lihat semua target & progres\n• `/beligoal Laptop` — beli target tercapai\n\n*⏰ PENGINGAT HARIAN*\n• `/pengingat` — kelola pengingat pagi & malam\n\n*📊 INFO KEUANGAN*\n• `/saldo` — cek sisa saldo\n• `/riwayat` — 5 transaksi terakhir\n• `/batal` — batalkan transaksi terakhir\n\n*🔗 LAINNYA*\n• `/web` — kode login website\n• `/link KODE` — hubungkan akun website\n• `/menu` — tampilkan keyboard menu\n\n💡 _Nominal bisa ditulis: 50k, 50rb, 50.000, 1.5jt, Rp50000_',
+      '📖 *PANDUAN LENGKAP POCKY* 🪙\n\n*🧾 SCAN STRUK BARENG POCKY*\n• Cukup kirim foto struk belanja atau bukti transfer langsung ke chat ini!\n• Pocky otomatis membaca nama toko, daftar barang, & total transaksi.\n\n*📝 CATAT PENGELUARAN*\n• `kopi susu 25k` — ketik langsung\n• `25k kopi susu` — nominal duluan juga bisa\n• `/catat bensin 50k` — pakai perintah\n• `/keluar makan siang 35k`\n\n*💰 CATAT PEMASUKAN*\n• `/masuk gaji 2jt`\n• `/masuk freelance 500k`\n\n*🎯 TARGET IMPIAN*\n• `/goal Laptop Baru 10jt` — buat target\n• `/goals` — lihat semua target & progres\n• `/beligoal Laptop` — beli target tercapai\n\n*⏰ PENGINGAT HARIAN*\n• `/pengingat` — kelola pengingat pagi & malam\n\n*📊 INFO KEUANGAN*\n• `/saldo` — cek sisa saldo\n• `/riwayat` — 5 transaksi terakhir\n• `/batal` — batalkan transaksi terakhir\n\n*🔗 LAINNYA*\n• `/web` — kode login website\n• `/link KODE` — hubungkan akun website\n• `/menu` — tampilkan keyboard menu\n\n💡 _Nominal bisa ditulis: 50k, 50rb, 50.000, 1.5jt, Rp50000_',
       { reply_markup: KEYBOARD }
     );
   }

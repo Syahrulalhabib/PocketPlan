@@ -207,7 +207,7 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
             <ul>
               <li>
                 <code>📸 Kirim Foto Struk</code>
-                <span>Pocky baca & catat otomatis via AI Gemini</span>
+                <span>Pocky baca & catat otomatis via Pocky Scan</span>
               </li>
               <li>
                 <code>/koreksi 150k</code>

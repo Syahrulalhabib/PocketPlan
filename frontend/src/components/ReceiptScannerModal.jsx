@@ -27,8 +27,9 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
   const [preview, setPreview] = useState(null);
   const [parsed, setParsed] = useState(null);
   const [rawText, setRawText] = useState('');
+  const [errorTitle, setErrorTitle] = useState('🙈 Aduh, mata Pocky agak burem baca gambar ini!');
   const [errorMsg, setErrorMsg] = useState('');
-  const [engineUsed, setEngineUsed] = useState('Gemini AI');
+  const [engineUsed, setEngineUsed] = useState('Pocky Scan');
   const fileRef = useRef(null);
 
   const reset = useCallback(() => {
@@ -37,8 +38,9 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
     setPreview(null);
     setParsed(null);
     setRawText('');
+    setErrorTitle('🙈 Aduh, mata Pocky agak burem baca gambar ini!');
     setErrorMsg('');
-    setEngineUsed('Gemini AI');
+    setEngineUsed('Pocky Scan');
   }, []);
 
   const handleClose = useCallback(() => {
@@ -88,7 +90,7 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
               items: d.items || [],
               paymentMethod: d.payment_method || (d.doc_type?.startsWith('transfer') ? 'TRANSFER' : 'CASH')
             });
-            setEngineUsed(json.modelUsed || 'Pocky Scan (Gemini AI)');
+            setEngineUsed('Pocky Scan');
             setRawText(JSON.stringify(d, null, 2));
             setProgress(100);
             setStatus(STATUS.DONE);
@@ -96,19 +98,29 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
           }
         } else {
           const errData = await res.json().catch(() => ({}));
-          lastError = errData.error || `Server error (${res.status})`;
+          lastError = errData.error || `Gagal membaca gambar (${res.status})`;
         }
       } catch (backendErr) {
-        lastError = backendErr?.message || 'Backend tidak merespons';
+        lastError = backendErr?.message || 'Koneksi ke Pocky terputus';
       }
 
-      // Jika backend gagal, tampilkan error jelas
-      throw new Error(
-        lastError ||
-        'Gagal memindai struk. Pastikan backend sudah berjalan dan GEMINI_API_KEY dikonfigurasi di backend/.env.'
-      );
+      throw new Error(lastError);
     } catch (err) {
-      setErrorMsg(err?.message || 'Gagal memindai dengan Gemini API');
+      const rawErr = String(err?.message || '');
+      if (/503|UNAVAILABLE|sibuk|high demand|antrean|queue/i.test(rawErr)) {
+        setErrorTitle('⏳ Pocky lagi ramai antreannya nih!');
+        setErrorMsg('Banyak yang sedang minta bantuan Pocky membaca struk secara bersamaan. Tolong coba lagi beberapa detik kembali yaa! ✨');
+      } else if (/timeout|abort/i.test(rawErr)) {
+        setErrorTitle('⏳ Waktu baca struk habis');
+        setErrorMsg('Koneksi agak lambat saat Pocky memproses strukmu. Tolong coba lagi beberapa detik kembali yaa! ⏳');
+      } else {
+        setErrorTitle('🙈 Aduh, mata Pocky agak burem baca gambar ini!');
+        setErrorMsg(
+          rawErr.startsWith('Gambarnya') || rawErr.startsWith('Pocky')
+            ? rawErr
+            : 'Gambarnya agak burem atau kurang terbaca nih. Tolong kirimkan kembali foto struk atau bukti transfer yang lebih jelas, terang, dan tegak lurus yaa ✨'
+        );
+      }
       setStatus(STATUS.ERROR);
     } finally {
       URL.revokeObjectURL(url);
@@ -200,7 +212,7 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
             <div className="pocky-receipt-mascot-wrap">
               <PockySvg />
             </div>
-            <p className="pocky-error-title">🙈 Aduh, mata Pocky agak burem baca gambar ini!</p>
+            <p className="pocky-error-title">{errorTitle}</p>
             <p className="pocky-error-detail">{errorMsg}</p>
 
             <div className="pocky-error-tips">
@@ -208,12 +220,13 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
               <ul>
                 <li>Pastikan cahaya cukup terang dan tidak ada pantulan cahaya silau</li>
                 <li>Posisikan struk / bukti transfer tegak lurus dan nominal terlihat penuh</li>
+                <li>Kirimkan kembali foto yang lebih tajam dan fokus yaa</li>
                 <li>Atau kamu bisa catat cepat di bot Telegram: <code>kopi 25k</code></li>
               </ul>
             </div>
 
             <button type="button" className="pill btn-secondary" onClick={reset}>
-              🔄 Coba Foto Ulang Bareng Pocky
+              🔄 Coba Kirim Ulang Bareng Pocky
             </button>
           </div>
         )}
@@ -336,7 +349,7 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
             )}
 
             <details style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>
-              <summary style={{ cursor: 'pointer', marginBottom: '4px' }}>Lihat payload mentah AI</summary>
+              <summary style={{ cursor: 'pointer', marginBottom: '4px' }}>Lihat data mentah Pocky</summary>
               <pre
                 style={{
                   whiteSpace: 'pre-wrap',

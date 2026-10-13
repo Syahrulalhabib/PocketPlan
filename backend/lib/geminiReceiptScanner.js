@@ -197,7 +197,7 @@ export async function scanReceiptWithGemini({
 }) {
   if (!imageBase64) throw new Error('Data gambar (base64) wajib disediakan.');
 
-  const promptText = `Anda adalah asisten cerdas pembaca dokumen finansial: struk kasir, invoice tagihan, dan bukti transfer perbankan/e-wallet (BCA, Mandiri, BRI, BNI, QRIS, GoPay, OVO, Dana, ShopeePay, dll).
+  const promptText = `Anda adalah Pocky, asisten cerdas pembaca dokumen finansial: struk kasir, invoice tagihan, dan bukti transfer perbankan/e-wallet (BCA, Mandiri, BRI, BNI, QRIS, GoPay, OVO, Dana, ShopeePay, dll).
 Analisis gambar ini secara teliti:
 1. Tentukan jenis dokumen (doc_type):
    - "receipt": struk fisik/nota belanja kasir (minimarket, toko, resto, cafe, SPBU).
@@ -288,7 +288,7 @@ Hanya balas dengan JSON murni tanpa markdown fences.`;
       // If high demand / unavailable / server error, immediately try next fallback model
       if (res.status === 503 || res.status === 502 || res.status === 504 || res.status === 500) {
         const errText = await res.text().catch(() => '');
-        lastError = new Error(`Model ${model} sedang sibuk (status ${res.status}): ${errText}`);
+        lastError = new Error(`Pocky antrean padat (status ${res.status}): ${errText}`);
         continue;
       }
 
@@ -325,7 +325,7 @@ Hanya balas dengan JSON murni tanpa markdown fences.`;
     }
   }
 
-  throw lastError || new Error('Gagal memindai struk setelah beberapa percobaan');
+  throw lastError || new Error('Gambarnya agak burem atau kurang terbaca');
 }
 
 export function flattenReceiptForCsv(receipt, filename = '') {

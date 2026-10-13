@@ -72,7 +72,7 @@ async function main() {
   });
 
   console.log(`\n======================================================`);
-  console.log(`🧾 PocketPlan AI Receipt Scanner (Gemini-3.5-flash-lite)`);
+  console.log(`🧾 PocketPlan Pocky Receipt Scanner (Gemini-3.5-flash-lite)`);
   console.log(`======================================================`);
   console.log(`Ditemukan ${files.length} berkas struk di ${inputDir}`);
   console.log(`Delay per request: 4 detik (Google Free Tier 15 RPM Safe Limit)\n`);

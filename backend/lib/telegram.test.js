@@ -165,6 +165,72 @@ async function testBot() {
   }, null, 'token');
   assert(replies[0].text.includes('150.000'));
 
+  // Test /help command contains Pocky branding without AI mention
+  replies = [];
+  await handleTelegramUpdate({
+    message: { chat: { id: 888 }, text: '/help', from: { first_name: 'User' } }
+  }, null, 'token');
+  assert(replies[0].text.includes('SCAN STRUK BARENG POCKY'));
+  assert(!replies[0].text.includes(' AI '));
+
+  // Test receipt scan on 503 / queue overload
+  const oldFetch = global.fetch;
+  global.fetch = async (url, opts) => {
+    if (opts?.body) {
+      try { replies.push(JSON.parse(opts.body)); } catch {}
+    }
+    if (typeof url === 'string' && url.includes('/getFile')) {
+      return { ok: true, json: async () => ({ ok: true, result: { file_path: 'photo.jpg' } }) };
+    }
+    if (typeof url === 'string' && url.includes('/file/')) {
+      return { ok: true, arrayBuffer: async () => Buffer.from('fake-image-bytes') };
+    }
+    if (typeof url === 'string' && url.includes('models/')) {
+      return { ok: false, status: 503, text: async () => 'Service Unavailable' };
+    }
+    return { ok: true, json: async () => ({ ok: true, result: true }) };
+  };
+
+  replies = [];
+  await handleTelegramUpdate({
+    update_id: 99991,
+    message: { chat: { id: 888 }, photo: [{ file_id: 'queue_pic' }], from: { first_name: 'User' } }
+  }, null, 'token');
+  assert(replies.some(r => (r.text || '').includes('ramai antreannya') && (r.text || '').includes('beberapa detik kembali')));
+
+  // Test receipt scan on blurry / parsing error
+  global.fetch = async (url, opts) => {
+    if (opts?.body) {
+      try { replies.push(JSON.parse(opts.body)); } catch {}
+    }
+    if (typeof url === 'string' && url.includes('/getFile')) {
+      return { ok: true, json: async () => ({ ok: true, result: { file_path: 'photo.jpg' } }) };
+    }
+    if (typeof url === 'string' && url.includes('/file/')) {
+      return { ok: true, arrayBuffer: async () => Buffer.from('fake-image-bytes') };
+    }
+    if (typeof url === 'string' && url.includes('models/')) {
+      return {
+        ok: true,
+        json: async () => ({
+          candidates: [{
+            content: { parts: [{ text: 'bukan json format struk' }] }
+          }]
+        })
+      };
+    }
+    return { ok: true, json: async () => ({ ok: true, result: true }) };
+  };
+
+  replies = [];
+  await handleTelegramUpdate({
+    update_id: 99992,
+    message: { chat: { id: 888 }, photo: [{ file_id: 'blurry_pic' }], from: { first_name: 'User' } }
+  }, null, 'token');
+  assert(replies.some(r => (r.text || '').includes('burem') && (r.text || '').includes('kirimkan kembali')));
+
+  global.fetch = oldFetch;
+
 
   // Auto-provision & Web Login Code test
   const {

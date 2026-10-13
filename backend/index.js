@@ -107,7 +107,7 @@ app.get('/health', (_, res) => res.json({ ok: true, useFirestore }));
 app.post('/api/scan-receipt', requireAuth, async (req, res) => {
   // Rate limit: 20 scans per 15 minutes per user
   const rl = checkRateLimit(`scan:${req.user.uid}`, 20);
-  if (!rl.allowed) return res.status(429).json({ ok: false, error: `Terlalu banyak permintaan scan. Coba lagi dalam ${rl.retryAfterSec} detik.` });
+  if (!rl.allowed) return res.status(429).json({ ok: false, error: `Pocky lagi istirahat sejenak. Tolong coba lagi dalam ${rl.retryAfterSec} detik ya! ⏳` });
 
   const { imageBase64, mimeType } = req.body || {};
   if (!imageBase64) {
@@ -121,7 +121,23 @@ app.post('/api/scan-receipt', requireAuth, async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('Scan receipt error:', err);
-    res.status(500).json({ ok: false, error: 'Gagal memproses gambar. Coba lagi nanti.' });
+    const msg = String(err?.message || '');
+    if (/503|UNAVAILABLE|sibuk|high demand|antrean/i.test(msg)) {
+      return res.status(503).json({
+        ok: false,
+        error: 'Pocky lagi ramai antreannya nih. Tolong coba lagi beberapa detik kembali yaa! ⏳'
+      });
+    }
+    if (/timeout|abort/i.test(msg)) {
+      return res.status(504).json({
+        ok: false,
+        error: 'Waktu baca struk habis karena koneksi lambat. Tolong coba lagi beberapa detik kembali yaa! ⏳'
+      });
+    }
+    res.status(422).json({
+      ok: false,
+      error: 'Gambarnya agak burem atau kurang terbaca nih. Tolong kirimkan kembali foto struk atau bukti transfer yang lebih jelas, terang, dan tegak lurus yaa ✨'
+    });
   }
 });
 
