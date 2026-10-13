@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { parseAmount, parseTransactionCommand, formatRupiah } from './telegramParser.js';
-import { generateLinkCode, getLinkStatus, unlinkAccount, linkChatWithCode } from './telegramBotCore.js';
+import { generateLinkCode, getLinkStatus, unlinkAccount, linkChatWithCode, cancelLinkCode, DEFAULT_BOT_COMMANDS } from './telegramBotCore.js';
 import { handleTelegramUpdate } from './telegramBot.js';
 
 console.log('Running Telegram integration tests...');
@@ -212,18 +212,14 @@ async function testBot() {
   assert(replies[0].text.includes('08:00 WIB'));
   assert(replies[0].text.includes('20:00 WIB'));
 
-  // Test preview callbacks
-  replies = [];
-  await handleTelegramUpdate({
-    callback_query: { id: 'cb_pm', data: 'preview_morning', message: { chat: { id: 999 }, message_id: 1 }, from: { first_name: 'Budi' } }
-  }, null, 'token');
-  assert(replies.some((r) => r.text && r.text.includes('Preview Pengingat Pagi')));
+  // Test DEFAULT_BOT_COMMANDS includes pengingat
+  assert(DEFAULT_BOT_COMMANDS.some((c) => c.command === 'pengingat'));
 
+  // Test toggle_reminder callback
   replies = [];
   await handleTelegramUpdate({
-    callback_query: { id: 'cb_pe', data: 'preview_evening', message: { chat: { id: 999 }, message_id: 1 }, from: { first_name: 'Budi' } }
+    callback_query: { id: 'cb_toggle', data: 'toggle_reminder', message: { chat: { id: 999 }, message_id: 1 }, from: { first_name: 'Budi' } }
   }, null, 'token');
-  assert(replies.some((r) => r.text && r.text.includes('Preview Rekap Malam')));
 
   // Test reminder generators (multiple goals + progress against balance)
   const morningMsg = generateMorningReminder('Budi', 500000, [

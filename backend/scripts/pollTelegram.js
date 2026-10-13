@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { initFirebaseAdmin, getDb } from '../lib/firebaseAdmin.js';
 import { handleTelegramUpdate } from '../lib/telegramBot.js';
+import { syncBotCommands } from '../lib/telegramBotCore.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,6 +20,7 @@ if (!token) {
 }
 
 console.log('🤖 Pocketplan Telegram Bot Polling started...');
+syncBotCommands(token).then(() => console.log('✅ Telegram bot commands registered')).catch(() => {});
 
 let offset = 0;
 const poll = async () => {

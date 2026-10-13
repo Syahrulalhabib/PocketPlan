@@ -14,7 +14,8 @@ import {
   verifyWebLoginCode,
   sendTelegramMessage,
   deleteTelegramMessage,
-  cancelLinkCode
+  cancelLinkCode,
+  syncBotCommands
 } from './lib/telegramBotCore.js';
 import { scanReceiptWithGemini } from './lib/geminiReceiptScanner.js';
 
@@ -384,6 +385,7 @@ if (!process.env.VERCEL) {
   // Background reminder scheduler (checks once every 60s for 08:00 WIB and 20:00 WIB)
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (botToken) {
+    syncBotCommands(botToken).catch((e) => console.error('syncBotCommands error:', e));
     setInterval(() => {
       try {
         const now = new Date();

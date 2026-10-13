@@ -419,5 +419,34 @@ export async function cancelLinkCode(uid, db) {
   }
   return { success: true };
 }
+export const DEFAULT_BOT_COMMANDS = [
+  { command: 'start', description: 'Mulai & sapa Pocky 🪙' },
+  { command: 'catat', description: 'Catat pengeluaran baru 💸' },
+  { command: 'masuk', description: 'Catat pemasukan uang 💰' },
+  { command: 'saldo', description: 'Cek total saldo dompet 📊' },
+  { command: 'riwayat', description: '5 transaksi terakhir 📜' },
+  { command: 'goals', description: 'Cek target & progres celengan 🎯' },
+  { command: 'pengingat', description: 'Atur pengingat harian otomatis ⏰' },
+  { command: 'koreksi', description: 'Koreksi nominal struk/catatan ✏️' },
+  { command: 'batal', description: 'Batalkan transaksi terakhir 🗑️' },
+  { command: 'help', description: 'Panduan lengkap Pocky 📖' },
+  { command: 'web', description: 'Dapatkan kode login website 🔗' }
+];
+
+export async function syncBotCommands(botToken) {
+  if (!botToken) return null;
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/setMyCommands`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ commands: DEFAULT_BOT_COMMANDS })
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('syncBotCommands error:', err.message);
+    return null;
+  }
+}
+
 
 

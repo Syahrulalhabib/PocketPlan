@@ -240,65 +240,6 @@ export async function handleTelegramUpdate(update, db, botToken) {
       }
       return;
     }
-    if (data === 'preview_morning') {
-      await answerTelegramCallback(botToken, cb.id, '🌅 Membuka preview pagi...');
-      const userUid = uid || (await ensureTelegramUser(chatId, cb.from, db));
-      let bal = 0;
-      let goals = [];
-      let displayName = cb.from?.first_name || 'Teman';
-      if (db && userUid) {
-        const balRes = await getBalance(userUid, db);
-        bal = balRes.bal;
-        const uDoc = await db.collection('users').doc(userUid).get();
-        if (uDoc.exists && uDoc.data()?.name) displayName = uDoc.data().name;
-        const gSnap = await db.collection('users').doc(userUid).collection('goals').get();
-        goals = gSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      }
-      const previewMsg = `*(Preview Pengingat Pagi)*\n\n` + generateMorningReminder(displayName, bal, goals);
-      return sendTelegramMessage(botToken, chatId, previewMsg, {
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: '💳 Cek Saldo', callback_data: 'saldo' }, { text: '🎯 Target Impian', callback_data: 'goals' }]
-          ]
-        }
-      });
-    }
-    if (data === 'preview_evening') {
-      await answerTelegramCallback(botToken, cb.id, '🌙 Membuka preview malam...');
-      const userUid = uid || (await ensureTelegramUser(chatId, cb.from, db));
-      let bal = 0;
-      let displayName = cb.from?.first_name || 'Teman';
-      let totalExpense = 0;
-      let totalIncome = 0;
-      let expenseCount = 0;
-      if (db && userUid) {
-        const balRes = await getBalance(userUid, db);
-        bal = balRes.bal;
-        const uDoc = await db.collection('users').doc(userUid).get();
-        if (uDoc.exists && uDoc.data()?.name) displayName = uDoc.data().name;
-        const todayWib = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
-        const txSnap = await db.collection('users').doc(userUid).collection('transactions').where('date', '==', todayWib).get();
-        txSnap.forEach((tDoc) => {
-          const t = tDoc.data();
-          const amt = Number(t.amount) || 0;
-          if (t.type === 'Income') totalIncome += amt;
-          else {
-            totalExpense += amt;
-            expenseCount++;
-          }
-        });
-      }
-      const summary = {
-        totalExpense,
-        totalIncome,
-        expenseCount,
-        currentBalance: bal
-      };
-      const previewMsg = `*(Preview Rekap Malam)*\n\n` + generateEveningReminder(displayName, summary);
-      return sendTelegramMessage(botToken, chatId, previewMsg, {
-        reply_markup: KEYBOARD
-      });
-    }
     if (data === 'toggle_reminder') {
       const userUid = uid || (await ensureTelegramUser(chatId, cb.from, db));
       let isEnabled = true;
@@ -312,19 +253,15 @@ export async function handleTelegramUpdate(update, db, botToken) {
       await answerTelegramCallback(botToken, cb.id, isEnabled ? '🔔 Pengingat diaktifkan!' : '🔕 Pengingat dinonaktifkan!');
       const messageId = cb.message?.message_id;
       if (messageId) {
-        const reminderText = `🔔 *Pengaturan & Preview Pengingat Pocky*\n\n` +
+        const reminderText = `🔔 *Pengaturan Pengingat Harian Pocky*\n\n` +
           `Status: *${isEnabled ? 'Aktif' : 'Nonaktif'}* ${isEnabled ? '✅' : '⏸️'}\n\n` +
-          `Pocky akan mengingatkanmu otomatis 2x sehari:\n` +
-          `• 🌅 *08:00 WIB* — Info sisa saldo, semua target impian & tips hemat\n` +
+          `Pocky otomatis mengingatkanmu 2x sehari:\n` +
+          `• 🌅 *08:00 WIB* — Info sisa saldo & progres semua target tabungan\n` +
           `• 🌙 *20:00 WIB* — Rekap pengeluaran hari ini & ajakan catat\n\n` +
-          `${isEnabled ? 'Pocky akan mengingatkanmu setiap hari agar catatan keuangan tetap rapi! ✨' : 'Pengingat otomatis dijeda. Kamu bisa mengaktifkannya kembali kapan saja.'}`;
+          `${isEnabled ? 'Pengingat aktif. Pocky akan mengirimkan notifikasi tepat waktu! ✨' : 'Pengingat otomatis dijeda. Kamu bisa mengaktifkannya kembali kapan saja.'}`;
         await editTelegramMessage(botToken, chatId, messageId, reminderText, {
           reply_markup: {
             inline_keyboard: [
-              [
-                { text: '🌅 Preview Pesan Pagi', callback_data: 'preview_morning' },
-                { text: '🌙 Preview Pesan Malam', callback_data: 'preview_evening' }
-              ],
               [
                 { text: isEnabled ? '🔕 Nonaktifkan Pengingat' : '🔔 Aktifkan Pengingat', callback_data: 'toggle_reminder' }
               ]
@@ -556,19 +493,15 @@ export async function handleTelegramUpdate(update, db, botToken) {
       const uDoc = await uRef.get();
       isEnabled = uDoc.data()?.dailyReminderEnabled !== false;
     }
-    const msgText = `🔔 *Pengaturan & Preview Pengingat Pocky*\n\n` +
+    const msgText = `🔔 *Pengaturan Pengingat Harian Pocky*\n\n` +
       `Status saat ini: *${isEnabled ? 'Aktif' : 'Nonaktif'}* ${isEnabled ? '✅' : '⏸️'}\n\n` +
       `Pocky otomatis mengingatkanmu 2x sehari:\n` +
-      `🌅 *Pagi (08:00 WIB)* — Saldo terkini, progres semua target tabungan & motivasi hemat\n` +
-      `🌙 *Malam (20:00 WIB)* — Rekap total belanja, pemasukan & ajakan catat transaksi\n\n` +
-      `💡 _Ingin coba lihat format pesannya? Tekan tombol preview di bawah:_`;
+      `• 🌅 *08:00 WIB* — Info sisa saldo & progres semua target tabungan\n` +
+      `• 🌙 *20:00 WIB* — Rekap pengeluaran hari ini & ajakan catat\n\n` +
+      `${isEnabled ? 'Pengingat aktif. Pocky akan mengirimkan notifikasi tepat waktu! ✨' : 'Pengingat dinonaktifkan. Tekan tombol di bawah untuk mengaktifkan kembali.'}`;
     return sendTelegramMessage(botToken, chatId, msgText, {
       reply_markup: {
         inline_keyboard: [
-          [
-            { text: '🌅 Preview Pesan Pagi', callback_data: 'preview_morning' },
-            { text: '🌙 Preview Pesan Malam', callback_data: 'preview_evening' }
-          ],
           [
             { text: isEnabled ? '🔕 Nonaktifkan Pengingat' : '🔔 Aktifkan Pengingat', callback_data: 'toggle_reminder' }
           ]
@@ -664,7 +597,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
     return sendTelegramMessage(
       botToken,
       chatId,
-      '📖 *PANDUAN LENGKAP POCKY* 🪙\n\n*🧾 SCAN STRUK DENGAN AI*\n• Cukup kirim foto struk belanja langsung ke chat ini!\n• AI Gemini otomatis membaca merchant, daftar barang, & total pengeluaran.\n\n*📝 CATAT PENGELUARAN*\n• `kopi susu 25k` — ketik langsung\n• `25k kopi susu` — nominal duluan juga bisa\n• `/catat bensin 50k` — pakai perintah\n• `/keluar makan siang 35k`\n\n*💰 CATAT PEMASUKAN*\n• `/masuk gaji 2jt`\n• `/masuk freelance 500k`\n\n*🎯 TARGET IMPIAN*\n• `/goal Laptop Baru 10jt` — buat target\n• `/goals` — lihat semua target & progres\n• `/beligoal Laptop` — beli target tercapai\n\n*📊 INFO KEUANGAN*\n• `/saldo` — cek sisa saldo\n• `/riwayat` — 5 transaksi terakhir\n• `/batal` — batalkan transaksi terakhir\n\n*🔗 LAINNYA*\n• `/web` — kode login website\n• `/link KODE` — hubungkan akun website\n• `/menu` — tampilkan keyboard menu\n\n💡 _Nominal bisa ditulis: 50k, 50rb, 50.000, 1.5jt, Rp50000_',
+      '📖 *PANDUAN LENGKAP POCKY* 🪙\n\n*🧾 SCAN STRUK DENGAN AI*\n• Cukup kirim foto struk belanja langsung ke chat ini!\n• AI Gemini otomatis membaca merchant, daftar barang, & total pengeluaran.\n\n*📝 CATAT PENGELUARAN*\n• `kopi susu 25k` — ketik langsung\n• `25k kopi susu` — nominal duluan juga bisa\n• `/catat bensin 50k` — pakai perintah\n• `/keluar makan siang 35k`\n\n*💰 CATAT PEMASUKAN*\n• `/masuk gaji 2jt`\n• `/masuk freelance 500k`\n\n*🎯 TARGET IMPIAN*\n• `/goal Laptop Baru 10jt` — buat target\n• `/goals` — lihat semua target & progres\n• `/beligoal Laptop` — beli target tercapai\n\n*⏰ PENGINGAT HARIAN*\n• `/pengingat` — kelola pengingat pagi & malam\n\n*📊 INFO KEUANGAN*\n• `/saldo` — cek sisa saldo\n• `/riwayat` — 5 transaksi terakhir\n• `/batal` — batalkan transaksi terakhir\n\n*🔗 LAINNYA*\n• `/web` — kode login website\n• `/link KODE` — hubungkan akun website\n• `/menu` — tampilkan keyboard menu\n\n💡 _Nominal bisa ditulis: 50k, 50rb, 50.000, 1.5jt, Rp50000_',
       { reply_markup: KEYBOARD }
     );
   }

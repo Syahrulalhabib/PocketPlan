@@ -1,4 +1,11 @@
-import fetch from 'node-fetch'; // or global fetch in Node 18+
+import 'dotenv/config';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) {
@@ -55,6 +62,7 @@ async function updateBot() {
     { command: 'saldo', description: 'Cek total saldo dompet 📊' },
     { command: 'riwayat', description: '5 transaksi terakhir 📜' },
     { command: 'goals', description: 'Cek target & progres celengan 🎯' },
+    { command: 'pengingat', description: 'Atur pengingat harian otomatis ⏰' },
     { command: 'koreksi', description: 'Koreksi nominal struk/catatan ✏️' },
     { command: 'batal', description: 'Batalkan transaksi terakhir 🗑️' },
     { command: 'help', description: 'Panduan lengkap Pocky 📖' },

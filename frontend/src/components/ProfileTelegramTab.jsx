@@ -238,6 +238,10 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
                 <span>Lihat progres celengan & tombol beli</span>
               </li>
               <li>
+                <code>/pengingat</code>
+                <span>Atur pengingat harian otomatis 2x sehari</span>
+              </li>
+              <li>
                 <code>/saldo</code>
                 <span>Cek sisa saldo terkini</span>
               </li>
