@@ -176,35 +176,39 @@ const DashboardPage = () => {
           </div>
         </div>
       </div>
-      <div className="dashboard-quick-links" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', margin: '14px 0' }}>
+      <div className="dashboard-quick-links">
         <div
-          className="card"
-          style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', borderRadius: 'var(--radius)' }}
+          className="quick-link-card"
           onClick={() => navigate('/laporan')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/laporan')}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '1.6rem' }}>📄</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <span style={{ fontSize: '1.7rem' }}>📄</span>
             <div>
-              <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Monthly Report</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Summary &amp; export A4 PDF</div>
+              <div style={{ fontWeight: 700, fontSize: '0.98rem' }}>Monthly Report</div>
+              <div style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>Summary &amp; export A4 PDF</div>
             </div>
           </div>
-          <span style={{ fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 700 }}>View →</span>
+          <span className="quick-link-arrow">View →</span>
         </div>
 
         <div
-          className="card"
-          style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', borderRadius: 'var(--radius)' }}
+          className="quick-link-card"
           onClick={() => navigate('/pencapaian')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/pencapaian')}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '1.6rem' }}>🏅</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <span style={{ fontSize: '1.7rem' }}>🏅</span>
             <div>
-              <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Achievements Gallery</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Badges &amp; share cards</div>
+              <div style={{ fontWeight: 700, fontSize: '0.98rem' }}>Achievements Gallery</div>
+              <div style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>Badges &amp; share cards</div>
             </div>
           </div>
-          <span style={{ fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 700 }}>View →</span>
+          <span className="quick-link-arrow">View →</span>
         </div>
       </div>
 
