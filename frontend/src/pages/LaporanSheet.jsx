@@ -305,7 +305,7 @@ const LaporanSheet = ({ report, monthLabel, prevMonthLabel, userName = 'Pengguna
       {/* Sec 4: Insight Pocky */}
       <h3 className="laporan-sec"><span className="n">4</span> Insight Pocky</h3>
       <div className="laporan-insight">
-        <div className="mascot">🪙</div>
+        <div className="mascot"><img src={pocketLogo} alt="Pocky" style={{ width: 34, height: 34, objectFit: 'contain', display: 'block' }} /></div>
         <div>{report.insight}</div>
       </div>
 
@@ -405,7 +405,7 @@ const LaporanSheet = ({ report, monthLabel, prevMonthLabel, userName = 'Pengguna
 
       {/* Footer */}
       <div className="laporan-footer">
-        <div className="fbrand">🪙 Pocketplan</div>
+        <div className="fbrand"><img src={pocketLogo} alt="" style={{ width: 18, height: 18, objectFit: 'contain', display: 'block' }} /> Pocketplan</div>
         <span>Dibuat otomatis • pocketplan-rul.vercel.app</span>
       </div>
     </div>
