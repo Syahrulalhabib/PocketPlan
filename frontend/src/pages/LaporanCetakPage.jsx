@@ -17,7 +17,7 @@ const LaporanCetakPage = () => {
   const [loading, setLoading] = useState(true);
 
   const userName = useMemo(() => {
-    return user?.displayName || user?.email?.split('@')[0] || (isDemo ? 'Demo User' : 'Pengguna');
+    return user?.displayName || user?.email?.split('@')[0] || (isDemo ? 'Demo User' : 'User');
   }, [user, isDemo]);
 
   const monthLabel = useMemo(() => getIndoMonthLabel(monthParam), [monthParam]);
@@ -75,12 +75,12 @@ const LaporanCetakPage = () => {
         className="laporan-print-floating-btn no-print"
         onClick={() => window.print()}
       >
-        🖨️ Cetak / Simpan PDF
+        🖨️ Print / Save PDF
       </button>
 
       {loading && !report ? (
         <div style={{ textAlign: 'center', padding: '60px 0', color: '#6b7280' }}>
-          Memuat laporan keuangan...
+          Loading financial report...
         </div>
       ) : (
         <LaporanSheet

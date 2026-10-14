@@ -121,7 +121,7 @@ export const DataProvider = ({ children }) => {
     try {
       if (!firebaseEnabled || !user || user.isDemo) {
         setTransactions((prev) => [{ ...entry, id: generateId() }, ...prev]);
-        showToast(user?.isDemo ? 'Transaksi ditambahkan (mode demo).' : 'Transaction added (demo mode).');
+        showToast('Transaction added.');
         return;
       }
       const ref = getUserCollection(user.id, 'transactions');
@@ -142,7 +142,7 @@ export const DataProvider = ({ children }) => {
     try {
       if (!firebaseEnabled || !user || user.isDemo) {
         setTransactions((prev) => prev.map((t) => (t.id === id ? { ...t, ...cleanUpdates } : t)));
-        showToast(user?.isDemo ? 'Transaksi diperbarui (mode demo).' : 'Transaction updated (demo mode).');
+        showToast('Transaction updated.');
         return;
       }
       await updateCollectionDoc(user.id, 'transactions', id, cleanUpdates);
@@ -170,7 +170,7 @@ export const DataProvider = ({ children }) => {
     try {
       if (!firebaseEnabled || !user || user.isDemo) {
         setGoals((prev) => [...prev, { ...entry, id: generateId() }]);
-        showToast(user?.isDemo ? 'Target tabungan ditambahkan (mode demo).' : 'Goal added (demo mode).');
+        showToast('Goal added.');
         return;
       }
       const ref = getUserCollection(user.id, 'goals');
@@ -190,9 +190,9 @@ export const DataProvider = ({ children }) => {
         setTransactions((prev) => prev.filter((t) => t.id !== id));
         if (tx?.goalBackup) {
           await addGoal(tx.goalBackup);
-          showToast(user?.isDemo ? 'Transaksi dihapus & target dipulihkan (mode demo).' : 'Transaction deleted & goal restored (demo mode).');
+          showToast('Transaction deleted & goal restored.');
         } else {
-          showToast(user?.isDemo ? 'Transaksi dihapus (mode demo).' : 'Transaction deleted (demo mode).');
+          showToast('Transaction deleted.');
         }
         return;
       }
@@ -231,7 +231,7 @@ export const DataProvider = ({ children }) => {
     try {
       if (!firebaseEnabled || !user || user.isDemo) {
         setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, ...cleanUpdates } : g)));
-        showToast(user?.isDemo ? 'Target tabungan diperbarui (mode demo).' : 'Goal updated (demo mode).');
+        showToast('Goal updated.');
         return;
       }
       await updateCollectionDoc(user.id, 'goals', id, cleanUpdates);
@@ -246,7 +246,7 @@ export const DataProvider = ({ children }) => {
     try {
       if (!firebaseEnabled || !user || user.isDemo) {
         setGoals((prev) => prev.filter((g) => g.id !== id));
-        showToast(user?.isDemo ? 'Target tabungan dihapus (mode demo).' : 'Goal deleted (demo mode).');
+        showToast('Goal deleted.');
         return;
       }
       await deleteCollectionDoc(user.id, 'goals', id);

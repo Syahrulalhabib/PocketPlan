@@ -168,7 +168,7 @@ const SavingsMascot = ({ mode = 'hero', className = '' }) => {
       <div className={`savings-mascot-card card ${className}`}>
         <div className="mascot-widget-header">
           <div className="mascot-widget-title-group">
-            <span className="mascot-sparkle-badge">🪙 Smart Piggy Bank</span>
+            <span className="mascot-sparkle-badge">🐷 Smart Piggy Bank</span>
             <h3 className="mascot-card-title">Save Up Today!</h3>
           </div>
           <span className="mascot-coin-badge">
@@ -245,7 +245,7 @@ const SavingsMascot = ({ mode = 'hero', className = '' }) => {
               onClick={handleTossCoin}
             >
               <CoinIcon size={18} />
-              <span>Drop Coin 🪙</span>
+              <span>Drop Coin 💰</span>
             </button>
           </div>
         </div>

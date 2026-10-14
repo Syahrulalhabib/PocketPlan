@@ -172,20 +172,20 @@ const LoginPage = () => {
 
         {loginMethod === 'telegram' ? (
           <form className="auth-form" onSubmit={handleTelegramLogin}>
-            <label>Kode Akses Telegram (6 Digit)</label>
+            <label>Telegram Access Code (6 Digits)</label>
             <input
               className="input"
-              placeholder="Contoh: A8X2K9"
+              placeholder="Example: A8X2K9"
               value={tgCode}
               onChange={(e) => setTgCode(e.target.value.toUpperCase())}
               maxLength={10}
               required
             />
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0.25rem 0 1rem', lineHeight: '1.4' }}>
-              💡 Chat bot Telegram <strong>@yourpocketplan_bot</strong> lalu kirim perintah <code>/web</code> ke Pocky untuk mendapatkan kode akses login instan! 🪙
+              💡 Chat Telegram bot <strong>@yourpocketplan_bot</strong> and send command <code>/web</code> to get your instant login passcode! ✨
             </p>
             <button className="pill btn-primary auth-submit" disabled={loading}>
-              {loading ? 'Memverifikasi...' : '🚀 Masuk dengan Telegram'}
+              {loading ? 'Verifying...' : '🚀 Sign in with Telegram'}
             </button>
             <a
               href="https://t.me/yourpocketplan_bot"
@@ -194,7 +194,7 @@ const LoginPage = () => {
               className="pill btn-secondary auth-submit"
               style={{ textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              Chat Pocky di Telegram (@yourpocketplan_bot) 🪙
+              Chat Pocky on Telegram (@yourpocketplan_bot) ✨
             </a>
             {error && <div className="form-status">{error}</div>}
             {!error && status && <div className="form-status">{status}</div>}

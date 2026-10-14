@@ -10,7 +10,7 @@ const TransactionFormModal = ({ open, onClose, onSubmit, form, setForm, isEdit =
         {!isEdit && form.type === 'Expense' && goals?.length > 0 && (
           <div style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '12px', background: 'var(--card-bg-subtle, rgba(120,120,120,0.06))', border: '1px dashed var(--border-color, #cbd5e1)' }}>
             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-              🎯 Hubungkan dengan Goal (Opsional)
+              🎯 Link to Savings Goal (Optional)
             </label>
             <select
               className="input"
@@ -24,7 +24,7 @@ const TransactionFormModal = ({ open, onClose, onSubmit, form, setForm, isEdit =
                     completedGoalId: targetGoal.id,
                     category: 'Shopping',
                     amount: targetGoal.target,
-                    description: `Pembelian Goal: ${targetGoal.name}`
+                    description: `Goal Purchase: ${targetGoal.name}`
                   }));
                 } else {
                   setForm((prev) => ({
@@ -34,7 +34,7 @@ const TransactionFormModal = ({ open, onClose, onSubmit, form, setForm, isEdit =
                 }
               }}
             >
-              <option value="">-- Bukan Pembelian Goal --</option>
+              <option value="">-- Not a Goal Purchase --</option>
               {goals.map((g) => (
                 <option key={g.id} value={g.id}>
                   🎯 {g.name} (Rp {formatDisplayNumber(g.target)})
@@ -43,7 +43,7 @@ const TransactionFormModal = ({ open, onClose, onSubmit, form, setForm, isEdit =
             </select>
             {form.completedGoalId && (
               <small style={{ display: 'block', marginTop: '0.35rem', color: '#10b981', fontSize: '0.78rem' }}>
-                ✓ Goal ini otomatis diselesaikan dan dihapus saat transaksi disimpan.
+                ✓ This goal will be automatically marked achieved and archived when saved.
               </small>
             )}
           </div>

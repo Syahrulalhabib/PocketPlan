@@ -7,7 +7,7 @@ const DemoPage = () => {
   const { isDemo, startDemo } = useAuth();
 
   useEffect(() => {
-    document.title = 'Mode Demo — Pocketplan';
+    document.title = 'Demo Mode — Pocketplan';
     if (!isDemo) {
       startDemo();
     }

@@ -100,7 +100,7 @@ const TransactionsPage = () => {
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button type="button" className="pill btn-secondary btn-add shadowed" onClick={() => setScanModal(true)}
-            title="Pocky scan struk belanja atau bukti transfer">
+            title="Scan receipts or payment slips with Pocky AI">
             <ScanIcon size={16} />
             <span>Pocky Scan 🧾</span>
           </button>

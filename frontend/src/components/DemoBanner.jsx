@@ -18,11 +18,11 @@ const DemoBanner = () => {
   };
 
   return (
-    <aside className="demo-persistent-banner" role="status" aria-label="Notifikasi Mode Demo">
+    <aside className="demo-persistent-banner" role="status" aria-label="Demo Mode Notification">
       <div className="demo-banner-content">
-        <span className="demo-banner-badge">✨ MODE DEMO</span>
+        <span className="demo-banner-badge">✨ DEMO MODE</span>
         <span className="demo-banner-text">
-          Data contoh &amp; perubahan tidak tersimpan ke server.
+          Sample data active — changes are not saved to the cloud.
         </span>
       </div>
       <div className="demo-banner-actions">
@@ -31,14 +31,14 @@ const DemoBanner = () => {
           onClick={handleRegister}
           className="demo-banner-btn demo-banner-primary"
         >
-          Daftar Gratis
+          Sign Up Free
         </button>
         <button
           type="button"
           onClick={handleExit}
           className="demo-banner-btn demo-banner-secondary"
         >
-          Keluar Demo
+          Exit Demo
         </button>
       </div>
     </aside>

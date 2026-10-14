@@ -234,7 +234,7 @@ const LuckyCoinMascot = ({
         </div>
         <div className="koiny-ground-shadow" />
         <span className="koiny-click-tag" aria-hidden="true">
-          {cheerCount > 0 ? `✨ ${cheerCount}x Cheers` : 'Click Me! 🪙'}
+          {cheerCount > 0 ? `✨ ${cheerCount}x Cheers` : 'Click Me! ✨'}
         </span>
       </div>
 

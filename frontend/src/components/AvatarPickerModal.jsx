@@ -3,7 +3,7 @@ import { CameraIcon, CheckIcon } from './Icons.jsx';
 
 export const PRESET_AVATARS = [
   { id: 'piggy', label: 'Piggy Bank', url: '/pocket-logo.svg', emoji: '🐷' },
-  { id: 'koiny', label: 'Lucky Coin', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Koiny&backgroundColor=fbbf24', emoji: '🪙' },
+  { id: 'koiny', label: 'Lucky Coin', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Koiny&backgroundColor=fbbf24', emoji: '💰' },
   { id: 'felix', label: 'Adventurer', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Felix&backgroundColor=ffd5dc', emoji: '🧭' },
   { id: 'aria', label: 'Smart Saver', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Aria&backgroundColor=b6e3f4', emoji: '💡' },
   { id: 'emoji', label: 'Joyful Face', url: 'https://api.dicebear.com/7.x/fun-emoji/svg?seed=Pocket&backgroundColor=d1fae5', emoji: '✨' },

@@ -185,11 +185,11 @@ const DashboardPage = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '1.6rem' }}>📄</span>
             <div>
-              <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Laporan Bulanan</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Rekap &amp; cetak PDF A4</div>
+              <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Monthly Report</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Summary &amp; export A4 PDF</div>
             </div>
           </div>
-          <span style={{ fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 700 }}>Lihat →</span>
+          <span style={{ fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 700 }}>View →</span>
         </div>
 
         <div
@@ -200,11 +200,11 @@ const DashboardPage = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '1.6rem' }}>🏅</span>
             <div>
-              <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Galeri Pencapaian</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Lencana &amp; unduh kartu</div>
+              <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Achievements Gallery</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Badges &amp; share cards</div>
             </div>
           </div>
-          <span style={{ fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 700 }}>Lihat →</span>
+          <span style={{ fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 700 }}>View →</span>
         </div>
       </div>
 

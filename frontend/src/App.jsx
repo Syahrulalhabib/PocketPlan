@@ -10,7 +10,6 @@ import GoalsPage from './pages/GoalsPage.jsx';
 import LaporanPage from './pages/LaporanPage.jsx';
 import LaporanCetakPage from './pages/LaporanCetakPage.jsx';
 import PencapaianPage from './pages/PencapaianPage.jsx';
-import AboutPage from './pages/AboutPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
@@ -40,7 +39,6 @@ const App = () => {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/verification" element={<VerificationPage />} />
-      <Route path="/about" element={<AboutPage />} />
       <Route path="/demo" element={<DemoPage />} />
       <Route
         path="/dashboard"

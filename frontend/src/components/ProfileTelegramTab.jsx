@@ -96,7 +96,7 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
           if (!prevLinkedRef.current) {
             setStatusMessage?.({
               type: 'success',
-              text: `🎉 Bot Telegram Pocky (${uName ? '@' + uName : 'ID: ' + cId}) berhasil terhubung!`
+              text: `🎉 Pocky Telegram Bot (${uName ? '@' + uName : 'ID: ' + cId}) successfully linked!`
             });
             prevLinkedRef.current = true;
           }
@@ -126,7 +126,7 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
       setDeepLink(res.deepLink);
       if (res.expiresAt) startTimer(res.expiresAt);
     } catch (err) {
-      setStatusMessage?.({ type: 'error', text: err?.message || 'Gagal membuat kode' });
+      setStatusMessage?.({ type: 'error', text: err?.message || 'Failed to generate link code' });
     } finally {
       setRequestingCode(false);
     }
@@ -147,39 +147,39 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
       setGeneratedCode(null);
       setDeepLink(null);
       setRemaining(0);
-      setStatusMessage?.({ type: 'info', text: 'Kode integrasi dibatalkan.' });
+      setStatusMessage?.({ type: 'info', text: 'Link code cancelled.' });
     } catch (err) {
-      setStatusMessage?.({ type: 'error', text: err?.message || 'Gagal membatalkan kode' });
+      setStatusMessage?.({ type: 'error', text: err?.message || 'Failed to cancel code' });
     } finally {
       setCancellingCode(false);
     }
   };
 
   const handleUnlink = async () => {
-    if (!window.confirm('Putuskan hubungan akun Telegram?')) return;
+    if (!window.confirm('Disconnect your Telegram account?')) return;
     try {
       setUnlinking(true);
       await requestUnlink();
       setLinkInfo({ linked: false, chatId: null, username: null });
       setGeneratedCode(null);
-      setStatusMessage?.({ type: 'success', text: 'Akun Telegram diputuskan.' });
+      setStatusMessage?.({ type: 'success', text: 'Telegram account disconnected.' });
     } catch (err) {
-      setStatusMessage?.({ type: 'error', text: err?.message || 'Gagal memutuskan.' });
+      setStatusMessage?.({ type: 'error', text: err?.message || 'Failed to disconnect.' });
     } finally {
       setUnlinking(false);
     }
   };
 
   if (loading) {
-    return <div className="telegram-tab-loading">Memuat status integrasi...</div>;
+    return <div className="telegram-tab-loading">Loading integration status...</div>;
   }
 
   return (
     <div className="profile-telegram-tab">
       <div className="form-section-intro">
-        <h3 className="section-title">Integrasi Bot Telegram Pocky 🪙</h3>
+        <h3 className="section-title">Pocky Telegram Bot Integration ✨</h3>
         <p className="section-desc">
-          Catat transaksi kilat & foto struk belanjaanmu dari mana saja bareng Pocky di Telegram (@yourpocketplan_bot).
+          Log transactions and scan receipts on the go with Pocky on Telegram (@yourpocketplan_bot).
         </p>
       </div>
 
@@ -191,9 +191,9 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
                 <PockySvg isWaving={true} />
               </div>
               <div>
-                <span className="connected-badge">● Pocky Terhubung Aktif! 🎉</span>
+                <span className="connected-badge">● Pocky Connected &amp; Active! 🎉</span>
                 <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: '2px' }}>
-                  Siap catat transaksi & struk belanjaanmu
+                  Ready to track expenses and scan receipts
                 </div>
               </div>
             </div>
@@ -203,57 +203,57 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
           </div>
 
           <div className="telegram-commands-box">
-            <h4>💡 Cheat Sheet Perintah Pocky di Telegram:</h4>
+            <h4>💡 Pocky Telegram Command Cheatsheet:</h4>
             <ul>
               <li>
-                <code>📸 Kirim Foto Struk</code>
-                <span>Pocky baca & catat otomatis via Pocky Scan</span>
+                <code>📸 Send Receipt Photo</code>
+                <span>Pocky reads &amp; records automatically via Pocky Scan</span>
               </li>
               <li>
                 <code>/koreksi 150k</code>
-                <span>Koreksi nominal struk/catatan terakhir</span>
+                <span>Correct amount of the last receipt / record</span>
               </li>
               <li>
                 <code>/toko Indomaret</code>
-                <span>Ubah nama toko struk terakhir</span>
+                <span>Update merchant name of the last receipt</span>
               </li>
               <li>
-                <code>kopi susu 25k</code>
-                <span>Catat kilat langsung ketik tanpa format</span>
+                <code>coffee 25k</code>
+                <span>Instant quick logging in plain text without syntax</span>
               </li>
               <li>
-                <code>/catat makan 50k</code>
-                <span>Catat pengeluaran harian</span>
+                <code>/catat lunch 50k</code>
+                <span>Log daily expense with category</span>
               </li>
               <li>
-                <code>/masuk gaji 2.5jt</code>
-                <span>Catat pemasukan uang</span>
+                <code>/masuk salary 2.5m</code>
+                <span>Record income</span>
               </li>
               <li>
-                <code>/goal Laptop 10jt</code>
-                <span>Buat target impian & celengan</span>
+                <code>/goal Laptop 10m</code>
+                <span>Create a new savings goal</span>
               </li>
               <li>
                 <code>/goals</code>
-                <span>Lihat progres celengan & tombol beli</span>
+                <span>View goals progress &amp; buy button</span>
               </li>
               <li>
                 <code>/pengingat</code>
-                <span>Atur pengingat harian otomatis 2x sehari</span>
+                <span>Configure automatic daily reminders twice a day</span>
               </li>
               <li>
                 <code>/saldo</code>
-                <span>Cek sisa saldo terkini</span>
+                <span>Check current balance</span>
               </li>
               <li>
                 <code>/batal</code>
-                <span>Batalkan & hapus catatan terakhir</span>
+                <span>Cancel &amp; undo the last record</span>
               </li>
             </ul>
           </div>
 
           <button type="button" className="pill btn-danger" onClick={handleUnlink} disabled={unlinking}>
-            {unlinking ? 'Memutuskan...' : 'Putuskan Sambungan'}
+            {unlinking ? 'Disconnecting...' : 'Disconnect Account'}
           </button>
         </div>
       ) : (
@@ -263,44 +263,44 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
               <PockySvg isWaving={true} />
             </div>
             <div className="pocky-receipt-bubble">
-              <strong>Hai! Yuk kenalan bareng Pocky di Telegram 🪙</strong>
+              <strong>Hi! Let&apos;s get to know Pocky on Telegram ✨</strong>
               <p>
-                Cukup kirim pesan ke bot Telegram, kamu bisa scan struk otomatis, catat kopi atau bensin tanpa buka web, dan pantau celengan impianmu!
+                Simply send a text to the Telegram bot to auto-scan receipts, log coffee or fuel without opening the web, and track your savings goals!
               </p>
             </div>
           </div>
 
           <div className="telegram-promo">
             <div className="telegram-icon-hero"><TelegramIcon size={32} /></div>
-            <h4>Catat Cepat Kapan Saja via Telegram</h4>
-            <p>Hubungkan akun Pocketplan kamu ke bot <strong>@yourpocketplan_bot</strong>.</p>
+            <h4>Track Quickly Anytime via Telegram</h4>
+            <p>Connect your Pocketplan account to <strong>@yourpocketplan_bot</strong>.</p>
           </div>
 
           {!generatedCode ? (
             <button type="button" className="pill btn-primary telegram-connect-btn" onClick={handleGenerateCode} disabled={requestingCode}>
               <TelegramIcon size={18} />
-              <span>{requestingCode ? 'Menghubungkan...' : 'Hubungkan ke Pocky Telegram Sekarang'}</span>
+              <span>{requestingCode ? 'Connecting...' : 'Connect to Pocky Telegram Now'}</span>
             </button>
           ) : (
             <div className="telegram-code-card">
-              <p className="code-instruction">Kode Integrasi Kamu:</p>
+              <p className="code-instruction">Your Link Code:</p>
               <div className="code-display-wrap">
                 <span className="secret-link-code">{generatedCode}</span>
                 <button type="button" className="pill btn-secondary copy-code-btn" onClick={handleCopyCode}>
                   {copied ? <CheckIcon size={14} /> : null}
-                  <span>{copied ? 'Tersalin' : 'Salin'}</span>
+                  <span>{copied ? 'Copied' : 'Copy'}</span>
                 </button>
               </div>
               <p className="code-timer" style={{ fontSize: '0.85rem', color: remaining < 60000 ? 'var(--danger)' : 'var(--text-muted)', margin: '0.35rem 0 0.5rem', fontVariantNumeric: 'tabular-nums' }}>
-                ⏱️ Berlaku {formatTimer(remaining)}
+                ⏱️ Valid for {formatTimer(remaining)}
               </p>
-              <p className="code-hint-text">Kirim perintah berikut ke Pocky di Telegram:</p>
+              <p className="code-hint-text">Send this command to Pocky on Telegram:</p>
               <div className="code-cmd-preview"><code>/link {generatedCode}</code></div>
               <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
                 {deepLink && (
                   <a href={deepLink} target="_blank" rel="noopener noreferrer" className="pill btn-primary telegram-deeplink-btn" style={{ flex: 1, margin: 0, justifyContent: 'center' }}>
                     <TelegramIcon size={18} />
-                    <span>Buka Bot Telegram</span>
+                    <span>Open Telegram Bot</span>
                   </a>
                 )}
                 <button
@@ -310,7 +310,7 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
                   disabled={cancellingCode}
                   style={{ padding: '0.6rem 1rem', fontSize: '0.85rem' }}
                 >
-                  {cancellingCode ? 'Membatalkan...' : '❌ Batalkan'}
+                  {cancellingCode ? 'Cancelling...' : '❌ Cancel Code'}
                 </button>
               </div>
             </div>

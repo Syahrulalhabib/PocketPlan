@@ -167,7 +167,7 @@ const FloatingMascot = () => {
       'Need a tip? 💡',
       'Save smart! ✨',
       'Pocky is here! 🟢',
-      'Every coin counts! 🪙',
+      'Every coin counts! 💰',
       'Bright future ahead! 🚀'
     ];
     let idx = 0;
@@ -206,7 +206,7 @@ const FloatingMascot = () => {
     setIsSquishing(true);
     setTimeout(() => setIsSquishing(false), 400);
 
-    const burstItems = ['🪙', '✨', '⭐', '💫', '💰'];
+    const burstItems = ['✨', '⭐', '💫', '💰', '🌟'];
     const newItems = Array.from({ length: 4 }).map((_, i) => ({
       id: nextParticleId.current++,
       symbol: burstItems[Math.floor(Math.random() * burstItems.length)],
@@ -253,7 +253,7 @@ const FloatingMascot = () => {
           title="Open Pocky the Pocket Companion"
           aria-label="Open Pocky the Pocket Companion"
         >
-          <span className="pocky-collapsed-icon">🪙</span>
+          <span className="pocky-collapsed-icon">✨</span>
           <span className="pocky-collapsed-label">Pocky</span>
           <span className="pocky-collapsed-sparkle">✨</span>
         </button>

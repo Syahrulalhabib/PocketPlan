@@ -111,36 +111,36 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
         } else {
           const errData = await res.json().catch(() => ({}));
           if (errData.notReceipt) {
-            setErrorTitle('🙈 Ups, ini bukan struk atau bukti transaksi!');
+            setErrorTitle('🙈 Oops, this doesn\'t look like a receipt or payment proof!');
             setErrorMsg(
               errData.error ||
-              `Pocky mendeteksi gambar ini sepertinya ${errData.reason || 'bukan struk belanja atau bukti transfer'}. Pocky hanya bisa mencatat transaksi dari struk kasir, nota, tagihan, atau bukti transfer yaa ✨`
+              `Pocky detected that this image is likely ${errData.reason || 'not a receipt or transfer slip'}. Pocky can only process cashier receipts, bills, or bank transfer proofs! ✨`
             );
             setIsNotReceipt(true);
             setStatus(STATUS.ERROR);
             return;
           }
-          lastError = errData.error || `Gagal membaca gambar (${res.status})`;
+          lastError = errData.error || `Failed to read image (${res.status})`;
         }
       } catch (backendErr) {
-        lastError = backendErr?.message || 'Koneksi ke Pocky terputus';
+        lastError = backendErr?.message || 'Connection to Pocky service lost';
       }
 
       throw new Error(lastError);
     } catch (err) {
       const rawErr = String(err?.message || '');
       if (/503|UNAVAILABLE|sibuk|high demand|antrean|queue/i.test(rawErr)) {
-        setErrorTitle('⏳ Pocky lagi ramai antreannya nih!');
-        setErrorMsg('Banyak yang sedang minta bantuan Pocky membaca struk secara bersamaan. Tolong coba lagi beberapa detik kembali yaa! ✨');
+        setErrorTitle('⏳ Pocky is experiencing high demand!');
+        setErrorMsg('Many users are scanning receipts at the same time. Please try again in a few moments! ✨');
       } else if (/timeout|abort/i.test(rawErr)) {
-        setErrorTitle('⏳ Waktu baca struk habis');
-        setErrorMsg('Koneksi agak lambat saat Pocky memproses strukmu. Tolong coba lagi beberapa detik kembali yaa! ⏳');
+        setErrorTitle('⏳ Scan request timed out');
+        setErrorMsg('Connection was slow while processing your receipt. Please try again in a moment! ⏳');
       } else {
-        setErrorTitle('🙈 Aduh, mata Pocky agak burem baca gambar ini!');
+        setErrorTitle('🙈 Oops, Pocky couldn\'t read this image clearly!');
         setErrorMsg(
-          rawErr.startsWith('Gambarnya') || rawErr.startsWith('Pocky')
+          rawErr.startsWith('Gambarnya') || rawErr.startsWith('Pocky') || rawErr.startsWith('The image')
             ? rawErr
-            : 'Gambarnya agak burem atau kurang terbaca nih. Tolong kirimkan kembali foto struk atau bukti transfer yang lebih jelas, terang, dan tegak lurus yaa ✨'
+            : 'The image looks blurry or difficult to read. Please upload a clearer, well-lit, and upright photo of your receipt or payment proof! ✨'
         );
       }
       setStatus(STATUS.ERROR);
@@ -166,7 +166,7 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
   }, [parsed, onResult, handleClose]);
 
   return (
-    <Modal open={open} onClose={handleClose} title="🧾 Pocky Scan — Struk & Bukti Transfer ✨">
+    <Modal open={open} onClose={handleClose} title="🧾 Pocky Scan — Receipts & Transfers ✨">
       <div className="modal-form" style={{ gap: '12px' }}>
         {status === STATUS.IDLE && (
           <>
@@ -175,8 +175,8 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
                 <PockySvg isWaving={true} />
               </div>
               <div className="pocky-receipt-bubble">
-                <strong>Hai! Pocky siap bacain struk belanja & bukti transfermu 🪙</strong>
-                <p>Cukup upload foto struk belanja, bukti transfer m-Banking / e-wallet (masuk/keluar), atau tagihan. Pocky scan bakal deteksi otomatis!</p>
+                <strong>Hi! Pocky is ready to scan your receipts &amp; payment slips ✨</strong>
+                <p>Upload a photo of your receipt, m-Banking / e-wallet transfer, or bill. Pocky AI will detect details automatically!</p>
               </div>
             </div>
 
@@ -191,13 +191,13 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
               />
               <div style={{ fontSize: '42px', marginBottom: '8px' }}>📸</div>
               <p style={{ margin: 0, fontWeight: 700, fontSize: '0.98rem' }}>
-                Tap untuk foto struk / bukti transfer atau pilih file
+                Tap to photograph receipt / transfer proof or select file
               </p>
               <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: 'var(--muted)' }}>
-                JPG, PNG, HEIC, WEBP • Otomatis dipindai via Pocky Scan
+                JPG, PNG, HEIC, WEBP • Automatically parsed via Pocky AI
               </p>
               <span style={{ marginTop: '8px', fontSize: '0.76rem', color: '#059669', background: 'rgba(16,185,129,0.1)', padding: '3px 10px', borderRadius: '12px', fontWeight: 600 }}>
-                💡 Tips Pocky: Foto dengan cahaya terang & tegak yaa
+                💡 Pocky Tip: Take photos under clear lighting and keep the receipt straight
               </span>
             </div>
           </>
@@ -209,16 +209,16 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
               <PockySvg isSquishing={true} />
             </div>
             <p className="pocky-loading-title">
-              🔍 Pocky lagi teliti membaca gambar kamu nih... ({progress}%)
+              🔍 Pocky is carefully reading your document... ({progress}%)
             </p>
             <p className="pocky-loading-sub">
-              Tunggu sebentar yaa, Pocky lagi intip jenis transaksi, nominal, dan rinciannya! 🪙✨
+              One moment please, identifying transaction type, amount, and items! 💰✨
             </p>
 
             {preview && (
               <img
                 src={preview}
-                alt="Preview Dokumen"
+                alt="Document Preview"
                 className="pocky-receipt-preview"
               />
             )}
@@ -238,28 +238,28 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
             <p className="pocky-error-detail">{errorMsg}</p>
 
             <div className="pocky-error-tips">
-              <p>{isNotReceipt ? '💡 Dokumen yang bisa dibaca Pocky:' : '💡 Tips dari Pocky biar gambar terbaca jelas:'}</p>
+              <p>{isNotReceipt ? '💡 Documents supported by Pocky:' : '💡 Tips for a crisp scan:'}</p>
               <ul>
                 {isNotReceipt ? (
                   <>
-                    <li>🧾 Struk belanja kasir fisik (Indomaret, Alfamart, resto, cafe, SPBU)</li>
-                    <li>💳 Screenshot bukti transfer m-banking & e-wallet (BCA, Mandiri, BRI, QRIS, GoPay, Dana)</li>
-                    <li>📄 Bukti bayar tagihan resmi (PLN, PDAM, pulsa)</li>
-                    <li>Atau kamu bisa catat manual di bot Telegram: <code>kopi 25k</code></li>
+                    <li>🧾 Physical cashier receipts (Supermarket, restaurant, cafe, fuel station)</li>
+                    <li>💳 Screenshot of m-banking or e-wallet transfer proof (BCA, Mandiri, QRIS, etc.)</li>
+                    <li>📄 Official bill payment receipts (Electricity, water, mobile bills)</li>
+                    <li>Or quickly log manually via Telegram: <code>coffee 25k</code></li>
                   </>
                 ) : (
                   <>
-                    <li>Pastikan cahaya cukup terang dan tidak ada pantulan cahaya silau</li>
-                    <li>Posisikan struk / bukti transfer tegak lurus dan nominal terlihat penuh</li>
-                    <li>Kirimkan kembali foto yang lebih tajam dan fokus yaa</li>
-                    <li>Atau kamu bisa catat cepat di bot Telegram: <code>kopi 25k</code></li>
+                    <li>Ensure lighting is bright without strong glare or reflections</li>
+                    <li>Position the document flat and ensure the total amount is visible</li>
+                    <li>Retake with a sharper and steady camera focus</li>
+                    <li>Or log quickly on Telegram bot: <code>coffee 25k</code></li>
                   </>
                 )}
               </ul>
             </div>
 
             <button type="button" className="pill btn-secondary" onClick={reset}>
-              {isNotReceipt ? '🔄 Coba Kirim Struk Lain' : '🔄 Coba Kirim Ulang Bareng Pocky'}
+              {isNotReceipt ? '🔄 Try Another Receipt' : '🔄 Try Again with Pocky'}
             </button>
           </div>
         )}
@@ -270,8 +270,8 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
                 <PockySvg isWaving={true} />
               </div>
               <div className="pocky-done-text">
-                <div className="pocky-done-badge">🎉 Hore! Berhasil Dibaca Pocky!</div>
-                <p className="pocky-done-sub">Periksa jenis transaksi & rincian di bawah sebelum dimasukkan ke form yaa ✨</p>
+                <div className="pocky-done-badge">🎉 Hooray! Successfully Scanned by Pocky!</div>
+                <p className="pocky-done-sub">Review the extracted transaction details before adding to your records ✨</p>
               </div>
             </div>
 
@@ -293,7 +293,7 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
                 }}
                 onClick={() => setParsed(prev => ({ ...prev, type: 'Expense' }))}
               >
-                🔴 Pengeluaran
+                🔴 Expense
               </button>
               <button
                 type="button"
@@ -312,20 +312,20 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
                 }}
                 onClick={() => setParsed(prev => ({ ...prev, type: 'Income' }))}
               >
-                🟢 Pemasukan
+                🟢 Income
               </button>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>
-                ⚡ Dipindai via: <strong>{engineUsed}</strong>
+                ⚡ Scanned via: <strong>{engineUsed}</strong>
               </span>
               <div style={{ display: 'flex', gap: '6px' }}>
                 {parsed.docType && (
                   <span style={{ fontSize: '0.75rem', background: 'rgba(99,102,241,0.1)', color: '#4f46e5', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>
-                    {parsed.docType === 'transfer_in' ? '💰 Transfer Masuk' :
-                     parsed.docType === 'transfer_out' ? '💸 Transfer Keluar' :
-                     parsed.docType === 'bill' ? '📄 Tagihan' : '🧾 Struk'}
+                    {parsed.docType === 'transfer_in' ? '💰 Inward Transfer' :
+                     parsed.docType === 'transfer_out' ? '💸 Outward Transfer' :
+                     parsed.docType === 'bill' ? '📄 Bill' : '🧾 Receipt'}
                   </span>
                 )}
                 {parsed.paymentMethod && (
@@ -339,28 +339,28 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
             <div className="receipt-result-card">
               <div className="receipt-result-row">
                 <span className="receipt-result-label">
-                  {parsed.type === 'Income' ? '💰 Nominal Masuk' : '💰 Total Transaksi'}
+                  {parsed.type === 'Income' ? '💰 Inflow Amount' : '💰 Total Amount'}
                 </span>
                 <span className="receipt-result-value" style={{ fontWeight: 800, color: parsed.type === 'Income' ? '#10b981' : '#ef4444', fontSize: '1.05rem' }}>
                   {parsed.amount ? (
                     `${parsed.type === 'Income' ? '+' : '-'}${formatRupiah(parsed.amount)}`
                   ) : (
-                    <em style={{ color: '#f59e0b' }}>Tidak terdeteksi</em>
+                    <em style={{ color: '#f59e0b' }}>Not detected</em>
                   )}
                 </span>
               </div>
               <div className="receipt-result-row">
                 <span className="receipt-result-label">
-                  {parsed.type === 'Income' ? '📥 Pengirim / Sumber' : '🏪 Toko / Penerima'}
+                  {parsed.type === 'Income' ? '📥 Sender / Source' : '🏪 Merchant / Recipient'}
                 </span>
                 <span className="receipt-result-value">{parsed.description || '-'}</span>
               </div>
               <div className="receipt-result-row">
-                <span className="receipt-result-label">📂 Kategori</span>
+                <span className="receipt-result-label">📂 Category</span>
                 <span className="receipt-result-value">{parsed.category || 'Other'}</span>
               </div>
               <div className="receipt-result-row">
-                <span className="receipt-result-label">📅 Tanggal</span>
+                <span className="receipt-result-label">📅 Date</span>
                 <span className="receipt-result-value">{parsed.date || '-'}</span>
               </div>
             </div>
@@ -368,7 +368,7 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
             {Array.isArray(parsed.items) && parsed.items.length > 0 && (
               <details style={{ fontSize: '0.8rem' }} open>
                 <summary style={{ cursor: 'pointer', fontWeight: 600, marginBottom: '6px' }}>
-                  🛒 Rincian Belanja ({parsed.items.length} item)
+                  🛒 Item Breakdown ({parsed.items.length} items)
                 </summary>
                 <div style={{ maxHeight: '130px', overflowY: 'auto', background: 'rgba(0,0,0,0.02)', padding: '8px 10px', borderRadius: '8px' }}>
                   {parsed.items.map((item, idx) => (
@@ -382,7 +382,7 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
             )}
 
             <details style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>
-              <summary style={{ cursor: 'pointer', marginBottom: '4px' }}>Lihat data mentah Pocky</summary>
+              <summary style={{ cursor: 'pointer', marginBottom: '4px' }}>View raw Pocky AI output</summary>
               <pre
                 style={{
                   whiteSpace: 'pre-wrap',
@@ -395,20 +395,20 @@ const ReceiptScannerModal = ({ open, onClose, onResult }) => {
                   fontSize: '0.72rem'
                 }}
               >
-                {rawText || '(kosong)'}
+                {rawText || '(empty)'}
               </pre>
             </details>
 
             <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--muted)' }}>
-              💡 Hasil ini bisa diedit lagi di form transaksi sebelum disimpan.
+              💡 You can still edit these values in the transaction form before saving.
             </p>
 
             <div className="modal-actions">
               <button type="button" className="pill btn-secondary" onClick={reset}>
-                Scan Struk Lain 🔄
+                Scan Another Receipt 🔄
               </button>
               <button type="button" className="pill btn-primary" onClick={handleUseResult}>
-                ✅ Gunakan Catatan Pocky 🚀
+                ✅ Use Pocky Record 🚀
               </button>
             </div>
           </>

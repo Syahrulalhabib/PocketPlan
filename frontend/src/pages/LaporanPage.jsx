@@ -5,8 +5,8 @@ import { getAuthToken } from '../services/firebase.js';
 import LaporanSheet from './LaporanSheet.jsx';
 
 const MONTH_NAMES = [
-  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
 function formatIdr(n) {
@@ -26,7 +26,7 @@ function formatShortDate(dateStr) {
   if (parts.length < 3) return dateStr;
   const day = parts[2].slice(0, 2);
   const m = parseInt(parts[1], 10);
-  const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return `${day} ${MONTH_SHORT[m - 1] || ''}`;
 }
 
@@ -60,7 +60,7 @@ export function computeLocalReport(monthStr, transactions = [], goals = [], user
 
   const catMap = new Map();
   for (const t of currOut) {
-    const c = t.category || 'Lainnya';
+    const c = t.category || 'Other';
     catMap.set(c, (catMap.get(c) || 0) + (Number(t.amount) || 0));
   }
   const byCategory = [...catMap.entries()]
@@ -80,15 +80,15 @@ export function computeLocalReport(monthStr, transactions = [], goals = [], user
   const topTransactions = [...currOut]
     .sort((a, b) => (Number(b.amount) || 0) - (Number(a.amount) || 0))
     .slice(0, 5)
-    .map((t) => ({ tanggal: t.date, keterangan: t.description || 'Pengeluaran', kategori: t.category || 'Lainnya', nominal: Number(t.amount) || 0 }));
+    .map((t) => ({ tanggal: t.date, keterangan: t.description || 'Expense', kategori: t.category || 'Other', nominal: Number(t.amount) || 0 }));
 
   const prevCatMap = new Map();
   for (const t of prevTx.filter((x) => x.type === 'Expense')) {
-    const c = t.category || 'Lainnya';
+    const c = t.category || 'Other';
     prevCatMap.set(c, (prevCatMap.get(c) || 0) + (Number(t.amount) || 0));
   }
 
-  const comparison = [{ nama: 'Total Pengeluaran', bulanLalu: prevPengeluaran, bulanIni: totalPengeluaran, persenPerubahan }];
+  const comparison = [{ nama: 'Total Expenses', bulanLalu: prevPengeluaran, bulanIni: totalPengeluaran, persenPerubahan }];
   for (let i = 0; i < Math.min(2, byCategory.length); i++) {
     const cat = byCategory[i].nama;
     const curVal = byCategory[i].total;
@@ -98,7 +98,7 @@ export function computeLocalReport(monthStr, transactions = [], goals = [], user
   }
 
   const goalsList = goals.map((g) => ({
-    nama: g.name || 'Target',
+    nama: g.name || 'Goal',
     terkumpul: Number(g.amount) || 0,
     target: Number(g.target) || 0,
     persen: Number(g.target) > 0 ? Math.min(100, Math.round(((Number(g.amount) || 0) / Number(g.target)) * 100)) : 0
@@ -106,39 +106,39 @@ export function computeLocalReport(monthStr, transactions = [], goals = [], user
 
   const rataRataHarian = daysInMonth > 0 ? Math.round(totalPengeluaran / daysInMonth) : 0;
 
-  const INDO_DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const daySpend = [0, 0, 0, 0, 0, 0, 0];
   for (const t of currOut) {
     daySpend[new Date(`${t.date}T00:00:00Z`).getUTCDay()] += Number(t.amount) || 0;
   }
   let maxDayIdx = 0;
   for (let i = 1; i < 7; i++) if (daySpend[i] > daySpend[maxDayIdx]) maxDayIdx = i;
-  const hariTerboros = { hari: INDO_DAYS[maxDayIdx], total: daySpend[maxDayIdx] };
+  const hariTerboros = { hari: DAYS[maxDayIdx], total: daySpend[maxDayIdx] };
   const kategoriTerhemat = byCategory.length > 0 ? byCategory[byCategory.length - 1] : { nama: '-', total: 0 };
 
   let insight = '';
   if (!totalPengeluaran && !totalPemasukan) {
-    insight = 'Belum ada transaksi bulan ini. Catat transaksi harianmu!';
+    insight = 'No transactions recorded this month. Start logging your daily expenses!';
   } else {
     const top = byCategory[0];
     const topNom = top ? formatShortNominal(top.total) : '0';
-    const topNama = top?.nama || 'belanja';
+    const topNama = top?.nama || 'expenses';
     const surpStr = formatShortNominal(Math.max(0, surplus));
     if (persenPerubahan > 0) {
-      insight = `Pengeluaranmu naik ${persenPerubahan}% dibanding bulan lalu — pemicunya ${topNama} Rp ${topNom}! Kabar baiknya kamu tetap surplus Rp ${surpStr} dan streak tetap terjaga. Pertahankan dan kendalikan pos ${topNama} bulan depan! 🎯`;
+      insight = `Your spending rose ${persenPerubahan}% compared to last month — driven mostly by ${topNama} (${topNom}). Good news: you maintained a net surplus of ${surpStr} and kept your streak alive. Keep steady and watch your ${topNama} budget next month! 🎯`;
     } else if (persenPerubahan < 0) {
-      insight = `Keren! Pengeluaranmu lebih hemat ${Math.abs(persenPerubahan)}% dibanding bulan lalu. Pos terbesar adalah ${topNama} (Rp ${topNom}) dan surplusmu mencapai Rp ${surpStr}. Pertahankan kebiasaan bijak ini! ✨`;
+      insight = `Great job! Your spending was ${Math.abs(persenPerubahan)}% lower than last month. Top category was ${topNama} (${topNom}) and your net surplus reached ${surpStr}. Keep up this healthy habit! ✨`;
     } else {
-      insight = `Pengeluaran bulan ini stabil dengan surplus Rp ${surpStr}. Pos belanja terbesar ada pada ${topNama} (Rp ${topNom}). Terus pantau target tabunganmu! 💪`;
+      insight = `Spending remained stable this month with a net surplus of ${surpStr}. Top category was ${topNama} (${topNom}). Keep watching your savings targets! 💪`;
     }
   }
 
   const badges = [
-    { type: 'streak', icon: '🔥', text: '23 hari', sub: 'streak catat' },
-    { type: 'tx', icon: '📊', text: `${jumlahTransaksi}`, sub: 'transaksi' },
-    { type: 'budget', icon: '💰', text: '3/5', sub: 'budget terjaga' },
-    { type: 'goal', icon: '🎯', text: `${goalsList.filter((g) => g.persen >= 100).length || 1}`, sub: 'target tercapai' },
-    { type: 'challenge', icon: '🎖️', text: '2', sub: 'tantangan selesai' }
+    { type: 'streak', icon: '🔥', text: '23 days', sub: 'logging streak' },
+    { type: 'tx', icon: '📊', text: `${jumlahTransaksi}`, sub: 'transactions' },
+    { type: 'budget', icon: '💰', text: '3/5', sub: 'budgets on track' },
+    { type: 'goal', icon: '🎯', text: `${goalsList.filter((g) => g.persen >= 100).length || 1}`, sub: 'goals reached' },
+    { type: 'challenge', icon: '🎖️', text: '2', sub: 'challenges completed' }
   ];
 
   return {
@@ -173,7 +173,7 @@ const LaporanPage = () => {
   const [showPrintModal, setShowPrintModal] = useState(false);
 
   useEffect(() => {
-    document.title = 'Laporan Keuangan Bulanan - Pocketplan';
+    document.title = 'Monthly Financial Report - Pocketplan';
   }, []);
 
   useEffect(() => {
@@ -207,7 +207,7 @@ const LaporanPage = () => {
     return () => { active = false; };
   }, [selectedMonth, isDemo, transactions, goals]);
 
-  const userName = user?.displayName || user?.name || (isDemo ? 'Demo User' : 'Pengguna');
+  const userName = user?.displayName || user?.name || (isDemo ? 'Demo User' : 'User');
   const monthLabel = useMemo(() => getIndoMonthLabel(selectedMonth), [selectedMonth]);
   const prevMonthLabel = useMemo(() => {
     if (!report?.prevMonth) {
@@ -223,7 +223,7 @@ const LaporanPage = () => {
     <div className="laporan-container">
       <div className="laporan-toolbar no-print">
         <div className="laporan-month-picker">
-          <label htmlFor="month-select" style={{ fontWeight: 600, fontSize: '0.92rem' }}>Pilih Bulan:</label>
+          <label htmlFor="month-select" style={{ fontWeight: 600, fontSize: '0.92rem' }}>Select Month:</label>
           <input
             id="month-select"
             type="month"
@@ -236,13 +236,13 @@ const LaporanPage = () => {
           className="btn-laporan-print"
           onClick={() => window.open(`/laporan/cetak?month=${selectedMonth}`, '_blank')}
         >
-          🖨️ Cetak / Simpan PDF
+          🖨️ Print / Save PDF
         </button>
       </div>
 
       {loading && !report ? (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
-          Memuat laporan keuangan...
+          Loading financial report...
         </div>
       ) : (
         <LaporanSheet

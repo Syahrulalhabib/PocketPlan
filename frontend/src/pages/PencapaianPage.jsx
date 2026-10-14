@@ -10,8 +10,8 @@ const DEMO_ACHIEVEMENTS = [
   {
     key: 'streak_3',
     type: 'streak',
-    title: '🔥 Streak 3 Hari!',
-    subtitle: '3 hari berturut-turut catat keuangan',
+    title: '🔥 3-Day Streak!',
+    subtitle: '3 consecutive days of financial tracking',
     icon: '🔥',
     streakDays: 3,
     unlockedAt: '2026-10-01T10:00:00.000Z'
@@ -19,8 +19,8 @@ const DEMO_ACHIEVEMENTS = [
   {
     key: 'streak_7',
     type: 'streak',
-    title: '🔥 Streak 7 Hari!',
-    subtitle: '7 hari berturut-turut catat keuangan',
+    title: '🔥 7-Day Streak!',
+    subtitle: '7 consecutive days of financial tracking',
     icon: '🔥',
     streakDays: 7,
     unlockedAt: '2026-10-07T10:00:00.000Z'
@@ -28,8 +28,8 @@ const DEMO_ACHIEVEMENTS = [
   {
     key: 'goal_g-demo-1_50',
     type: 'goal',
-    title: '🎯 Motor Baru — 50%',
-    subtitle: 'Progres target tabunganmu!',
+    title: '🎯 New Bike — 50%',
+    subtitle: 'Savings milestone achieved!',
     icon: '🎯',
     percent: 50,
     unlockedAt: '2026-10-12T14:30:00.000Z'
@@ -39,7 +39,7 @@ const DEMO_ACHIEVEMENTS = [
 function formatDate(isoStr) {
   if (!isoStr) return null;
   try {
-    return new Intl.DateTimeFormat('id-ID', {
+    return new Intl.DateTimeFormat('en-US', {
       day: 'numeric',
       month: 'long',
       year: 'numeric'
@@ -57,7 +57,7 @@ const PencapaianPage = () => {
   const [downloadingKey, setDownloadingKey] = useState(null);
 
   useEffect(() => {
-    document.title = 'Pencapaian & Milestone — Pocketplan';
+    document.title = 'Achievements & Milestones — Pocketplan';
   }, []);
 
   useEffect(() => {
@@ -102,8 +102,8 @@ const PencapaianPage = () => {
         list.push({
           key,
           type: 'streak',
-          title: `Streak ${s} Hari`,
-          subtitle: `Catat transaksi ${s} hari berturut-turut`,
+          title: `${s}-Day Streak`,
+          subtitle: `Log transactions ${s} days in a row`,
           icon: '🔒'
         });
       }
@@ -115,8 +115,8 @@ const PencapaianPage = () => {
           list.push({
             key,
             type: 'goal',
-            title: `${g.name || 'Target'} — ${m}%`,
-            subtitle: `Kumpulkan tabungan hingga mencapai ${m}% target`,
+            title: `${g.name || 'Goal'} — ${m}%`,
+            subtitle: `Save up to reach ${m}% of your target`,
             icon: '🎯'
           });
         }
@@ -131,20 +131,20 @@ const PencapaianPage = () => {
       const token = await getAuthToken();
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await fetch(`/api/achievements/${badge.key}/card.png`, { headers });
-      if (!res.ok) throw new Error('Gagal mengunduh kartu');
+      if (!res.ok) throw new Error('Failed to download card');
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `pencapaian-${badge.key}.png`;
+      a.download = `achievement-${badge.key}.png`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      showToast('Kartu pencapaian berhasil diunduh! 🎉');
+      showToast('Achievement card downloaded! 🎉');
     } catch (err) {
       console.error('Download card error:', err);
-      showToast('Gagal mengunduh kartu pencapaian.', 'error');
+      showToast('Failed to download achievement card.', 'error');
     } finally {
       setDownloadingKey(null);
     }
@@ -152,9 +152,9 @@ const PencapaianPage = () => {
   return (
     <div className="pencapaian-container">
       <div className="pencapaian-header">
-        <h1 className="pencapaian-title">Galeri Pencapaian</h1>
+        <h1 className="pencapaian-title">Achievements Gallery</h1>
         <p className="pencapaian-subtitle">
-          Koleksi lencana konsistensi dan milestone keuangan yang telah kamu raih bersama Pocky.
+          Your collection of financial consistency badges and savings milestones earned with Pocky.
         </p>
       </div>
 
@@ -163,14 +163,14 @@ const PencapaianPage = () => {
           <div className="pencapaian-stat-icon">🏅</div>
           <div>
             <div className="pencapaian-stat-val">{unlockedBadges.length}</div>
-            <div className="pencapaian-stat-lbl">Lencana Terbuka</div>
+            <div className="pencapaian-stat-lbl">Unlocked Badges</div>
           </div>
         </div>
         <div className="pencapaian-stat-item">
           <div className="pencapaian-stat-icon">🔒</div>
           <div>
             <div className="pencapaian-stat-val">{lockedBadges.length}</div>
-            <div className="pencapaian-stat-lbl">Belum Tercapai</div>
+            <div className="pencapaian-stat-lbl">Locked Milestones</div>
           </div>
         </div>
       </div>
@@ -178,9 +178,9 @@ const PencapaianPage = () => {
       {!loading && unlockedBadges.length === 0 && (
         <div className="pencapaian-empty">
           <div className="pencapaian-empty-icon">🌱</div>
-          <h3>Belum Ada Lencana Terbuka</h3>
+          <h3>No Unlocked Badges Yet</h3>
           <p>
-            Catat keuangan 3 hari berturut-turut untuk membuka badge pertamamu! 🔥
+            Log your finances for 3 consecutive days to unlock your first badge! 🔥
           </p>
         </div>
       )}
@@ -188,7 +188,7 @@ const PencapaianPage = () => {
       {unlockedBadges.length > 0 && (
         <>
           <h2 className="pencapaian-sec-title">
-            <span>✨</span> Lencana Terbuka ({unlockedBadges.length})
+            <span>✨</span> Unlocked Badges ({unlockedBadges.length})
           </h2>
           <div className="pencapaian-grid">
             {unlockedBadges.map((b) => {
@@ -198,12 +198,12 @@ const PencapaianPage = () => {
                 <div key={b.key} className="badge-card">
                   <div className="badge-card-top">
                     <div className="badge-icon-box">{b.icon || '🏅'}</div>
-                    <span className="badge-status-pill unlocked">Terbuka</span>
+                    <span className="badge-status-pill unlocked">Unlocked</span>
                   </div>
                   <h3 className="badge-title">{b.title}</h3>
                   <p className="badge-subtitle">{b.subtitle}</p>
                   {formattedDate && (
-                    <div className="badge-date">Dibuka pada {formattedDate}</div>
+                    <div className="badge-date">Unlocked on {formattedDate}</div>
                   )}
                   <div className="badge-actions">
                     <button
@@ -212,10 +212,10 @@ const PencapaianPage = () => {
                       onClick={() => handleDownload(b)}
                       disabled={isDownloading}
                     >
-                      {isDownloading ? 'Mengunduh...' : '📥 Unduh Kartu'}
+                      {isDownloading ? 'Downloading...' : '📥 Download Card'}
                     </button>
                     <div className="badge-share-hint">
-                      Simpan atau bagikan sesukamu 🎉
+                      Save or share anywhere 🎉
                     </div>
                   </div>
                 </div>
@@ -228,14 +228,14 @@ const PencapaianPage = () => {
       {lockedBadges.length > 0 && (
         <>
           <h2 className="pencapaian-sec-title">
-            <span>🔒</span> Target Lencana Berikutnya ({lockedBadges.length})
+            <span>🔒</span> Upcoming Milestones ({lockedBadges.length})
           </h2>
           <div className="pencapaian-grid">
             {lockedBadges.map((b) => (
               <div key={b.key} className="badge-card locked">
                 <div className="badge-card-top">
                   <div className="badge-icon-box">{b.icon}</div>
-                  <span className="badge-status-pill locked">Terkunci</span>
+                  <span className="badge-status-pill locked">Locked</span>
                 </div>
                 <h3 className="badge-title">{b.title}</h3>
                 <p className="badge-subtitle">{b.subtitle}</p>

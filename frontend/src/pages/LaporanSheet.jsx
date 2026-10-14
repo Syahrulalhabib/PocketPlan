@@ -19,11 +19,11 @@ function formatShortDate(dateStr) {
   if (parts.length < 3) return dateStr;
   const day = parts[2].slice(0, 2);
   const m = parseInt(parts[1], 10);
-  const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return `${day} ${MONTH_SHORT[m - 1] || ''}`;
 }
 
-const LaporanSheet = ({ report, monthLabel, prevMonthLabel, userName = 'Pengguna' }) => {
+const LaporanSheet = ({ report, monthLabel, prevMonthLabel, userName = 'User' }) => {
   if (!report) return null;
 
   const rasio = Math.min(100, Math.max(0, report.summary?.rasioMenabung || 0));
@@ -87,40 +87,40 @@ const LaporanSheet = ({ report, monthLabel, prevMonthLabel, userName = 'Pengguna
           </div>
         </div>
         <div className="laporan-period">
-          <div className="laporan-kicker">LAPORAN BULANAN</div>
+          <div className="laporan-kicker">MONTHLY REPORT</div>
           <h2>{monthLabel}</h2>
-          <p>Dibuat untuk <b>{userName}</b></p>
+          <p>Prepared for <b>{userName}</b></p>
         </div>
       </div>
 
       {/* Hero Description */}
       <div className="laporan-hero">
-        Ringkasan performa finansial bulanan kamu — pemasukan, pengeluaran, rasio tabungan, dan insight kebiasaan belanja.
+        Your monthly financial performance summary — income, expenses, savings rate, and spending habits.
       </div>
 
       {/* 3 Summary Cards */}
       <div className="laporan-cards">
         <div className="laporan-card laporan-c-in">
-          <small>Total Pemasukan</small>
+          <small>Total Income</small>
           <div className="num">{formatIdr(report.summary?.totalPemasukan)}</div>
-          <div className="sub">{report.summary?.jumlahTransaksiIn ?? report.summary?.jumlahTransaksi ?? 0} transaksi</div>
+          <div className="sub">{report.summary?.jumlahTransaksiIn ?? report.summary?.jumlahTransaksi ?? 0} transactions</div>
         </div>
         <div className="laporan-card laporan-c-out">
-          <small>Total Pengeluaran</small>
+          <small>Total Expenses</small>
           <div className="num">{formatIdr(report.summary?.totalPengeluaran)}</div>
-          <div className="sub">{report.summary?.jumlahTransaksiOut ?? report.summary?.jumlahTransaksi ?? 0} transaksi</div>
+          <div className="sub">{report.summary?.jumlahTransaksiOut ?? report.summary?.jumlahTransaksi ?? 0} transactions</div>
         </div>
         <div className="laporan-card laporan-c-ok">
-          <small>Surplus / Defisit</small>
+          <small>Net Surplus / Deficit</small>
           <div className="num">{formatIdr(report.summary?.surplus)}</div>
-          <div className="sub">Rasio menabung {report.summary?.rasioMenabung ?? 0}%</div>
+          <div className="sub">Savings rate {report.summary?.rasioMenabung ?? 0}%</div>
         </div>
       </div>
-      {/* Sec 1: Rasio Menabung & Fakta Seru */}
-      <h3 className="laporan-sec"><span className="n">1</span> Rasio Menabung &amp; Fakta Seru</h3>
+      {/* Sec 1: Savings Rate & Fun Facts */}
+      <h3 className="laporan-sec"><span className="n">1</span> Savings Rate &amp; Fun Facts</h3>
       <div className="laporan-grid2">
         <div className="laporan-panel" style={{ textAlign: 'center' }}>
-          <div className="laporan-panel-t">Rasio Menabung Bulan Ini</div>
+          <div className="laporan-panel-t">Monthly Savings Rate</div>
           <svg viewBox="0 0 200 120" style={{ width: 175, height: 105, margin: '0 auto', display: 'block' }}>
             <path d="M 25 95 A 75 75 0 0 1 175 95" fill="none" stroke="#fee2e2" strokeWidth="18" strokeLinecap="round" />
             <path
@@ -143,22 +143,22 @@ const LaporanSheet = ({ report, monthLabel, prevMonthLabel, userName = 'Pengguna
             </defs>
           </svg>
           <div style={{ fontSize: 21, fontWeight: 800, marginTop: -4 }}>{rasio}%</div>
-          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Target sehat: <b>&ge; 20%</b> dari pemasukan</div>
+          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Healthy target: <b>&ge; 20%</b> of income</div>
         </div>
 
         <div className="laporan-panel">
-          <div className="laporan-panel-t">Fakta Finansial Kamu</div>
+          <div className="laporan-panel-t">Your Financial Facts</div>
           <div className="laporan-fact">
             <div className="ico">📅</div>
             <div>
-              <div className="flabel">Rata-rata Belanja Harian</div>
-              <div className="fval">{formatIdr(report.funFacts?.rataRataHarian)} / hari</div>
+              <div className="flabel">Daily Average Spend</div>
+              <div className="fval">{formatIdr(report.funFacts?.rataRataHarian)} / day</div>
             </div>
           </div>
           <div className="laporan-fact">
             <div className="ico">⚡</div>
             <div>
-              <div className="flabel">Hari Paling Boros</div>
+              <div className="flabel">Peak Spending Day</div>
               <div className="fval">
                 {report.funFacts?.hariTerboros?.hari || '-'} ({formatShortNominal(report.funFacts?.hariTerboros?.total || 0)})
               </div>
@@ -167,7 +167,7 @@ const LaporanSheet = ({ report, monthLabel, prevMonthLabel, userName = 'Pengguna
           <div className="laporan-fact">
             <div className="ico">🌱</div>
             <div>
-              <div className="flabel">Kategori Paling Hemat</div>
+              <div className="flabel">Most Frugal Category</div>
               <div className="fval">
                 {report.funFacts?.kategoriTerhemat?.nama || '-'} ({formatShortNominal(report.funFacts?.kategoriTerhemat?.total || 0)})
               </div>
@@ -176,11 +176,11 @@ const LaporanSheet = ({ report, monthLabel, prevMonthLabel, userName = 'Pengguna
         </div>
       </div>
 
-      {/* Sec 2: Komposisi & Tren Pengeluaran */}
-      <h3 className="laporan-sec"><span className="n">2</span> Komposisi &amp; Tren Pengeluaran</h3>
+      {/* Sec 2: Expense Composition & Trend */}
+      <h3 className="laporan-sec"><span className="n">2</span> Expense Composition &amp; Trend</h3>
       <div className="laporan-grid2">
         <div className="laporan-panel">
-          <div className="laporan-panel-t">Kategori Pengeluaran</div>
+          <div className="laporan-panel-t">Expense Categories</div>
           <div className="laporan-donut-wrap">
             <div
               style={{
@@ -225,14 +225,14 @@ const LaporanSheet = ({ report, monthLabel, prevMonthLabel, userName = 'Pengguna
                 </div>
               ))}
               {(!report.byCategory || report.byCategory.length === 0) && (
-                <div style={{ fontSize: 11, color: '#9ca3af' }}>Belum ada pengeluaran</div>
+                <div style={{ fontSize: 11, color: '#9ca3af' }}>No expenses recorded yet</div>
               )}
             </div>
           </div>
         </div>
 
         <div className="laporan-panel">
-          <div className="laporan-panel-t">Tren Mingguan (Mg 1 - 4)</div>
+          <div className="laporan-panel-t">Weekly Trend (Wk 1 - 4)</div>
           <svg viewBox="0 0 270 115" style={{ width: '100%', height: 90 }}>
             <line x1="20" y1="92" x2="255" y2="92" stroke="#f1f5f9" strokeWidth="1" />
             <line x1="20" y1="58" x2="255" y2="58" stroke="#f1f5f9" strokeWidth="1" />
@@ -245,7 +245,7 @@ const LaporanSheet = ({ report, monthLabel, prevMonthLabel, userName = 'Pengguna
                   {formatShortNominal(p.val)}
                 </text>
                 <text x={p.x} y="106" fontSize="9" fill="#9ca3af" textAnchor="middle">
-                  Mg {i + 1}
+                  Wk {i + 1}
                 </text>
               </g>
             ))}
@@ -253,8 +253,8 @@ const LaporanSheet = ({ report, monthLabel, prevMonthLabel, userName = 'Pengguna
         </div>
       </div>
 
-      {/* Sec 3: Peta Aktivitas Harian */}
-      <h3 className="laporan-sec"><span className="n">3</span> Peta Aktivitas Harian</h3>
+      {/* Sec 3: Daily Activity Map */}
+      <h3 className="laporan-sec"><span className="n">3</span> Daily Activity Map</h3>
       <div className="laporan-panel">
         <div className="laporan-hm">
           <div className="laporan-hm-grid">
@@ -277,7 +277,7 @@ const LaporanSheet = ({ report, monthLabel, prevMonthLabel, userName = 'Pengguna
                   key={day}
                   className="laporan-hm-cell"
                   style={{ background: bg }}
-                  title={`Tgl ${day}: ${spend > 0 ? formatIdr(spend) : 'Tidak ada belanja'}`}
+                  title={`Day ${day}: ${spend > 0 ? formatIdr(spend) : 'No spending recorded'}`}
                 >
                   {day}
                 </div>
@@ -285,32 +285,32 @@ const LaporanSheet = ({ report, monthLabel, prevMonthLabel, userName = 'Pengguna
             })}
           </div>
           <div className="laporan-hm-side">
-            <div className="big">🔥 {report.streak || 23} hari streak!</div>
+            <div className="big">🔥 {report.streak || 23} day streak!</div>
             <div style={{ color: '#6b7280', marginTop: 4 }}>
-              Warna makin pekat = belanja makin besar hari itu. Kotak abu-abu = tidak ada transaksi belanja.
+              Darker shades indicate higher spending. Empty blocks indicate no spending recorded.
             </div>
             <div className="laporan-hm-scale">
-              <span>Sepi</span>
+              <span>Low</span>
               <i style={{ background: '#fee2e2' }} />
               <i style={{ background: '#fecaca' }} />
               <i style={{ background: '#fca5a5' }} />
               <i style={{ background: '#f87171' }} />
               <i style={{ background: '#e45153' }} />
-              <span>Ramai</span>
+              <span>High</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Sec 4: Insight Pocky */}
-      <h3 className="laporan-sec"><span className="n">4</span> Insight Pocky</h3>
+      {/* Sec 4: Pocky's Insights */}
+      <h3 className="laporan-sec"><span className="n">4</span> Pocky&apos;s Insights</h3>
       <div className="laporan-insight">
         <div className="mascot"><img src={pocketLogo} alt="Pocky" style={{ width: 34, height: 34, objectFit: 'contain', display: 'block' }} /></div>
         <div>{report.insight}</div>
       </div>
 
-      {/* Sec 5: Bulan Ini vs Prev */}
-      <h3 className="laporan-sec"><span className="n">5</span> Bulan Ini vs {prevMonthLabel}</h3>
+      {/* Sec 5: This Month vs Prev */}
+      <h3 className="laporan-sec"><span className="n">5</span> This Month vs {prevMonthLabel}</h3>
       <div className="laporan-panel">
         {(report.comparison || []).map((cmp, i) => {
           const isUp = cmp.persenPerubahan > 0;
@@ -342,19 +342,19 @@ const LaporanSheet = ({ report, monthLabel, prevMonthLabel, userName = 'Pengguna
         </div>
       </div>
 
-      {/* Sec 6: Transaksi Terbesar */}
-      <h3 className="laporan-sec"><span className="n">6</span> Transaksi Terbesar</h3>
+      {/* Sec 6: Top Transactions */}
+      <h3 className="laporan-sec"><span className="n">6</span> Top Transactions</h3>
       <div className="laporan-panel" style={{ padding: '4px 14px' }}>
         {(!report.topTransactions || report.topTransactions.length === 0) ? (
-          <div style={{ textAlign: 'center', padding: 12, color: '#9ca3af', fontSize: 11 }}>Belum ada transaksi di bulan ini.</div>
+          <div style={{ textAlign: 'center', padding: 12, color: '#9ca3af', fontSize: 11 }}>No transactions recorded this month.</div>
         ) : (
           <table>
             <thead>
               <tr>
-                <th>Tanggal</th>
-                <th>Keterangan</th>
-                <th>Kategori</th>
-                <th className="r">Nominal</th>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Category</th>
+                <th className="r">Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -362,7 +362,7 @@ const LaporanSheet = ({ report, monthLabel, prevMonthLabel, userName = 'Pengguna
                 <tr key={idx}>
                   <td>{formatShortDate(tx.tanggal || tx.date)}</td>
                   <td>{tx.keterangan || tx.title || '-'}</td>
-                  <td><span className="laporan-cat-pill">{tx.kategori || tx.category || 'Umum'}</span></td>
+                  <td><span className="laporan-cat-pill">{tx.kategori || tx.category || 'General'}</span></td>
                   <td className="r"><b>{formatIdr(tx.nominal || tx.amount)}</b></td>
                 </tr>
               ))}
@@ -371,12 +371,12 @@ const LaporanSheet = ({ report, monthLabel, prevMonthLabel, userName = 'Pengguna
         )}
       </div>
 
-      {/* Sec 7: Target Tabungan */}
-      <h3 className="laporan-sec"><span className="n">7</span> Target Tabungan</h3>
+      {/* Sec 7: Savings Goals */}
+      <h3 className="laporan-sec"><span className="n">7</span> Savings Goals</h3>
       <div className="laporan-goals">
         {(!report.goals || report.goals.length === 0) ? (
           <div className="laporan-goal" style={{ textAlign: 'center', color: '#9ca3af', fontSize: 11 }}>
-            Belum ada target tabungan aktif.
+            No active savings goals yet.
           </div>
         ) : (
           report.goals.slice(0, 3).map((g, i) => (
@@ -391,8 +391,8 @@ const LaporanSheet = ({ report, monthLabel, prevMonthLabel, userName = 'Pengguna
         )}
       </div>
 
-      {/* Sec 8: Pencapaian Bulan Ini */}
-      <h3 className="laporan-sec"><span className="n">8</span> Pencapaian Bulan Ini</h3>
+      {/* Sec 8: Monthly Achievements */}
+      <h3 className="laporan-sec"><span className="n">8</span> Monthly Achievements</h3>
       <div className="laporan-badges">
         {(report.badges || []).map((b, i) => (
           <div key={i} className="laporan-badge">
@@ -406,7 +406,7 @@ const LaporanSheet = ({ report, monthLabel, prevMonthLabel, userName = 'Pengguna
       {/* Footer */}
       <div className="laporan-footer">
         <div className="fbrand"><img src={pocketLogo} alt="" style={{ width: 18, height: 18, objectFit: 'contain', display: 'block' }} /> Pocketplan</div>
-        <span>Dibuat otomatis • pocketplan-rul.vercel.app</span>
+        <span>Generated automatically • pocketplan-rul.vercel.app</span>
       </div>
     </div>
   );

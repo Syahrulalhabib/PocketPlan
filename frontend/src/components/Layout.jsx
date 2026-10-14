@@ -5,15 +5,13 @@ import { useTheme } from '../providers/ThemeProvider.jsx';
 import DemoBanner from './DemoBanner.jsx';
 import Toast from './Toast.jsx';
 import FloatingMascot from './FloatingMascot.jsx';
-import { SunIcon, MoonIcon, UserIcon, LogOutIcon, ChevronDownIcon } from './Icons.jsx';
+import { SunIcon, MoonIcon, UserIcon, LogOutIcon, ChevronDownIcon, FileTextIcon, AwardIcon } from './Icons.jsx';
 import { useState, useEffect, useRef } from 'react';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard' },
   { path: '/transactions', label: 'Transactions' },
-  { path: '/goals', label: 'Goals' },
-  { path: '/laporan', label: 'Laporan' },
-  { path: '/pencapaian', label: 'Pencapaian' }
+  { path: '/goals', label: 'Goals' }
 ];
 
 const Layout = ({ children }) => {
@@ -130,6 +128,31 @@ const Layout = ({ children }) => {
                     <UserIcon size={16} />
                     <span>Edit Profile</span>
                   </button>
+                  <button
+                    type="button"
+                    className="menu-item"
+                    role="menuitem"
+                    onClick={() => {
+                      setShowMenu(false);
+                      navigate('/laporan');
+                    }}
+                  >
+                    <FileTextIcon size={16} />
+                    <span>Reports</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="menu-item"
+                    role="menuitem"
+                    onClick={() => {
+                      setShowMenu(false);
+                      navigate('/pencapaian');
+                    }}
+                  >
+                    <AwardIcon size={16} />
+                    <span>Achievements</span>
+                  </button>
+                  <div className="user-menu-divider" />
                   <button
                     type="button"
                     className="menu-item logout"

@@ -30,7 +30,7 @@ const GoalsPage = () => {
     if (!buyTarget) return;
     const amt = Number(buyTarget.target) || 0;
     if ((summary?.balance ?? 0) < amt) {
-      showToast(`Saldo tidak cukup untuk beli ${buyTarget.name}. Kurang ${formatRupiah(amt - (summary?.balance ?? 0))}`, 'error');
+      showToast(`Insufficient balance to purchase ${buyTarget.name}. Short by ${formatRupiah(amt - (summary?.balance ?? 0))}`, 'error');
       setBuyTarget(null);
       return;
     }
@@ -39,7 +39,7 @@ const GoalsPage = () => {
       type: 'Expense',
       amount: Number(buyTarget.target),
       date: new Date().toISOString().split('T')[0],
-      description: `Pembelian Goal: ${buyTarget.name}`,
+      description: `Goal Purchase: ${buyTarget.name}`,
       goalBackup: {
         name: buyTarget.name,
         target: buyTarget.target,
@@ -166,11 +166,11 @@ const GoalsPage = () => {
                           <button
                             type="button"
                             className="table-action-btn buy"
-                            title="Beli & Realisasikan Goal Ini"
+                            title="Purchase & fulfill this goal"
                             onClick={() => setBuyTarget(g)}
                             style={{ color: '#10b981', fontWeight: 600 }}
                           >
-                            <span>🛍️ Beli</span>
+                            <span>🛍️ Buy</span>
                           </button>
                         );
                       }
@@ -299,7 +299,7 @@ const GoalsPage = () => {
                       setViewModal(false);
                     }}
                   >
-                    🛍️ Beli Goal Ini Sekarang
+                    🛍️ Buy This Goal Now
                   </button>
                 )}
                 <button type="button" className="pill btn-secondary" onClick={() => setViewModal(false)}>
@@ -358,34 +358,34 @@ const GoalsPage = () => {
           </div>
         )}
       </Modal>
-      <Modal open={Boolean(buyTarget)} onClose={() => setBuyTarget(null)} title="Beli & Realisasikan Goal">
+      <Modal open={Boolean(buyTarget)} onClose={() => setBuyTarget(null)} title="Purchase & Fulfill Goal">
         {buyTarget && (
           <div className="modal-form">
             <p style={{ margin: 0, fontSize: '0.95rem', lineHeight: '1.5' }}>
-              Selamat! Saldo tabunganmu sudah mencukupi. Beli target <strong>{buyTarget.name}</strong> sekarang?
+              Congratulations! Your savings balance covers this goal. Purchase <strong>{buyTarget.name}</strong> now?
             </p>
             <div className="delete-preview-card" style={{ borderColor: '#10b981' }}>
               <div className="delete-preview-header">
                 <span className="table-cell-bold">{buyTarget.name}</span>
-                <span className="badge income">🎯 Siap Dibeli</span>
+                <span className="badge income">🎯 Ready to Buy</span>
               </div>
               <div className="delete-preview-amount income-text">
                 Target: {formatRupiah(buyTarget.target)}
               </div>
             </div>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
-              Sistem akan otomatis mencatat pengeluaran sebesar <strong>{formatRupiah(buyTarget.target)}</strong> dan menyelesaikan target ini (menghapus dari daftar aktif).
+              An expense of <strong>{formatRupiah(buyTarget.target)}</strong> will be recorded and this goal will be marked achieved and archived.
             </p>
             <div className="modal-actions">
               <button type="button" className="pill btn-secondary" onClick={() => setBuyTarget(null)}>
-                Batal
+                Cancel
               </button>
               <button
                 type="button"
                 className="pill btn-primary"
                 onClick={confirmBuyGoal}
               >
-                🛍️ Ya, Beli Sekarang
+                🛍️ Yes, Buy Now
               </button>
             </div>
           </div>
