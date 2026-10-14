@@ -48,7 +48,7 @@ const LaporanCetakPage = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        setApiReport(data.report || null);
+        setApiReport(data.report || data || null);
       } else {
         setApiReport(null);
       }
