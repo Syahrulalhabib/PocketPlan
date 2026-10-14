@@ -733,6 +733,12 @@
 }
 
 
+@media print {
+  .floating-mascot-container {
+    display: none !important;
+  }
+}
+
 /* ========================================================
    FLOATING COMPANION MASCOT: "POCKY" (BOTTOM-RIGHT)
    ======================================================== */

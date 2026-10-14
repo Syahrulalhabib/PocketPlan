@@ -105,17 +105,18 @@ export function buildMonthlyReport({ month, transactions = [], goals = [], budge
   }
 
   const badges = [
-    { type: 'streak', icon: '🔥', text: `${streak} hari`, sub: 'streak aktif' },
+    { type: 'streak', icon: '🔥', text: `${streak} hari`, sub: 'streak catat' },
     { type: 'tx', icon: '📊', text: `${jumlahTransaksi}`, sub: 'transaksi' },
     { type: 'budget', icon: '💰', text: `${budgetTerjaga}/${budgetList.length || 0}`, sub: 'budget terjaga' },
-    { type: 'goal', icon: '🎯', text: `${goalsList.filter((g) => g.persen >= 100).length}`, sub: 'target tercapai' }
+    { type: 'goal', icon: '🎯', text: `${goalsList.filter((g) => g.persen >= 100).length}`, sub: 'target tercapai' },
+    { type: 'challenge', icon: '🎖️', text: `${userDocData.challengeCompleted || 0}`, sub: 'tantangan selesai' }
   ];
 
   return {
     month,
     prevMonth,
     daysInMonth,
-    summary: { totalPemasukan, totalPengeluaran, surplus, rasioMenabung, jumlahTransaksi, persenPerubahan },
+    summary: { totalPemasukan, totalPengeluaran, surplus, rasioMenabung, jumlahTransaksi, jumlahTransaksiIn: currIn.length, jumlahTransaksiOut: currOut.length, persenPerubahan },
     byCategory,
     weeklyTrend,
     topTransactions,
