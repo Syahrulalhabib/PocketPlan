@@ -244,6 +244,11 @@ const LoginPage = () => {
         <div className="auth-footer">
           Don&apos;t have an account? <Link to="/register" className="primary-link">Sign up for free</Link>
         </div>
+        <div className="auth-footer" style={{ marginTop: '8px' }}>
+          <Link to="/demo" className="primary-link" style={{ fontWeight: 600, fontSize: '0.88rem' }}>
+            ✨ Coba tanpa daftar (Mode Demo)
+          </Link>
+        </div>
       </div>
       <div className="auth-hero">
         <SavingsMascot mode="hero" />

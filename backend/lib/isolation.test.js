@@ -11,9 +11,22 @@ global.fetch = async () => ({ json: async () => ({ ok: true }) });
 function req(server, method, path, body) {
   return new Promise((resolve, reject) => {
     const u = new URL(path, `http://localhost:${server.address().port}`);
-    const opts = { method, hostname: u.hostname, port: u.port, path: u.pathname, headers: {} };
+    const opts = { method, hostname: u.hostname, port: u.port, path: `${u.pathname}${u.search}`, headers: {} };
     if (body) { const d = JSON.stringify(body); opts.headers['Content-Type'] = 'application/json'; opts.headers['Content-Length'] = Buffer.byteLength(d); }
-    const r = http.request(opts, (res) => { let c = ''; res.on('data', (ch) => (c += ch)); res.on('end', () => { try { resolve({ status: res.statusCode, body: JSON.parse(c) }); } catch { resolve({ status: res.statusCode, body: c }); } }); });
+    const r = http.request(opts, (res) => {
+      const chunks = [];
+      res.on('data', (ch) => chunks.push(ch));
+      res.on('end', () => {
+        const buf = Buffer.concat(chunks);
+        const ct = res.headers['content-type'] || '';
+        if (ct.includes('application/json')) {
+          try { resolve({ status: res.statusCode, body: JSON.parse(buf.toString('utf8')), headers: res.headers }); }
+          catch { resolve({ status: res.statusCode, body: buf.toString('utf8'), headers: res.headers }); }
+        } else {
+          resolve({ status: res.statusCode, body: buf, headers: res.headers });
+        }
+      });
+    });
     r.on('error', reject);
     if (body) r.write(JSON.stringify(body));
     r.end();
@@ -95,6 +108,41 @@ async function testRestApiIsolation() {
     assert.strictEqual((await req(server, 'DELETE', '/api/goals/bogus-xyz')).status, 404);
 
     console.log('    ✔ REST CRUD + DELETE 404 for non-existent passed');
+
+    // Report endpoint tests
+    const rBadMonth = await req(server, 'GET', '/api/report?month=invalid-date');
+    assert.strictEqual(rBadMonth.status, 400);
+    assert.ok(rBadMonth.body.error);
+
+    const rOkReport = await req(server, 'GET', '/api/report?month=2026-10');
+    assert.strictEqual(rOkReport.status, 200);
+    assert.ok(rOkReport.body.summary);
+    assert.ok(Array.isArray(rOkReport.body.byCategory));
+    console.log('    ✔ /api/report 400 validation & 200 response passed');
+
+    // Achievements endpoints tests
+    const rAch = await req(server, 'GET', '/api/achievements');
+    assert.strictEqual(rAch.status, 200);
+    assert.ok(Array.isArray(rAch.body));
+    assert.ok(rAch.body.length > 0);
+    // PRIVACY VERIFICATION: string must not contain Rp or nominal
+    const rawAch = JSON.stringify(rAch.body);
+    assert.ok(!rawAch.includes('Rp'), 'Achievements response must not leak Rp');
+    assert.ok(!rawAch.includes('balance'), 'Achievements response must not leak balance');
+    assert.ok(!rawAch.includes('nominal'), 'Achievements response must not leak nominal');
+
+    // Card PNG download (authorized key)
+    const rCard = await req(server, 'GET', '/api/achievements/streak_7/card.png');
+    assert.strictEqual(rCard.status, 200);
+    assert.strictEqual(rCard.headers['content-type'], 'image/png');
+    assert.ok(Buffer.isBuffer(rCard.body));
+    assert.ok(rCard.body.length > 100);
+
+    // Card PNG download (unauthorized / non-existent key = 404)
+    const rCardBogus = await req(server, 'GET', '/api/achievements/streak_9999/card.png');
+    assert.strictEqual(rCardBogus.status, 404);
+    assert.ok(rCardBogus.body.error);
+    console.log('    ✔ /api/achievements & /card.png privacy & 404 security passed');
 
     // Per-uid Map isolation (unit level, same pattern as getDemoTransactions)
     const mapA = new Map(), mapB = new Map();

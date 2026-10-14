@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../providers/AuthProvider.jsx';
 import { useData } from '../providers/DataProvider.jsx';
 import { useTheme } from '../providers/ThemeProvider.jsx';
+import DemoBanner from './DemoBanner.jsx';
 import Toast from './Toast.jsx';
 import FloatingMascot from './FloatingMascot.jsx';
 import { SunIcon, MoonIcon, UserIcon, LogOutIcon, ChevronDownIcon } from './Icons.jsx';
@@ -10,7 +11,9 @@ import { useState, useEffect, useRef } from 'react';
 const navItems = [
   { path: '/dashboard', label: 'Dashboard' },
   { path: '/transactions', label: 'Transactions' },
-  { path: '/goals', label: 'Goals' }
+  { path: '/goals', label: 'Goals' },
+  { path: '/laporan', label: 'Laporan' },
+  { path: '/pencapaian', label: 'Pencapaian' }
 ];
 
 const Layout = ({ children }) => {
@@ -45,6 +48,7 @@ const Layout = ({ children }) => {
 
   return (
     <div className="page-shell">
+      <DemoBanner />
       <header className="topbar card">
         <div className="topbar-inner">
           <button

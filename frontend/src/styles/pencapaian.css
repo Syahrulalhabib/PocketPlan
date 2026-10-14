@@ -1,0 +1,238 @@
+/* Pencapaian / Achievement Gallery Styles */
+
+.pencapaian-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+}
+
+.pencapaian-header {
+  margin-bottom: 28px;
+}
+
+.pencapaian-title {
+  font-size: 1.85rem;
+  font-weight: 800;
+  margin-bottom: 6px;
+  letter-spacing: -0.5px;
+}
+
+.pencapaian-subtitle {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.pencapaian-stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 28px;
+  box-shadow: var(--card-shadow);
+  flex-wrap: wrap;
+}
+
+.pencapaian-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pencapaian-stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  background: rgba(228, 81, 83, 0.08);
+}
+
+.pencapaian-stat-val {
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.pencapaian-stat-lbl {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.pencapaian-sec-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 28px 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pencapaian-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* Badge Card */
+.badge-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--card-shadow);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.badge-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+.badge-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.badge-icon-box {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(228, 81, 83, 0.12), rgba(252, 211, 77, 0.2));
+  border: 1px solid rgba(228, 81, 83, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+}
+
+.badge-status-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--pill);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-status-pill.unlocked {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid rgba(5, 150, 105, 0.2);
+}
+
+.badge-status-pill.locked {
+  background: #f3f4f6;
+  color: #9ca3af;
+  border: 1px solid #e5e7eb;
+}
+
+.badge-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.badge-subtitle {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  flex: 1;
+}
+
+.badge-date {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  margin-bottom: 16px;
+}
+
+.badge-actions {
+  margin-top: auto;
+}
+
+.btn-download-card {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--pill);
+  font-size: 0.88rem;
+  font-weight: 700;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(228, 81, 83, 0.25);
+}
+
+.btn-download-card:hover {
+  background: var(--primary-dark);
+}
+
+.badge-share-hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 8px;
+}
+
+/* Locked Card Variant */
+.badge-card.locked {
+  opacity: 0.65;
+  background: rgba(0, 0, 0, 0.02);
+  filter: grayscale(0.7);
+}
+
+.theme-dark .badge-card.locked {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.badge-card.locked .badge-icon-box {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+}
+.theme-dark .badge-card.locked .badge-icon-box {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Empty State */
+.pencapaian-empty {
+  text-align: center;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 48px 24px;
+  box-shadow: var(--card-shadow);
+}
+
+.pencapaian-empty-icon {
+  font-size: 3.5rem;
+  margin-bottom: 14px;
+}
+
+.pencapaian-empty h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.pencapaian-empty p {
+  color: var(--muted);
+  font-size: 0.95rem;
+  max-width: 440px;
+  margin: 0 auto;
+}

@@ -207,7 +207,9 @@ async function checkAndOfferAchievement(chatId, uid, db, botToken, achievementKe
     const seen = (userDoc.data() || {}).achievementsSeen || [];
     if (seen.includes(achievementKey)) return;
     seen.push(achievementKey);
-    await userRef.set({ achievementsSeen: seen }, { merge: true });
+    const seenAt = (userDoc.data() || {}).achievementsSeenAt || {};
+    seenAt[achievementKey] = new Date().toISOString();
+    await userRef.set({ achievementsSeen: seen, achievementsSeenAt: seenAt }, { merge: true });
     await sendTelegramMessage(botToken, chatId,
       `🏅 *Achievement Unlocked!*\n\n${title}\n_${subtitle}_`,
       {
@@ -228,6 +230,7 @@ async function checkGoalAchievements(chatId, uid, db, botToken) {
     const [userDoc, gSnap] = await Promise.all([userRef.get(), userRef.collection('goals').get()]);
     const userData = userDoc.data() || {};
     const seen = userData.achievementsSeen || [];
+    const seenAt = userData.achievementsSeenAt || {};
     const { bal } = await getBalance(uid, db);
 
     for (const gDoc of gSnap.docs) {
@@ -240,7 +243,8 @@ async function checkGoalAchievements(chatId, uid, db, botToken) {
           const key = `goal_${gDoc.id}_${milestone}`;
           if (!seen.includes(key)) {
             seen.push(key);
-            await userRef.set({ achievementsSeen: seen }, { merge: true });
+            seenAt[key] = new Date().toISOString();
+            await userRef.set({ achievementsSeen: seen, achievementsSeenAt: seenAt }, { merge: true });
             const safeName = g.name || 'Target';
             await sendTelegramMessage(botToken, chatId,
               `🏅 *Achievement Unlocked!*\n\n🎯 ${escapeMarkdown(safeName)} — ${milestone}%\n_Progres target tabunganmu!_`,
@@ -1962,7 +1966,12 @@ export async function dispatchChallengeEvaluation(db, botToken) {
               const uRef = db.collection('users').doc(p.uid);
               const uDoc = await uRef.get();
               const seen = (uDoc.data() || {}).achievementsSeen || [];
-              if (!seen.includes(badge)) { seen.push(badge); await uRef.set({ achievementsSeen: seen }, { merge: true }); }
+              const seenAt = (uDoc.data() || {}).achievementsSeenAt || {};
+              if (!seen.includes(badge)) {
+                seen.push(badge);
+                seenAt[badge] = new Date().toISOString();
+                await uRef.set({ achievementsSeen: seen, achievementsSeenAt: seenAt }, { merge: true });
+              }
             } catch {}
           }
           const winText = isWinner ? '🏆 *Kamu pemenangnya!*' : '👏 *Tantangan selesai!*';

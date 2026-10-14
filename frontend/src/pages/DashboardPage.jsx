@@ -176,6 +176,38 @@ const DashboardPage = () => {
           </div>
         </div>
       </div>
+      <div className="dashboard-quick-links" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', margin: '14px 0' }}>
+        <div
+          className="card"
+          style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', borderRadius: 'var(--radius)' }}
+          onClick={() => navigate('/laporan')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '1.6rem' }}>📄</span>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Laporan Bulanan</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Rekap &amp; cetak PDF A4</div>
+            </div>
+          </div>
+          <span style={{ fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 700 }}>Lihat →</span>
+        </div>
+
+        <div
+          className="card"
+          style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', borderRadius: 'var(--radius)' }}
+          onClick={() => navigate('/pencapaian')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '1.6rem' }}>🏅</span>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Galeri Pencapaian</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Lencana &amp; unduh kartu</div>
+            </div>
+          </div>
+          <span style={{ fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 700 }}>Lihat →</span>
+        </div>
+      </div>
+
 
       <div className="grid-2 chart-block">
         <div className="card chart-card stat-card-cute">

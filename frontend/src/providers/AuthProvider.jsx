@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
+import { demoUser } from '../demo/demoData.js';
 import {
   firebaseEnabled,
   signInEmail,
@@ -17,10 +18,40 @@ import { telegramWebLogin } from '../services/telegramApi';
 const AuthContext = createContext(undefined);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [isDemo, setIsDemo] = useState(() => {
+    try {
+      return sessionStorage.getItem('pocketplan_demo_mode') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const [user, setUser] = useState(() => (sessionStorage.getItem('pocketplan_demo_mode') === '1' ? demoUser : null));
   const [loading, setLoading] = useState(true);
 
+  const startDemo = useCallback(() => {
+    try {
+      sessionStorage.setItem('pocketplan_demo_mode', '1');
+    } catch {}
+    setIsDemo(true);
+    setUser(demoUser);
+    setLoading(false);
+  }, []);
+
+  const exitDemo = useCallback(() => {
+    try {
+      sessionStorage.removeItem('pocketplan_demo_mode');
+    } catch {}
+    setIsDemo(false);
+    setUser(null);
+  }, []);
+
   useEffect(() => {
+    if (isDemo) {
+      setUser(demoUser);
+      setLoading(false);
+      return;
+    }
+
     if (!firebaseEnabled) {
       const savedTg = localStorage.getItem('pocketplan_tg_user');
       if (savedTg) {
@@ -30,6 +61,11 @@ export const AuthProvider = ({ children }) => {
       return;
     }
     const unsubscribe = watchAuth((fbUser) => {
+      if (sessionStorage.getItem('pocketplan_demo_mode') === '1') {
+        setUser(demoUser);
+        setLoading(false);
+        return;
+      }
       const isPasswordUser = fbUser?.providerData?.some((p) => p.providerId === 'password');
       if (fbUser && isPasswordUser && !fbUser.emailVerified) {
         signOutUser();
@@ -71,9 +107,11 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     });
     return () => (unsubscribe ? unsubscribe() : undefined);
-  }, []);
+  }, [isDemo]);
 
   const login = async (email, password) => {
+    try { sessionStorage.removeItem('pocketplan_demo_mode'); } catch {}
+    setIsDemo(false);
     if (firebaseEnabled) {
       const credentials = await signInEmail(email, password);
       if (!credentials.user.emailVerified) {
@@ -161,6 +199,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     localStorage.removeItem('pocketplan_tg_user');
+    try { sessionStorage.removeItem('pocketplan_demo_mode'); } catch {}
+    setIsDemo(false);
     if (firebaseEnabled) {
       await signOutUser();
     }
@@ -213,6 +253,9 @@ export const AuthProvider = ({ children }) => {
     () => ({
       user,
       loading,
+      isDemo,
+      startDemo,
+      exitDemo,
       login,
       register,
       googleLogin,
@@ -222,7 +265,7 @@ export const AuthProvider = ({ children }) => {
       resetPassword,
       resendVerification
     }),
-    [user, loading, updateProfileInfo]
+    [user, loading, isDemo, startDemo, exitDemo, updateProfileInfo]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

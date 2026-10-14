@@ -2,9 +2,13 @@ import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from './providers/AuthProvider.jsx';
 import Layout from './components/Layout.jsx';
+import LandingPage from './pages/LandingPage.jsx';
+import DemoPage from './pages/DemoPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import TransactionsPage from './pages/TransactionsPage.jsx';
 import GoalsPage from './pages/GoalsPage.jsx';
+import LaporanPage from './pages/LaporanPage.jsx';
+import PencapaianPage from './pages/PencapaianPage.jsx';
 import AboutPage from './pages/AboutPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
@@ -31,11 +35,12 @@ const App = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/verification" element={<VerificationPage />} />
       <Route path="/about" element={<AboutPage />} />
+      <Route path="/demo" element={<DemoPage />} />
       <Route
         path="/dashboard"
         element={
@@ -57,6 +62,22 @@ const App = () => {
         element={
           <ProtectedRoute>
             {withShell(<GoalsPage />)}
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/laporan"
+        element={
+          <ProtectedRoute>
+            {withShell(<LaporanPage />)}
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/pencapaian"
+        element={
+          <ProtectedRoute>
+            {withShell(<PencapaianPage />)}
           </ProtectedRoute>
         }
       />

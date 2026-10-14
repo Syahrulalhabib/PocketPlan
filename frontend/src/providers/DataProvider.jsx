@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { useAuth } from './AuthProvider.jsx';
+import { demoGoals, demoTransactions, demoBaseBalance } from '../demo/demoData.js';
 import {
   firebaseEnabled,
   getDb,
@@ -43,6 +44,14 @@ export const DataProvider = ({ children }) => {
 
   // Sync Firestore per-user collections
   useEffect(() => {
+    if (user?.isDemo) {
+      setTransactions([...demoTransactions]);
+      setGoals([...demoGoals]);
+      setBaseBalance(demoBaseBalance);
+      setLoading(false);
+      return;
+    }
+
     if (!firebaseEnabled) return;
     if (!user) {
       setTransactions([]);
@@ -110,9 +119,9 @@ export const DataProvider = ({ children }) => {
     };
 
     try {
-      if (!firebaseEnabled || !user) {
+      if (!firebaseEnabled || !user || user.isDemo) {
         setTransactions((prev) => [{ ...entry, id: generateId() }, ...prev]);
-        showToast('Transaction added (demo mode).');
+        showToast(user?.isDemo ? 'Transaksi ditambahkan (mode demo).' : 'Transaction added (demo mode).');
         return;
       }
       const ref = getUserCollection(user.id, 'transactions');
@@ -131,9 +140,9 @@ export const DataProvider = ({ children }) => {
     if (cleanUpdates.amount !== undefined) cleanUpdates.amount = Number(cleanUpdates.amount) || 0;
 
     try {
-      if (!firebaseEnabled || !user) {
+      if (!firebaseEnabled || !user || user.isDemo) {
         setTransactions((prev) => prev.map((t) => (t.id === id ? { ...t, ...cleanUpdates } : t)));
-        showToast('Transaction updated (demo mode).');
+        showToast(user?.isDemo ? 'Transaksi diperbarui (mode demo).' : 'Transaction updated (demo mode).');
         return;
       }
       await updateCollectionDoc(user.id, 'transactions', id, cleanUpdates);
@@ -159,9 +168,9 @@ export const DataProvider = ({ children }) => {
       delete entry.category;
     }
     try {
-      if (!firebaseEnabled || !user) {
+      if (!firebaseEnabled || !user || user.isDemo) {
         setGoals((prev) => [...prev, { ...entry, id: generateId() }]);
-        showToast('Goal added (demo mode).');
+        showToast(user?.isDemo ? 'Target tabungan ditambahkan (mode demo).' : 'Goal added (demo mode).');
         return;
       }
       const ref = getUserCollection(user.id, 'goals');
@@ -177,13 +186,13 @@ export const DataProvider = ({ children }) => {
     // Find the transaction before deleting — check for goalBackup
     const tx = transactions.find((t) => t.id === id);
     try {
-      if (!firebaseEnabled || !user) {
+      if (!firebaseEnabled || !user || user.isDemo) {
         setTransactions((prev) => prev.filter((t) => t.id !== id));
         if (tx?.goalBackup) {
           await addGoal(tx.goalBackup);
-          showToast('Transaction deleted & goal restored (demo mode).');
+          showToast(user?.isDemo ? 'Transaksi dihapus & target dipulihkan (mode demo).' : 'Transaction deleted & goal restored (demo mode).');
         } else {
-          showToast('Transaction deleted (demo mode).');
+          showToast(user?.isDemo ? 'Transaksi dihapus (mode demo).' : 'Transaction deleted (demo mode).');
         }
         return;
       }
@@ -220,9 +229,9 @@ export const DataProvider = ({ children }) => {
     if (cleanUpdates.target !== undefined) cleanUpdates.target = Number(cleanUpdates.target) || 0;
 
     try {
-      if (!firebaseEnabled || !user) {
+      if (!firebaseEnabled || !user || user.isDemo) {
         setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, ...cleanUpdates } : g)));
-        showToast('Goal updated (demo mode).');
+        showToast(user?.isDemo ? 'Target tabungan diperbarui (mode demo).' : 'Goal updated (demo mode).');
         return;
       }
       await updateCollectionDoc(user.id, 'goals', id, cleanUpdates);
@@ -235,9 +244,9 @@ export const DataProvider = ({ children }) => {
 
   const deleteGoal = useCallback(async (id) => {
     try {
-      if (!firebaseEnabled || !user) {
+      if (!firebaseEnabled || !user || user.isDemo) {
         setGoals((prev) => prev.filter((g) => g.id !== id));
-        showToast('Goal deleted (demo mode).');
+        showToast(user?.isDemo ? 'Target tabungan dihapus (mode demo).' : 'Goal deleted (demo mode).');
         return;
       }
       await deleteCollectionDoc(user.id, 'goals', id);
