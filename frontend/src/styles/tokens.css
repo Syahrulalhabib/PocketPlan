@@ -3,20 +3,25 @@
 :root {
   --primary: #e45153;
   --primary-dark: #c93e42;
+  --primary-light: #fef2f2;
   --accent: #fcd34d;
+  --accent-dark: #d97706;
   --text: #1f1f1f;
+  --text-secondary: #4b5563;
   --muted: #6b7280;
-  --bg: #f8f8f8;
+  --bg: #f8f9fa;
   --card: #ffffff;
-  --card-border: rgba(0, 0, 0, 0.06);
-  --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
-  --card-shadow-hover: 0 14px 28px -6px rgba(0, 0, 0, 0.08);
+  --card-border: rgba(0, 0, 0, 0.07);
+  --card-border-hover: rgba(228, 81, 83, 0.28);
+  --card-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+  --card-shadow-hover: 0 16px 32px -8px rgba(15, 23, 42, 0.1), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
   --shadow: 0 18px 30px rgba(0, 0, 0, 0.12);
   --radius: 20px;
   --radius-sm: 10px;
   --radius-md: 14px;
   --radius-lg: 20px;
-  --pill: 30px;
+  --radius-xl: 24px;
+  --pill: 9999px;
   --page-transition: 260ms;
   --theme-fade: 260ms;
 }
@@ -24,14 +29,18 @@
 .theme-dark {
   --primary: #e45153;
   --primary-dark: #f87171;
+  --primary-light: rgba(228, 81, 83, 0.15);
   --accent: #fcd34d;
-  --text: #e5e7eb;
-  --muted: #cbd5e1;
+  --accent-dark: #fbbf24;
+  --text: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --muted: #94a3b8;
   --bg: #0b1220;
   --card: #0f172a;
   --card-border: rgba(255, 255, 255, 0.08);
+  --card-border-hover: rgba(228, 81, 83, 0.38);
   --card-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.45);
-  --card-shadow-hover: 0 18px 36px -6px rgba(0, 0, 0, 0.55);
+  --card-shadow-hover: 0 20px 40px -8px rgba(0, 0, 0, 0.65);
   --shadow: 0 22px 36px rgba(0, 0, 0, 0.5);
 }
 

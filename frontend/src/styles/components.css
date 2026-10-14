@@ -9,10 +9,12 @@
   align-items: center;
   justify-content: center;
   gap: 14px;
-  padding: 12px 18px;
-  margin-bottom: 20px;
-  background: #e45153;
+  padding: 12px 20px;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, #e45153 0%, #d83c3e 100%);
   color: #fff;
+  box-shadow: 0 4px 18px rgba(228, 81, 83, 0.22);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   transition: background-color var(--theme-fade) ease, color var(--theme-fade) ease, box-shadow var(--theme-fade) ease;
 }
 
@@ -431,12 +433,26 @@
   position: relative;
   overflow: hidden;
   border-radius: var(--radius, 20px);
-  padding: 20px 22px 18px;
+  padding: 22px 24px 20px;
   background: var(--card);
-  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.06));
-  box-shadow: var(--card-shadow, 0 4px 20px rgba(0, 0, 0, 0.04));
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
   transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.24s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
   min-width: 0;
+}
+
+.balance-card:hover,
+.stat-card:hover,
+.chart-card:hover,
+.goals-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--card-shadow-hover);
+  border-color: var(--card-border-hover);
+}
+
+.balance-card {
+  background: radial-gradient(circle at 5% 15%, rgba(228, 81, 83, 0.04) 0%, transparent 60%), var(--card);
+  margin-bottom: 20px;
 }
 
 .theme-dark .balance-card,
@@ -445,11 +461,53 @@
 .theme-dark .goals-card {
   background: linear-gradient(180deg, #131d31 0%, #0f172a 100%);
   border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: var(--card-shadow, 0 12px 32px -4px rgba(0, 0, 0, 0.45));
+  box-shadow: var(--card-shadow);
 }
 
-.balance-card {
-  margin-bottom: 16px;
+.theme-dark .balance-card {
+  background: radial-gradient(circle at 5% 15%, rgba(228, 81, 83, 0.08) 0%, transparent 60%), linear-gradient(180deg, #142036 0%, #0f172a 100%);
+}
+
+/* Quick Links Cards */
+.dashboard-quick-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin: 18px 0;
+}
+
+.quick-link-card {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  border-radius: var(--radius-lg, 20px);
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.quick-link-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--primary);
+  box-shadow: var(--card-shadow-hover);
+}
+
+.quick-link-card:active {
+  transform: translateY(0);
+}
+
+.quick-link-arrow {
+  font-size: 0.95rem;
+  color: var(--primary);
+  font-weight: 700;
+  transition: transform 0.2s ease;
+}
+
+.quick-link-card:hover .quick-link-arrow {
+  transform: translateX(4px);
 }
 
 /* Universal 3px Top Accent Stripe */
