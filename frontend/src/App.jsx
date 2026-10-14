@@ -8,6 +8,7 @@ import DashboardPage from './pages/DashboardPage.jsx';
 import TransactionsPage from './pages/TransactionsPage.jsx';
 import GoalsPage from './pages/GoalsPage.jsx';
 import LaporanPage from './pages/LaporanPage.jsx';
+import LaporanCetakPage from './pages/LaporanCetakPage.jsx';
 import PencapaianPage from './pages/PencapaianPage.jsx';
 import AboutPage from './pages/AboutPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
@@ -70,6 +71,14 @@ const App = () => {
         element={
           <ProtectedRoute>
             {withShell(<LaporanPage />)}
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/laporan/cetak"
+        element={
+          <ProtectedRoute>
+            <LaporanCetakPage />
           </ProtectedRoute>
         }
       />
