@@ -179,10 +179,10 @@ const DashboardPage = () => {
       <div className="dashboard-quick-links">
         <div
           className="quick-link-card"
-          onClick={() => navigate('/laporan')}
+          onClick={() => navigate('/reports')}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && navigate('/laporan')}
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/reports')}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <span style={{ fontSize: '1.7rem' }}>📄</span>
@@ -196,10 +196,10 @@ const DashboardPage = () => {
 
         <div
           className="quick-link-card"
-          onClick={() => navigate('/pencapaian')}
+          onClick={() => navigate('/achievements')}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && navigate('/pencapaian')}
+          onKeyDown={(e) => e.key === 'Enter' && navigate('/achievements')}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <span style={{ fontSize: '1.7rem' }}>🏅</span>

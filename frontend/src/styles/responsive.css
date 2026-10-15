@@ -831,9 +831,10 @@
     font-size: 12.5px;
   }
 
-  .theme-toggle {
-    top: 10px;
-    right: 12px;
+  .theme-toggle,
+  .auth-theme-toggle {
+    top: 14px;
+    right: 14px;
     left: auto;
   }
 

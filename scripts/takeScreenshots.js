@@ -53,7 +53,7 @@ server.listen(5288, async () => {
   const targets = [
     { url: 'http://localhost:5288/', name: 'landing' },
     { url: 'http://localhost:5288/demo', name: 'dashboard' },
-    { url: 'http://localhost:5288/pencapaian', name: 'pencapaian' },
+    { url: 'http://localhost:5288/achievements', name: 'achievements' },
     { url: 'http://localhost:5288/unknown-test-404', name: '404' }
   ];
 

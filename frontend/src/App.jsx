@@ -18,6 +18,11 @@ import NotFoundPage from './pages/NotFoundPage.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import LoadingScreen from './components/LoadingScreen.jsx';
 
+const RedirectWithSearch = ({ to }) => {
+  const location = useLocation();
+  return <Navigate to={`${to}${location.search}`} replace />;
+};
+
 const App = () => {
   const { loading: authLoading } = useAuth();
   const [showLoader, setShowLoader] = useState(true);
@@ -70,7 +75,7 @@ const App = () => {
         }
       />
       <Route
-        path="/laporan"
+        path="/reports"
         element={
           <ProtectedRoute>
             {withShell(<LaporanPage />)}
@@ -78,7 +83,7 @@ const App = () => {
         }
       />
       <Route
-        path="/laporan/cetak"
+        path="/reports/print"
         element={
           <ProtectedRoute>
             <LaporanCetakPage />
@@ -86,13 +91,17 @@ const App = () => {
         }
       />
       <Route
-        path="/pencapaian"
+        path="/achievements"
         element={
           <ProtectedRoute>
             {withShell(<PencapaianPage />)}
           </ProtectedRoute>
         }
       />
+      {/* Backward compatibility redirects */}
+      <Route path="/laporan" element={<RedirectWithSearch to="/reports" />} />
+      <Route path="/laporan/cetak" element={<RedirectWithSearch to="/reports/print" />} />
+      <Route path="/pencapaian" element={<RedirectWithSearch to="/achievements" />} />
       <Route
         path="/profile"
         element={
