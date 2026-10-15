@@ -134,7 +134,7 @@ const Layout = ({ children }) => {
                     role="menuitem"
                     onClick={() => {
                       setShowMenu(false);
-                      navigate('/laporan');
+                      navigate('/reports');
                     }}
                   >
                     <FileTextIcon size={16} />
@@ -146,7 +146,7 @@ const Layout = ({ children }) => {
                     role="menuitem"
                     onClick={() => {
                       setShowMenu(false);
-                      navigate('/pencapaian');
+                      navigate('/achievements');
                     }}
                   >
                     <AwardIcon size={16} />

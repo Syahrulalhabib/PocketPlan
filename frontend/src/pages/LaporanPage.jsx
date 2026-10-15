@@ -245,7 +245,7 @@ const LaporanPage = () => {
         <button
           type="button"
           className="btn-laporan-print"
-          onClick={() => window.open(`/laporan/cetak?month=${selectedMonth}`, '_blank')}
+          onClick={() => window.open(`/reports/print?month=${selectedMonth}`, '_blank')}
         >
           🖨️ Print / Save PDF
         </button>

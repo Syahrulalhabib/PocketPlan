@@ -60,7 +60,12 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
       return;
     }
+    const fallbackTimer = setTimeout(() => {
+      setLoading(false);
+    }, 2000);
+
     const unsubscribe = watchAuth((fbUser) => {
+      clearTimeout(fallbackTimer);
       if (sessionStorage.getItem('pocketplan_demo_mode') === '1') {
         setUser(demoUser);
         setLoading(false);
@@ -106,7 +111,10 @@ export const AuthProvider = ({ children }) => {
       }
       setLoading(false);
     });
-    return () => (unsubscribe ? unsubscribe() : undefined);
+    return () => {
+      clearTimeout(fallbackTimer);
+      if (unsubscribe) unsubscribe();
+    };
   }, [isDemo]);
 
   const login = async (email, password) => {

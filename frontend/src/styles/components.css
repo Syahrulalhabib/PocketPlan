@@ -797,6 +797,13 @@
 }
 
 
+.auth-theme-toggle {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  z-index: 100;
+}
+
 .auth-page {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
@@ -810,6 +817,7 @@
   animation: fadeSlide var(--page-transition) ease;
   position: relative;
   background: transparent;
+  box-sizing: border-box;
 }
 
 .auth-panel {
