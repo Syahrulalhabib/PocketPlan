@@ -1,7 +1,7 @@
 import assert from 'assert';
-import { parseAmount, parseTransactionCommand, formatRupiah } from './telegramParser.js';
+import { parseAmount, parseTransactionCommand, formatRupiah, normalizeBudgetCategory } from './telegramParser.js';
 import { generateLinkCode, getLinkStatus, unlinkAccount, linkChatWithCode, cancelLinkCode, DEFAULT_BOT_COMMANDS, invalidateUidCache } from './telegramBotCore.js';
-import { handleTelegramUpdate, generateAchievementSvg } from './telegramBot.js';
+import { handleTelegramUpdate } from './telegramBot.js';
 
 console.log('Running Telegram integration tests...');
 
@@ -55,6 +55,19 @@ const txEmoji3 = parseTransactionCommand('+500k 💰 freelance');
 assert.strictEqual(txEmoji3.type, 'Income');
 assert.strictEqual(txEmoji3.amount, 500000);
 assert.strictEqual(txEmoji3.category, 'Salary');
+
+// T9-B: Budget category normalization & alignment tests
+assert.strictEqual(normalizeBudgetCategory('makan'), 'Food');
+assert.strictEqual(normalizeBudgetCategory('makanan'), 'Food');
+assert.strictEqual(normalizeBudgetCategory('Makanan (Food)'), 'Food');
+assert.strictEqual(normalizeBudgetCategory('Food & Dining'), 'Food');
+assert.strictEqual(normalizeBudgetCategory('transport'), 'Transport');
+assert.strictEqual(normalizeBudgetCategory('Transportasi (Transport)'), 'Transport');
+assert.strictEqual(normalizeBudgetCategory('belanja'), 'Shopping');
+assert.strictEqual(normalizeBudgetCategory('Belanja (Shopping)'), 'Shopping');
+assert.strictEqual(normalizeBudgetCategory('tagihan'), 'Bills');
+assert.strictEqual(normalizeBudgetCategory('Bills & Utilities'), 'Bills');
+
 
 // 3. Bot commands flow
 async function testBot() {
@@ -687,15 +700,7 @@ async function testBot() {
   replies = [];
   await handleTelegramUpdate({ message: { chat: { id: 8000 }, text: '/start join_idngawur', from: { first_name: 'NewUser' } } }, mdb, 'token');
   assert(replies.some(r => (r.text || '').includes('Pocky') || (r.text || '').includes('diajak')), 'Invalid join_ greeting');
-  // --- Fase 7: Achievement card & dev teststreak ---
-  const streakCardSvg = generateAchievementSvg({ type: 'streak', streakDays: 7, title: 'Streak 7 Hari!' });
-  assert(streakCardSvg.includes('STREAK MILESTONE'), 'Card SVG has streak badge');
-  assert(streakCardSvg.includes('HARI BERTURUT-TURUT'), 'Card SVG has streak label');
-  assert(streakCardSvg.includes('POCKY • POCKETPLAN'), 'Card SVG has footer branding');
-
-  const goalCardSvg = generateAchievementSvg({ type: 'goal', percent: 80, title: 'Beli Rumah' });
-  assert(goalCardSvg.includes('TARGET MILESTONE'), 'Card SVG has goal badge');
-  assert(goalCardSvg.includes('80% OF GOAL'), 'Card SVG has goal progress');
+  // --- Dev teststreak ---
 
   // /teststreak command handling (dev gate test)
   process.env.DEV_TELEGRAM_IDS = '88888888';

@@ -1,38 +1,41 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTheme } from '../providers/ThemeProvider.jsx';
+import { SunIcon, MoonIcon } from '../components/Icons.jsx';
+import pocketLogo from '../assets/pocket-logo.svg';
 
 const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME || 'yourpocketplan_bot';
 const telegramUrl = `https://t.me/${botUsername}`;
 
 const features = [
   {
-    emoji: '🤖',
+    iconImg: '/feature-balance.svg',
     title: 'Pocky Telegram Bot',
-    desc: 'Record transactions as quickly as texting a friend. Features instant receipt OCR and intelligent spending categorization.',
+    desc: 'Catat pengeluaran semudah mengirim pesan teks. Didukung pembacaan struk belanja otomatis via Gemini AI serta pengelompokan kategori langsung di Telegram.',
     featured: true,
     badge: 'Core Feature'
   },
   {
     iconImg: '/feature-goals.svg',
     title: 'Smart Savings Goals',
-    desc: 'Define your financial dreams from emergency funds to travel or gadgets. Monitor your milestone progress visually.',
+    desc: 'Tetapkan target tabungan impian, mulai dari dana darurat hingga pembelian aset. Progres tabungan terhubung langsung dengan saldo aktif secara transparan.',
     featured: true,
     badge: 'Popular'
   },
   {
-    iconImg: '/feature-balance.svg',
+    iconImg: '/feature-insights.svg',
     title: 'Track Balance & Cashflow',
-    desc: 'Log daily income and expenses in seconds. Check your actual balance anytime in real time across all accounts.'
+    desc: 'Pantau arus kas masuk dan keluar harian tanpa hitung manual. Ketahui posisi saldo bersih secara seketika di seluruh perangkat Anda.'
   },
   {
     iconImg: '/feature-insights.svg',
     title: 'Monthly Reports & Analytics',
-    desc: 'Understand your spending habits with breakdown donut charts, weekly trends, and clean printable PDF reports.'
+    desc: 'Pahami pola pengeluaran melalui visualisasi diagram alir, perbandingan antarkategori belanja, serta opsi cetak laporan rapi format dokumen cetak.'
   },
   {
-    emoji: '🔥',
+    iconImg: '/feature-goals.svg',
     title: 'Streaks & Milestones',
-    desc: 'Build lasting financial consistency. Maintain daily logging streaks, unlock savings badges, and celebrate achievements.'
+    desc: 'Bangun kedisiplinan finansial harian melalui rekor streak pencatatan dan koleksi lencana pencapaian target tabungan.'
   }
 ];
 
@@ -40,69 +43,71 @@ const steps = [
   {
     step: '1',
     title: 'Start on Telegram or Web',
-    desc: 'Open Telegram bot @yourpocketplan_bot or create your Pocketplan web account in seconds without friction.'
+    desc: 'Buka bot Telegram @yourpocketplan_bot atau akses aplikasi web Pocketplan langsung dari peramban tanpa instalasi rumit.'
   },
   {
     step: '2',
-    title: 'Log Spending in Plain English',
-    desc: 'Type "lunch 35k" in chat, snap a photo of your receipt, or log transactions directly from the web dashboard.'
+    title: 'Log Spending in Natural Text',
+    desc: 'Ketik pesan singkat seperti "kopi 25k" di obrolan Telegram, kirimkan foto struk fisik, atau gunakan formulir cepat di dashboard web.'
   },
   {
     step: '3',
     title: 'Track Habits & Export Reports',
-    desc: 'Stay within budget limits, keep your logging streak alive, and export comprehensive monthly PDF reports.'
+    desc: 'Pantau batas anggaran bulanan, jaga konsistensi pencatatan harian, dan unduh ringkasan laporan keuangan kapan pun dibutuhkan.'
   }
 ];
 
 const botCommands = [
   {
     cmd: '/catat',
-    example: 'lunch padang 32000',
-    reply: '✅ Expense Rp 32.000 (Food & Dining) recorded! Your balance has been updated.'
+    example: 'nasi padang 32000',
+    reply: 'Pengeluaran Rp 32.000 (Makanan) berhasil dicatat. Saldo Anda telah diperbarui.'
   },
   {
     cmd: '/saldo',
     example: '',
-    reply: '💰 Current Balance: Rp 3.250.000\n📈 Income: Rp 5.000.000 | 📉 Expenses: Rp 1.750.000'
+    reply: 'Saldo Saat Ini: Rp 3.250.000\nPemasukan: Rp 5.000.000 | Pengeluaran: Rp 1.750.000'
   },
   {
     cmd: '/budget',
     example: '',
-    reply: '🎯 Food Budget: Rp 850.000 / Rp 1.500.000 (56% used) • Status: On Track 🟢'
+    reply: 'Anggaran Makanan: Rp 850.000 / Rp 1.500.000 (56% terpakai) • Status: Aman'
   },
   {
     cmd: '/streak',
     example: '',
-    reply: '🔥 Active Streak: 7 Days in a row! Longest record: 14 days.'
+    reply: 'Streak Aktif: 7 hari berturut-turut. Rekor terpanjang: 14 hari.'
   },
   {
-    cmd: '/challenge',
+    cmd: '/tantangan',
     example: '',
-    reply: '🏆 Challenge: "7-Day Coffee Saver" — Day 4 of 7. You are on track!'
+    reply: 'Tantangan: "Hemat Kopi 7 Hari" — Hari ke-4 dari 7. Tetap disiplin!'
   }
 ];
 
 const faqs = [
   {
-    q: 'Is Pocketplan free to use?',
-    a: 'Yes, Pocketplan is 100% free to use via both the Pocky Telegram bot and the web dashboard.'
+    q: 'Apakah Pocketplan gratis digunakan?',
+    a: 'Ya, seluruh fitur pencatatan melalui bot Telegram Pocky dan dashboard web dapat digunakan tanpa pungutan biaya.'
   },
   {
-    q: 'Do I need to create a web account?',
-    a: 'No. You can manage everything solely via the Telegram bot. Signing up on the web unlocks interactive visual charts, deep analytics, and printable PDF reports.'
+    q: 'Apakah saya wajib membuat akun di website?',
+    a: 'Tidak wajib. Anda dapat mencatat keuangan seutuhnya melalui bot Telegram. Akun web bersifat opsional apabila Anda ingin melihat grafik analitik interaktif dan mencetak laporan.'
   },
   {
-    q: 'Is my financial data secure?',
-    a: 'Your financial records remain private to your account. Linking between Telegram and the web is secured by an encrypted one-time verification passcode.'
+    q: 'Bagaimana keamanan data keuangan saya?',
+    a: 'Data keuangan Anda bersifat privat dan hanya dapat diakses oleh akun Anda. Penautan antara Telegram dan web diamankan dengan kode verifikasi sekali pakai.'
   },
   {
-    q: 'Can I use Pocketplan without Telegram?',
-    a: 'Absolutely! You can register directly on the web and enjoy full tracking, budgeting, and savings features right inside your browser.'
+    q: 'Bisakah saya menggunakan Pocketplan tanpa Telegram?',
+    a: 'Tentu. Anda dapat langsung mendaftar dan menggunakan dashboard web untuk mencatat transaksi, mengatur anggaran, dan memantau target tabungan.'
   }
 ];
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
   const [openFaq, setOpenFaq] = useState(0);
 
   const toggleFaq = (index) => {
@@ -125,8 +130,8 @@ const LandingPage = () => {
       {/* Navbar */}
       <header className="landing-nav">
         <div className="landing-nav-inner">
-          <div className="brand" onClick={() => navigate('/')}>
-            <img src="/pocket-logo.svg" alt="Pocketplan logo" className="brand-logo" />
+          <div className="brand" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+            <img src={pocketLogo} alt="Pocketplan logo" className="brand-logo" />
             <span className="brand-title">Pocketplan</span>
           </div>
 
@@ -138,8 +143,17 @@ const LandingPage = () => {
           </nav>
 
           <div className="landing-nav-actions">
-            <a href={telegramUrl} target="_blank" rel="noreferrer" className="landing-nav-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-              <span>🚀</span> Telegram Bot
+            <button
+              type="button"
+              className="theme-btn-topbar"
+              onClick={toggleTheme}
+              aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+              title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+            >
+              {isDark ? <SunIcon size={18} /> : <MoonIcon size={18} />}
+            </button>
+            <a href={telegramUrl} target="_blank" rel="noreferrer" className="landing-nav-link landing-nav-tg">
+              Telegram Bot
             </a>
             <Link to="/login" className="btn-landing-login">Login</Link>
             <Link to="/register" className="btn-landing-register">Register</Link>
@@ -150,28 +164,24 @@ const LandingPage = () => {
       {/* Hero */}
       <section className="landing-hero">
         <div className="landing-hero-content">
-          <div className="landing-hero-badge">
-            <span className="shimmer-beacon" aria-hidden="true" />
-            <span>Instant Telegram Bot &amp; Web Sync</span>
-          </div>
           <h1 className="landing-hero-title">
             Smart Expense Tracking Without the Hassle with <span className="brand-highlight">Pocky</span>
           </h1>
           <p className="landing-hero-desc">
-            Take charge of daily cashflow, hit savings goals, and track financial health effortlessly via Telegram chat or our modern web dashboard.
+            Kelola arus kas harian, wujudkan target tabungan, dan pantau kesehatan finansial tanpa repot melalui obrolan Telegram atau dashboard web modern.
           </p>
           <div className="landing-hero-cta">
             <a href={telegramUrl} target="_blank" rel="noreferrer" className="cta-primary">
-              <span>🚀</span> Start via Telegram
+              Start via Telegram
             </a>
             <Link to="/demo" className="cta-secondary">
-              <span>✨</span> Try Interactive Demo
+              Try Interactive Demo
             </Link>
           </div>
           <div className="hero-trust-strip">
-            <span className="trust-item"><span>⚡</span> Real-time Sync</span>
-            <span className="trust-item"><span>🔒</span> Encrypted Passcode</span>
-            <span className="trust-item"><span>📱</span> 100% Free to Use</span>
+            <span className="trust-item">Real-time Cloud Sync</span>
+            <span className="trust-item">Encrypted Verification</span>
+            <span className="trust-item">100% Free to Use</span>
           </div>
         </div>
 
@@ -188,7 +198,9 @@ const LandingPage = () => {
           </div>
 
           <div className="telegram-card-header">
-            <div className="telegram-avatar">✨</div>
+            <div className="telegram-avatar">
+              <img src={pocketLogo} alt="Pocky Mascot" style={{ width: '22px', height: '22px' }} />
+            </div>
             <div className="telegram-info">
               <h4>Pocky — Pocketplan Bot</h4>
               <p>● Online • Your Financial Companion</p>
@@ -196,13 +208,13 @@ const LandingPage = () => {
           </div>
           <div className="telegram-chat-body">
             <div className="chat-bubble user">
-              lunch padang 32000
+              nasi padang 32000
               <div className="chat-bubble-footer">12:30 PM <span className="bubble-check">✓✓</span></div>
             </div>
             <div className="chat-bubble bot">
-              ✅ <b>Expense Recorded!</b><br />
-              🍔 Category: <b>Food &amp; Dining</b><br />
-              💸 Amount: <b>Rp 32.000</b>
+              <b>Pengeluaran Dicatat</b><br />
+              Kategori: <b>Makanan</b><br />
+              Nominal: <b>Rp 32.000</b>
               <div className="chat-bubble-footer">12:30 PM</div>
             </div>
             <div className="chat-bubble user">
@@ -210,8 +222,8 @@ const LandingPage = () => {
               <div className="chat-bubble-footer">12:31 PM <span className="bubble-check">✓✓</span></div>
             </div>
             <div className="chat-bubble bot">
-              🔥 <b>7-Day Active Streak!</b><br />
-              Discipline pays off — 7 consecutive days recorded!
+              <b>Status Streak: 7 Hari Aktif</b><br />
+              Konsistensi pencatatan Anda berjalan lancar!
               <div className="chat-bubble-footer">12:31 PM</div>
             </div>
           </div>
@@ -222,8 +234,8 @@ const LandingPage = () => {
       <section id="features" className="landing-section">
         <div className="section-head">
           <div className="section-kicker">Features</div>
-          <h2 className="section-h2">Designed to Keep You in Complete Control</h2>
-          <p className="section-sub">All the essentials you need to master your money and hit your personal savings goals.</p>
+          <h2 className="section-h2">Kemudahan Penuh dalam Mengelola Keuangan</h2>
+          <p className="section-sub">Seluruh perangkat pencatatan yang Anda perlukan untuk mencapai kestabilan finansial dan target tabungan.</p>
         </div>
         <div className="features-grid">
           {features.map((f, i) => (
@@ -246,9 +258,9 @@ const LandingPage = () => {
       {/* How It Works */}
       <section id="how-it-works" className="landing-section">
         <div className="section-head">
-          <div className="section-kicker">Workflow</div>
-          <h2 className="section-h2">3 Simple Steps to Get Started</h2>
-          <p className="section-sub">Organize your personal cashflow effortlessly without friction.</p>
+          <div className="section-kicker">How It Works</div>
+          <h2 className="section-h2">Tiga Langkah Sederhana untuk Memulai</h2>
+          <p className="section-sub">Tata kelola keuangan harian yang praktis tanpa mengganggu rutinitas harian Anda.</p>
         </div>
         <div className="steps-container">
           <div className="steps-grid">
@@ -268,9 +280,9 @@ const LandingPage = () => {
       {/* Showcase Bot Commands */}
       <section id="commands" className="landing-section">
         <div className="section-head">
-          <div className="section-kicker">Quick Commands</div>
-          <h2 className="section-h2">Fast &amp; Natural Bot Interaction</h2>
-          <p className="section-sub">Send simple commands or receipt snapshots — Pocky parses and categorizes everything instantly.</p>
+          <div className="section-kicker">Commands</div>
+          <h2 className="section-h2">Perintah Cepat Bot Telegram</h2>
+          <p className="section-sub">Kirim pesan singkat atau foto struk belanja — Pocky merapikan dan mengelompokkan catatan secara instan.</p>
         </div>
         <div className="bot-showcase-grid">
           {botCommands.map((b, i) => (
@@ -291,8 +303,8 @@ const LandingPage = () => {
       <section id="faq" className="landing-section">
         <div className="section-head">
           <div className="section-kicker">FAQ</div>
-          <h2 className="section-h2">Frequently Asked Questions</h2>
-          <p className="section-sub">Common questions about using Pocketplan and the Pocky assistant.</p>
+          <h2 className="section-h2">Pertanyaan yang Sering Diajukan</h2>
+          <p className="section-sub">Jawaban ringkas dan jelas seputar cara kerja Pocketplan dan asisten Pocky.</p>
         </div>
         <div className="faq-list">
           {faqs.map((f, i) => {
@@ -325,11 +337,11 @@ const LandingPage = () => {
       <footer className="landing-footer">
         <div className="landing-footer-inner">
           <div className="brand landing-footer-brand" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-            <img src="/pocket-logo.svg" alt="Pocketplan logo" className="brand-logo" />
+            <img src={pocketLogo} alt="Pocketplan logo" className="brand-logo" />
             <span className="brand-title">Pocketplan</span>
           </div>
           <p className="landing-footer-copy">
-            &copy; {new Date().getFullYear()} Pocketplan. Smart personal finance tracking for everyday life.
+            &copy; {new Date().getFullYear()} Pocketplan. Kelola keuangan harian lebih tertata langsung dari Telegram dan web.
           </p>
         </div>
       </footer>

@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { getPrevMonth, getDaysInMonth, buildMonthlyReport } from './reportHelper.js';
+import { getPrevMonth, getDaysInMonth, buildMonthlyReport, getTxMonth } from './reportHelper.js';
 
 console.log('Running Monthly Report unit tests...');
 
@@ -34,7 +34,8 @@ const sampleTx = [
 
 const goals = [
   { name: 'Motor', amount: 7500000, target: 15000000 },
-  { name: 'Liburan', amount: 6000000, target: 6000000 }
+  { name: 'Liburan', amount: 6000000, target: 6000000 },
+  { name: 'Rumah', target: 10000000 } // T8 verification: goal funded by balance
 ];
 
 const budgets = [
@@ -61,6 +62,16 @@ assert.strictEqual(rep.streak, 7);
 assert.strictEqual(rep.budgets.total, 2);
 assert.strictEqual(rep.budgets.terjaga, 1); // Makanan is 1.85m <= 2m (terjaga); Transport is 1.25m > 1m (not terjaga)
 assert.strictEqual(rep.goals.find(g => g.nama === 'Liburan').persen, 100);
+const rumahGoal = rep.goals.find(g => g.nama === 'Rumah');
+assert.ok(rumahGoal, 'T8: Savings goal present in report');
+assert.strictEqual(rumahGoal.terkumpul, 1630000, 'T8: Savings goal amount equals balance');
+assert.strictEqual(rumahGoal.persen, 16, 'T8: Savings goal percent matches Goals page formula');
+
+// T8 & T9-B: getTxMonth date formats
+assert.strictEqual(getTxMonth({ date: '2026-10-14' }), '2026-10');
+assert.strictEqual(getTxMonth({ date: '14/10/2026' }), '2026-10');
+assert.strictEqual(getTxMonth({ createdAt: '2026-10-14T08:30:00.000Z' }), '2026-10');
+
 console.log('  ✔ Calculations & comparison passed');
 
 console.log('All Monthly Report unit tests passed! ✅');

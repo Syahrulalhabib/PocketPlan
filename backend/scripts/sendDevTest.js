@@ -1,7 +1,6 @@
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { generateAchievementCard, sendTelegramPhoto } from '../lib/telegramBot.js';
 import { sendTelegramMessage } from '../lib/telegramBotCore.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -12,7 +11,6 @@ dotenv.config();
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const args = process.argv.slice(2);
 
-// Default to developer chat ID from env or fallback placeholder
 let targetChatId = process.env.DEV_TELEGRAM_IDS?.split(',')[0]?.trim() || '';
 
 let type = 'streak';
@@ -35,44 +33,18 @@ if (!botToken) {
   process.exit(1);
 }
 
-console.log(`🚀 Mengirim test kartu achievement (${type.toUpperCase()}) ke Telegram ID: ${targetChatId}...`);
+console.log(`🚀 Mengirim test milestone (${type.toUpperCase()}) ke Telegram ID: ${targetChatId}...`);
 
 async function main() {
   try {
-    const opts = type === 'streak'
-      ? { type: 'streak', title: `Streak ${days} Hari! 🔥`, subtitle: `${days} hari berturut-turut catat keuangan`, streakDays: days }
-      : { type: 'goal', title: 'Target Tabungan (Dana Darurat)', subtitle: 'Target Rp 10.000.000', percent };
-
-    const png = await generateAchievementCard(opts);
-    console.log(`✅ Kartu PNG berhasil digenerate (${png.length} bytes).`);
-
-    const photoRes = await sendTelegramPhoto(
-      botToken,
-      targetChatId,
-      png,
-      `✨ *KARTU ACHIEVEMENT POCKY (${opts.type.toUpperCase()})*\n\n` +
-      (type === 'streak'
-        ? `🔥 *Streak ${days} Hari Aktif!*\nKonsistensi finansial kamu luar biasa. Terus pertahankan! 🪙`
-        : `🎯 *Target Tabungan: ${percent}% Tercapai!*\nLangkah demi langkah menuju impian finansialmu! 💰`) +
-      `\n\n_Mode Uji Developer PocketPlan_`,
-      { parse_mode: 'Markdown' }
-    );
-
-    if (photoRes && photoRes.ok) {
-      console.log('✅ Foto kartu berhasil dikirim ke Telegram!');
-    } else {
-      console.warn('⚠️ Respons Telegram API photo:', photoRes);
-    }
-
     const msgRes = await sendTelegramMessage(
       botToken,
       targetChatId,
       `🎉 *Halo Developer!*\n\n` +
-      `Ini adalah simulasi pesan test milestone & kartu streak yang dikirim khusus ke akun kamu (\`${targetChatId}\`).\n\n` +
+      `Ini adalah simulasi pesan test milestone yang dikirim khusus ke akun kamu (\`${targetChatId}\`).\n\n` +
       `Tip: Kamu juga bisa ketik langsung di chat bot:\n` +
       `• \`/teststreak\` (default 7 hari)\n` +
-      `• \`/teststreak 30\` (simulasi 30 hari)\n` +
-      `• \`/testkartu goal\` (simulasi kartu target impian)`
+      `• \`/teststreak 30\` (simulasi 30 hari)`
     );
 
     if (msgRes && msgRes.ok) {

@@ -43,9 +43,24 @@ const TransactionsPage = () => {
       return matchesSearch && matchesType;
     });
     return [...list].sort((a, b) => {
-      const aDate = new Date(a.date || a.createdAt || 0).getTime();
-      const bDate = new Date(b.date || b.createdAt || 0).getTime();
-      return sortOrder === 'newest' ? bDate - aDate : aDate - bDate;
+      const aDay = String(a.date || a.createdAt || '').slice(0, 10);
+      const bDay = String(b.date || b.createdAt || '').slice(0, 10);
+
+      // Actual creation timestamp with full millisecond precision
+      const aCreated = new Date(a.createdAt || a.date || 0).getTime();
+      const bCreated = new Date(b.createdAt || b.date || 0).getTime();
+
+      if (sortOrder === 'newest') {
+        if (aDay !== bDay) {
+          return bDay.localeCompare(aDay);
+        }
+        return bCreated - aCreated;
+      } else {
+        if (aDay !== bDay) {
+          return aDay.localeCompare(bDay);
+        }
+        return aCreated - bCreated;
+      }
     });
   }, [transactions, search, typeFilter, sortOrder]);
 

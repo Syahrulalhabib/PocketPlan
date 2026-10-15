@@ -48,5 +48,39 @@ const cleaned = stripUndefined(testData);
 assert.strictEqual('category' in cleaned, false);
 assert.strictEqual(cleaned.name, 'Trip');
 assert.strictEqual(cleaned.target, 5000000);
+// 7. Verify T9-A: Newest sorting puts newly added bot transaction at index 0
+const sortTransactions = (list, sortOrder = 'newest') => {
+  return [...list].sort((a, b) => {
+    const aDay = String(a.date || a.createdAt || '').slice(0, 10);
+    const bDay = String(b.date || b.createdAt || '').slice(0, 10);
+
+    const aCreated = new Date(a.createdAt || a.date || 0).getTime();
+    const bCreated = new Date(b.createdAt || b.date || 0).getTime();
+
+    if (sortOrder === 'newest') {
+      if (aDay !== bDay) {
+        return bDay.localeCompare(aDay);
+      }
+      return bCreated - aCreated;
+    } else {
+      if (aDay !== bDay) {
+        return aDay.localeCompare(bDay);
+      }
+      return aCreated - bCreated;
+    }
+  });
+};
+
+const txList = [
+  { id: 'tx-old-day', date: '2026-10-12', createdAt: '2026-10-12T09:00:00.000Z', amount: 50000 },
+  { id: 'tx-morning', date: '2026-10-14', createdAt: '2026-10-14T08:00:00.000Z', amount: 25000 },
+  { id: 'tx-bot-just-now', date: '2026-10-14', createdAt: '2026-10-14T15:30:00.000Z', amount: 35000 }
+];
+
+const sorted = sortTransactions(txList, 'newest');
+assert.strictEqual(sorted[0].id, 'tx-bot-just-now', 'T9-A: Newly added bot transaction appears first');
+assert.strictEqual(sorted[1].id, 'tx-morning');
+assert.strictEqual(sorted[2].id, 'tx-old-day');
+
 
 console.log('All logic tests passed successfully.');
