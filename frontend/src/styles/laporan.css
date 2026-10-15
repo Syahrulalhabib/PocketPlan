@@ -638,6 +638,20 @@
   color: #9ca3af;
   border-top: 1px solid #f1f5f9;
   padding-top: 8px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.laporan-sheet .laporan-footer-url {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.laporan-sheet .footer-link-text {
+  word-break: keep-all;
+  white-space: nowrap;
 }
 
 .laporan-sheet .laporan-footer .fbrand {
@@ -734,6 +748,13 @@
 
   .laporan-sheet .laporan-donut-list {
     width: 100%;
+  }
+
+  .laporan-sheet .laporan-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 9.5px;
   }
 
   .laporan-print-page {

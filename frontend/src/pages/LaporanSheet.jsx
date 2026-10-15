@@ -406,7 +406,11 @@ const LaporanSheet = ({ report, monthLabel, prevMonthLabel, userName = 'User' })
       {/* Footer */}
       <div className="laporan-footer">
         <div className="fbrand"><img src={pocketLogo} alt="" style={{ width: 18, height: 18, objectFit: 'contain', display: 'block' }} /> Pocketplan</div>
-        <span>Generated automatically • pocketplan-rul.vercel.app</span>
+        <span className="laporan-footer-url">
+          <span className="footer-auto-text">Generated automatically</span>
+          <span className="footer-sep">•</span>
+          <span className="footer-link-text">pocketplan-rul.vercel.app</span>
+        </span>
       </div>
     </div>
   );

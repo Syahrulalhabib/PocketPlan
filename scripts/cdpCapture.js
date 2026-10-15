@@ -46,11 +46,18 @@ server.listen(5310, async () => {
     'about:blank'
   ]);
 
-  await new Promise(r => setTimeout(r, 1200));
+  let listRes, tabs;
+  for (let attempt = 0; attempt < 15; attempt++) {
+    try {
+      listRes = await fetch('http://127.0.0.1:9222/json/list');
+      tabs = await listRes.json();
+      if (tabs && tabs.length > 0) break;
+    } catch {
+      await new Promise(r => setTimeout(r, 400));
+    }
+  }
 
   try {
-    const listRes = await fetch('http://127.0.0.1:9222/json/list');
-    const tabs = await listRes.json();
     const pageTab = tabs.find(t => t.type === 'page') || tabs[0];
     const ws = new WebSocket(pageTab.webSocketDebuggerUrl);
     await new Promise(r => { ws.onopen = r; });
@@ -75,13 +82,10 @@ server.listen(5310, async () => {
     const screensDir = path.resolve(__dirname, '../screenshots/audit');
     if (!fs.existsSync(screensDir)) fs.mkdirSync(screensDir, { recursive: true });
 
-    const capture = async (url, outName, width, height, isDark = false, isDemo = false) => {
+    const capture = async (url, outName, width, height, isDark = false, isDemo = false, scrollToBottom = false) => {
       await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: width < 600 });
 
-      // Navigate
-      await send('Page.navigate', { url });
-      await new Promise(r => setTimeout(r, 600));
-
+      // Set storage before navigating to protected routes
       await send('Runtime.evaluate', {
         expression: `
           ${isDemo ? 'sessionStorage.setItem("pocketplan_demo_mode", "1");' : 'sessionStorage.removeItem("pocketplan_demo_mode");'}
@@ -89,8 +93,14 @@ server.listen(5310, async () => {
         `
       });
 
-      // Reload so App and Providers initialize with the right storage values
-      await send('Page.reload');
+      // Navigate
+      await send('Page.navigate', { url });
+      await new Promise(r => setTimeout(r, 600));
+
+      if (scrollToBottom) {
+        await send('Runtime.evaluate', { expression: 'window.scrollTo(0, document.body.scrollHeight);' });
+        await new Promise(r => setTimeout(r, 300));
+      }
 
       // Wait until loading-screen is completely gone and form / view is rendered
       let waited = 0;
@@ -98,7 +108,7 @@ server.listen(5310, async () => {
         await new Promise(r => setTimeout(r, 200));
         waited += 200;
         const check = await send('Runtime.evaluate', {
-          expression: 'document.querySelector(".loading-screen") === null && (document.querySelector(".auth-panel") !== null || document.querySelector(".report-view") !== null || document.querySelector(".report-print-container") !== null)'
+          expression: 'document.querySelector(".loading-screen") === null && (document.querySelector(".auth-panel") !== null || document.querySelector(".report-view") !== null || document.querySelector(".report-print-container") !== null || document.querySelector(".landing-page") !== null || document.querySelector(".goals-page") !== null || document.querySelector(".profile-identity-card") !== null || document.querySelector(".app-shell") !== null || document.querySelector(".landing-hero") !== null || document.querySelector(".landing-footer") !== null)'
         });
         if (check?.result?.value === true) break;
       }
@@ -121,6 +131,14 @@ server.listen(5310, async () => {
 
     await capture('http://localhost:5310/reports', 'after_report_mobile_360', 360, 800, false, true);
     await capture('http://localhost:5310/reports/print', 'after_report_print_mobile_360', 360, 800, false, true);
+
+    // Audit V2 captures
+    await capture('http://localhost:5310/', 'audit_landing_desktop', 1280, 800, false);
+    await capture('http://localhost:5310/', 'audit_landing_mobile_360', 360, 800, false);
+    await capture('http://localhost:5310/', 'audit_footer_mobile_360', 360, 800, false, false, true);
+    await capture('http://localhost:5310/goals', 'audit_goals_mobile_360', 360, 800, false, true);
+    await capture('http://localhost:5310/profile', 'audit_profile_desktop', 1280, 800, false, true);
+    await capture('http://localhost:5310/profile', 'audit_profile_mobile_360', 360, 800, false, true);
 
     // Test Backward Compatibility Redirects:
     console.log('--- Testing Backward Compatibility Redirects ---');

@@ -888,8 +888,40 @@
   }
 
   .profile-settings-card {
-    padding: 16px 12px;
+    padding: 18px 14px;
     border-radius: 18px;
+  }
+
+  .profile-tabs-header {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 6px;
+    padding: 5px;
+    margin-bottom: 18px;
+  }
+
+  .profile-tabs-header::-webkit-scrollbar {
+    display: none;
+  }
+
+  .profile-tab-btn {
+    padding: 9px 12px;
+    font-size: 12.5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .profile-form-footer {
+    width: 100%;
+  }
+
+  .profile-save-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 20px;
+    font-size: 14px;
+    border-radius: 12px;
   }
 
   .avatar-presets-grid {
@@ -1200,6 +1232,11 @@
   }
 
   .koiny-click-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    gap: 3px;
     font-size: 10px;
     padding: 2px 8px;
     margin-top: 3px;
@@ -1475,6 +1512,11 @@
   }
 
   .koiny-click-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    gap: 3px;
     font-size: 9.5px;
     padding: 1.5px 7px;
   }

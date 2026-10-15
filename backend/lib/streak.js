@@ -28,19 +28,32 @@ export async function updateStreak(uid, db) {
   });
 
   const today = todayWib();
-  const dates = [...dateSet].sort().reverse(); // newest first
+  const baseDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+  const yesterdayObj = new Date(baseDate);
+  yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+  const yesterday = `${yesterdayObj.getFullYear()}-${String(yesterdayObj.getMonth() + 1).padStart(2, '0')}-${String(yesterdayObj.getDate()).padStart(2, '0')}`;
 
-  // Compute streak from today backwards
+  // Compute streak: consecutive days ending today or yesterday
   let streak = 0;
-  if (dates.includes(today)) {
+  if (dateSet.has(today)) {
     streak = 1;
-    // Use WIB-safe date arithmetic
-    const baseDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
     for (let i = 1; i < 400; i++) {
       const d = new Date(baseDate);
       d.setDate(d.getDate() - i);
       const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      if (dates.includes(ds)) {
+      if (dateSet.has(ds)) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+  } else if (dateSet.has(yesterday)) {
+    streak = 1;
+    for (let i = 2; i < 400; i++) {
+      const d = new Date(baseDate);
+      d.setDate(d.getDate() - i);
+      const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      if (dateSet.has(ds)) {
         streak++;
       } else {
         break;
@@ -52,9 +65,11 @@ export async function updateStreak(uid, db) {
   const prevLastDate = userData.lastStreakDate || null;
   const longestStreak = Math.max(streak, userData.longestStreak || 0);
 
-  // Detect broken streak: had active streak, gap > 1 day, now starting fresh
+  // Detect broken streak: had active streak and now reset to 0 or restarted at 1 after gap
   let broken = false;
-  if (prevLastDate && prevStreak > 0 && streak <= 1) {
+  if (prevStreak > 0 && streak === 0) {
+    broken = true;
+  } else if (prevLastDate && prevStreak > 0 && streak === 1 && !dateSet.has(yesterday)) {
     const prevDate = new Date(prevLastDate + 'T00:00:00');
     const todayDate = new Date(today + 'T00:00:00');
     const diffDays = Math.round((todayDate - prevDate) / (24 * 60 * 60 * 1000));

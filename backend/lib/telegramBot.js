@@ -313,19 +313,23 @@ async function checkBudgetWarnings(chatId, uid, db, botToken, category) {
     const nowJakarta = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(now);
     const monthKey = nowJakarta.slice(0, 7); // 'YYYY-MM'
 
-    // Fetch user transactions (checking both uid and tg_<chatId>)
+    // Fetch user transactions (checking both uid and tg_<chatId>) with doc ID deduplication
+    const seenTx = new Set();
     const txDocs = [];
     const txSnap = await db.collection('users').doc(uid).collection('transactions').get();
-    txDocs.push(...txSnap.docs);
+    txSnap.docs.forEach(d => { seenTx.add(d.id); txDocs.push(d); });
     if (uid !== `tg_${chatId}`) {
       const altTxSnap = await db.collection('users').doc(`tg_${chatId}`).collection('transactions').get();
-      if (!altTxSnap.empty) txDocs.push(...altTxSnap.docs);
+      altTxSnap.docs.forEach(d => {
+        if (!seenTx.has(d.id)) { seenTx.add(d.id); txDocs.push(d); }
+      });
     }
 
     let total = 0;
     txDocs.forEach(d => {
       const t = d.data();
-      if (t.type === 'Expense' && getTxMonth(t) === monthKey) {
+      const isExpense = (t.type || '').toLowerCase() === 'expense';
+      if (isExpense && getTxMonth(t) === monthKey) {
         if (normalizeBudgetCategory(t.category).toLowerCase() === normTarget.toLowerCase()) {
           total += Number(t.amount) || 0;
         }
@@ -996,8 +1000,13 @@ export async function handleTelegramUpdate(update, db, botToken) {
       '• `/goals` — cek progres tabungan & beli target yang tercapai\n' +
       '• `/streak` — pantau rekor hari konsisten mencatat keuangan\n' +
       '• `/pencapaian` — lihat galeri lencana & milestone keuanganmu\n\n' +
-      '*🏆 TANTANGAN NABUNG BARENG (30 HARI)*\n' +
-      '• `/tantangan` — kompetisi hemat 30 hari bareng teman (puasa jajan/rajin catat), dapatkan link undangan & lencana pencapaian\n\n' +
+      '*🏆 TANTANGAN HEMAT (30 HARI)*\n' +
+      '• *Apa itu:* Ajang seru melatih disiplin finansial bareng teman selama 30 hari.\n' +
+      '• *Cara ikut:*\n' +
+      '   1️⃣ Ketik `/tantangan` untuk melihat daftar tantangan aktif\n' +
+      '   2️⃣ Buat baru (misal: `/tantangan buat no_spend Kopi Puasa Kopi`)\n' +
+      '   3️⃣ Bagikan link undangan ke teman untuk gabung & tanding bersama!\n' +
+      '• *Yang didapat:* Lencana prestasi eksklusif & poin konsistensi di `/pencapaian`!\n\n' +
       '*📊 INFO & SINKRONISASI*\n' +
       '• `/saldo` — cek sisa saldo aktif & ringkasan arus kas\n' +
       '• `/riwayat` — lihat 5 transaksi terakhir\n' +
@@ -1455,19 +1464,23 @@ export async function handleTelegramUpdate(update, db, botToken) {
       const nowJakarta = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(now);
       const currentMonthPrefix = nowJakarta.slice(0, 7);
 
-      // Fetch user transactions (checking both uid and tg_<chatId>)
+      // Fetch user transactions (checking both uid and tg_<chatId>) with doc ID deduplication
+      const seenTx = new Set();
       const txDocs = [];
       const txSnap = await db.collection('users').doc(uid).collection('transactions').get();
-      txDocs.push(...txSnap.docs);
+      txSnap.docs.forEach(d => { seenTx.add(d.id); txDocs.push(d); });
       if (uid !== `tg_${chatId}`) {
         const altTxSnap = await db.collection('users').doc(`tg_${chatId}`).collection('transactions').get();
-        if (!altTxSnap.empty) txDocs.push(...altTxSnap.docs);
+        altTxSnap.docs.forEach(d => {
+          if (!seenTx.has(d.id)) { seenTx.add(d.id); txDocs.push(d); }
+        });
       }
 
       const spending = {};
       txDocs.forEach(d => {
         const t = d.data();
-        if (t.type === 'Expense' && getTxMonth(t) === currentMonthPrefix) {
+        const isExpense = (t.type || '').toLowerCase() === 'expense';
+        if (isExpense && getTxMonth(t) === currentMonthPrefix) {
           const norm = normalizeBudgetCategory(t.category);
           spending[norm] = (spending[norm] || 0) + (Number(t.amount) || 0);
         }
