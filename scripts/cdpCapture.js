@@ -97,11 +97,6 @@ server.listen(5310, async () => {
       await send('Page.navigate', { url });
       await new Promise(r => setTimeout(r, 600));
 
-      if (scrollToBottom) {
-        await send('Runtime.evaluate', { expression: 'window.scrollTo(0, document.body.scrollHeight);' });
-        await new Promise(r => setTimeout(r, 300));
-      }
-
       // Wait until loading-screen is completely gone and form / view is rendered
       let waited = 0;
       while (waited < 8000) {
@@ -113,6 +108,14 @@ server.listen(5310, async () => {
         if (check?.result?.value === true) break;
       }
       await new Promise(r => setTimeout(r, 600));
+
+      if (scrollToBottom) {
+        await send('Runtime.evaluate', { expression: 'window.scrollTo(0, 999999);' });
+        await new Promise(r => setTimeout(r, 500));
+        await send('Runtime.evaluate', { expression: 'document.querySelector(".landing-footer-bottom")?.scrollIntoView(false) || window.scrollTo(0, 999999);' });
+        await new Promise(r => setTimeout(r, 800));
+      }
+
       const res = await send('Page.captureScreenshot', { format: 'png' });
       const outPath = path.resolve(screensDir, `${outName}.png`);
       fs.writeFileSync(outPath, Buffer.from(res.data, 'base64'));
