@@ -29,7 +29,7 @@ const LaporanSheet = ({ report, monthLabel, prevMonthLabel, userName = 'User' })
   const rasio = Math.min(100, Math.max(0, report.summary?.rasioMenabung || 0));
   const gaugeAngle = (rasio / 100) * 180;
   const rad = ((180 - gaugeAngle) * Math.PI) / 180;
-  const needleX = 100 - 58 * Math.cos(rad);
+  const needleX = 100 + 58 * Math.cos(rad);
   const needleY = 95 - 58 * Math.sin(rad);
 
   const wt = report.weeklyTrend || [0, 0, 0, 0];

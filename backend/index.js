@@ -509,8 +509,22 @@ app.get('/api/achievements', requireAuth, async (req, res) => {
     ]);
 
     const userData = userDoc.exists ? userDoc.data() : {};
-    const seen = Array.isArray(userData.achievementsSeen) ? userData.achievementsSeen : [];
-    const seenAt = userData.achievementsSeenAt || {};
+    let seen = Array.isArray(userData.achievementsSeen) ? [...userData.achievementsSeen] : [];
+    let seenAt = { ...(userData.achievementsSeenAt || {}) };
+
+    if (userData.telegramChatId) {
+      const tgDoc = await db.collection('users').doc(`tg_${userData.telegramChatId}`).get();
+      if (tgDoc.exists) {
+        const tgData = tgDoc.data() || {};
+        const tgSeen = Array.isArray(tgData.achievementsSeen) ? tgData.achievementsSeen : [];
+        const tgSeenAt = tgData.achievementsSeenAt || {};
+        tgSeen.forEach((k) => {
+          if (!seen.includes(k)) seen.push(k);
+          if (!seenAt[k] && tgSeenAt[k]) seenAt[k] = tgSeenAt[k];
+        });
+      }
+    }
+
     const goalsMap = new Map();
     goalsSnap.forEach((d) => {
       goalsMap.set(d.id, d.data()?.name || 'Target');

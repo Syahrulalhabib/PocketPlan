@@ -7,9 +7,9 @@ function getPastDate(daysAgo) {
 }
 
 export const demoUser = {
-  id: 'demo-budi',
-  name: 'Budi Santoso',
-  email: 'budi.demo@pocketplan.app',
+  id: 'demo-john',
+  name: 'John Doe',
+  email: 'john.doe@pocketplan.app',
   photoURL: undefined,
   isDemo: true
 };

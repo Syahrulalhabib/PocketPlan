@@ -590,6 +590,37 @@ async function testBot() {
   await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/budget hapus NonExistent', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
   assert(replies.some(r => (r.text || '').includes('tidak ditemukan')), 'Budget not found');
 
+  // Point 11: Multi-category budget synchronization test across all 7 non-food categories
+  const catTests = [
+    { name: 'Transport', set: '/budget transport 500k', catat: '/catat 50k bensin', expectedLabel: 'Transportasi', expectedSpent: '50.000' },
+    { name: 'Shopping', set: '/budget shopping 1jt', catat: '/catat 100k belanja baju', expectedLabel: 'Belanja', expectedSpent: '100.000' },
+    { name: 'Bills', set: '/budget bills 300k', catat: '/catat 150k tagihan listrik', expectedLabel: 'Tagihan', expectedSpent: '150.000' },
+    { name: 'Health', set: '/budget health 200k', catat: '/catat 50k obat apotek', expectedLabel: 'Kesehatan', expectedSpent: '50.000' },
+    { name: 'Entertainment', set: '/budget entertainment 400k', catat: '/catat 60k nonton bioskop', expectedLabel: 'Hiburan', expectedSpent: '60.000' },
+    { name: 'Education', set: '/budget education 500k', catat: '/catat 80k buku kuliah', expectedLabel: 'Pendidikan', expectedSpent: '80.000' },
+    { name: 'Charity', set: '/budget charity 100k', catat: '/catat 20k donasi infaq', expectedLabel: 'Amal', expectedSpent: '20.000' }
+  ];
+
+  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/masuk gaji 10jt', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+
+  for (const ct of catTests) {
+    await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: ct.set, from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+    await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: ct.catat, from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  }
+
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/budget', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  const budgetListReply = replies[0]?.text || '';
+  for (const ct of catTests) {
+    assert(budgetListReply.includes(ct.expectedLabel), `Budget list contains ${ct.name} (${ct.expectedLabel})`);
+    assert(budgetListReply.includes(ct.expectedSpent), `Budget list for ${ct.name} updated with spent ${ct.expectedSpent}`);
+  }
+
+  // Also test /pencapaian bot command (Point 18)
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/pencapaian', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Pencapaian')), '/pencapaian returns achievement gallery');
+
   // Test DEFAULT_BOT_COMMANDS includes budget, ajak, tantangan
   assert(DEFAULT_BOT_COMMANDS.some(c => c.command === 'budget'), 'budget in bot commands');
   assert(DEFAULT_BOT_COMMANDS.some(c => c.command === 'ajak'), 'ajak in bot commands');

@@ -7,23 +7,45 @@ const EXPLICIT_CATEGORIES = {
   makan: 'Food',
   makanan: 'Food',
   food: 'Food',
+  kuliner: 'Food',
+  dining: 'Food',
   transport: 'Transport',
   transportasi: 'Transport',
+  transportation: 'Transport',
+  bensin: 'Transport',
+  kendaraan: 'Transport',
   belanja: 'Shopping',
   shopping: 'Shopping',
+  shop: 'Shopping',
   tagihan: 'Bills',
   bills: 'Bills',
+  bill: 'Bills',
+  utilities: 'Bills',
   amal: 'Charity',
   charity: 'Charity',
   sedekah: 'Charity',
+  donasi: 'Charity',
+  infaq: 'Charity',
+  zakat: 'Charity',
   sehat: 'Health',
   kesehatan: 'Health',
+  health: 'Health',
+  medis: 'Health',
+  medical: 'Health',
   edukasi: 'Education',
   pendidikan: 'Education',
+  education: 'Education',
   hiburan: 'Entertainment',
   entertainment: 'Entertainment',
+  hobi: 'Entertainment',
+  game: 'Entertainment',
   gaji: 'Salary',
-  salary: 'Salary'
+  salary: 'Salary',
+  income: 'Salary',
+  pemasukan: 'Salary',
+  other: 'Other',
+  lainnya: 'Other',
+  umum: 'Other'
 };
 
 // Item keywords to infer category when user doesn't specify an explicit category prefix
@@ -270,7 +292,14 @@ export function parseTransactionCommand(text, defaultType = 'Expense') {
       remaining = words.slice(1, -1);
     } 
     else {
-      return null;
+      // Look for amount anywhere in words[1..n]
+      const amtIdx = words.findIndex((w, i) => i > 0 && parseAmount(w) > 0);
+      if (amtIdx > 0) {
+        amountStr = words[amtIdx];
+        remaining = [...words.slice(1, amtIdx), ...words.slice(amtIdx + 1)];
+      } else {
+        return null;
+      }
     }
   } else if (first.startsWith('+') || first.startsWith('-')) {
     type = first.startsWith('+') ? 'Income' : 'Expense';
@@ -406,14 +435,14 @@ export function normalizeBudgetCategory(raw) {
   if (!raw) return 'Other';
   const clean = String(raw).trim().toLowerCase();
 
-  // 1. Direct dictionary match
-  if (EXPLICIT_CATEGORIES[clean]) return EXPLICIT_CATEGORIES[clean];
-  if (INFERRED_KEYWORDS[clean]) return INFERRED_KEYWORDS[clean];
-
-  // 2. Canonical direct match
+  // 1. Canonical direct match
   const canonical = ['Food', 'Shopping', 'Transport', 'Bills', 'Health', 'Education', 'Entertainment', 'Charity', 'Salary', 'Other'];
   const directCanon = canonical.find(c => c.toLowerCase() === clean);
   if (directCanon) return directCanon;
+
+  // 2. Direct dictionary match
+  if (EXPLICIT_CATEGORIES[clean]) return EXPLICIT_CATEGORIES[clean];
+  if (INFERRED_KEYWORDS[clean]) return INFERRED_KEYWORDS[clean];
 
   // 3. Substring & alias matching (handling "Food & Dining", "Makanan (Food)", "Belanja (Shopping)", "Bills & Utilities", "Transportasi (Transport)", etc.)
   if (clean.includes('food') || clean.includes('makan') || clean.includes('kuliner') || clean.includes('dining')) return 'Food';
@@ -423,8 +452,9 @@ export function normalizeBudgetCategory(raw) {
   if (clean.includes('health') || clean.includes('sehat') || clean.includes('medis') || clean.includes('obat')) return 'Health';
   if (clean.includes('edu') || clean.includes('didik') || clean.includes('sekolah') || clean.includes('kursus') || clean.includes('buku')) return 'Education';
   if (clean.includes('ent') || clean.includes('hibur') || clean.includes('game') || clean.includes('rekreasi') || clean.includes('hobi')) return 'Entertainment';
-  if (clean.includes('char') || clean.includes('amal') || clean.includes('donasi') || clean.includes('sedekah') || clean.includes('zakat')) return 'Charity';
+  if (clean.includes('char') || clean.includes('amal') || clean.includes('donasi') || clean.includes('sedekah') || clean.includes('zakat') || clean.includes('infaq')) return 'Charity';
   if (clean.includes('sal') || clean.includes('gaji') || clean.includes('income') || clean.includes('masuk')) return 'Salary';
+  if (clean.includes('other') || clean.includes('lain') || clean.includes('umum')) return 'Other';
 
   return clean.charAt(0).toUpperCase() + clean.slice(1);
 }

@@ -37,6 +37,10 @@ const App = () => {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/features" element={<LandingPage />} />
+      <Route path="/how-it-works" element={<LandingPage />} />
+      <Route path="/commands" element={<LandingPage />} />
+      <Route path="/faq" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/verification" element={<VerificationPage />} />
