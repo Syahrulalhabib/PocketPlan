@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../providers/ThemeProvider.jsx';
 import { SunIcon, MoonIcon } from '../components/Icons.jsx';
+import { PockySvg } from '../components/FloatingMascot.jsx';
 import pocketLogo from '../assets/pocket-logo.svg';
 
 const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME || 'yourpocketplan_bot';
@@ -270,7 +271,7 @@ const LandingPage = () => {
       <section className="landing-hero">
         <div className="landing-hero-content">
           <div className="hero-companion-badge">
-            <img src={pocketLogo} alt="Pocky Mascot" className="hero-companion-logo" />
+            <PockySvg width={24} height={26} isWaving={true} />
             <span>Meet Pocky, your personal Telegram finance companion</span>
           </div>
 
@@ -289,9 +290,18 @@ const LandingPage = () => {
             </Link>
           </div>
           <div className="hero-trust-strip">
-            <span className="trust-item">Real-time Cloud Sync</span>
-            <span className="trust-item">Encrypted Verification</span>
-            <span className="trust-item">100% Free to Use</span>
+            <div className="trust-item">
+              <span className="trust-icon">🔄</span>
+              <span>Real-time Cloud Sync</span>
+            </div>
+            <div className="trust-item">
+              <span className="trust-icon">🔒</span>
+              <span>Encrypted Verification</span>
+            </div>
+            <div className="trust-item">
+              <span className="trust-icon">✨</span>
+              <span>100% Free to Use</span>
+            </div>
           </div>
         </div>
 
@@ -309,7 +319,7 @@ const LandingPage = () => {
 
           <div className="telegram-card-header">
             <div className="telegram-avatar">
-              <img src={pocketLogo} alt="Pocky Mascot" />
+              <PockySvg width={36} height={38} isWaving={false} />
             </div>
             <div className="telegram-info">
               <h4>Pocky — Pocketplan Bot</h4>
@@ -484,9 +494,8 @@ const LandingPage = () => {
               &copy; {new Date().getFullYear()} Pocketplan. All rights reserved.
             </p>
             <div className="landing-footer-bottom-links">
-              <span>Privacy & Security</span>
-              <span>&bull;</span>
-              <span>Terms of Service</span>
+              <span className="footer-bottom-item">Privacy &amp; Security</span>
+              <span className="footer-bottom-item">Terms of Service</span>
             </div>
           </div>
         </div>

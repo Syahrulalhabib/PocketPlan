@@ -170,11 +170,21 @@ const ProfilePage = () => {
               }}
             >
               <div className="avatar-glow-ring" />
-              <img
-                src={photoURL || user?.photoURL || '/pocket-logo.svg'}
-                alt={user?.name || 'User avatar'}
-                className="profile-avatar-img"
-              />
+              {photoURL || user?.photoURL ? (
+                <img
+                  src={photoURL || user?.photoURL}
+                  alt={user?.name || 'User avatar'}
+                  className="profile-avatar-img"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = '/pocket-logo.svg';
+                  }}
+                />
+              ) : (
+                <div className="profile-avatar-img profile-avatar-initial" aria-hidden="true">
+                  {user?.name?.[0]?.toUpperCase() || 'U'}
+                </div>
+              )}
               <button
                 type="button"
                 className="profile-camera-btn"

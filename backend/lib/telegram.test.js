@@ -616,6 +616,32 @@ async function testBot() {
     assert(budgetListReply.includes(ct.expectedSpent), `Budget list for ${ct.name} updated with spent ${ct.expectedSpent}`);
   }
 
+  // Antigravity Audit Poin 1: Natural syntax expense recording across all 7 non-food categories without /catat prefix
+  const naturalCatTests = [
+    { name: 'Transport', set: '/budget transportasi 800k', catat: 'bensin 75rb', expectedLabel: 'Transportasi', expectedSpent: '75.000' },
+    { name: 'Shopping', set: '/budget belanja 1.5jt', catat: 'baju 120rb', expectedLabel: 'Belanja', expectedSpent: '120.000' },
+    { name: 'Bills', set: '/budget tagihan 600k', catat: 'token listrik 100rb', expectedLabel: 'Tagihan', expectedSpent: '100.000' },
+    { name: 'Health', set: '/budget kesehatan 400k', catat: 'obat 45rb', expectedLabel: 'Kesehatan', expectedSpent: '45.000' },
+    { name: 'Entertainment', set: '/budget hiburan 500k', catat: 'nonton 65rb', expectedLabel: 'Hiburan', expectedSpent: '65.000' },
+    { name: 'Education', set: '/budget pendidikan 700k', catat: 'buku 90rb', expectedLabel: 'Pendidikan', expectedSpent: '90.000' },
+    { name: 'Charity', set: '/budget amal 300k', catat: 'donasi 35rb', expectedLabel: 'Amal', expectedSpent: '35.000' }
+  ];
+
+  await handleTelegramUpdate({ message: { chat: { id: 6000 }, text: '/masuk gaji 10jt', from: { first_name: 'NaturalUser' } } }, mdb, 'token');
+
+  for (const nct of naturalCatTests) {
+    await handleTelegramUpdate({ message: { chat: { id: 6000 }, text: nct.set, from: { first_name: 'NaturalUser' } } }, mdb, 'token');
+    await handleTelegramUpdate({ message: { chat: { id: 6000 }, text: nct.catat, from: { first_name: 'NaturalUser' } } }, mdb, 'token');
+  }
+
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 6000 }, text: '/budget', from: { first_name: 'NaturalUser' } } }, mdb, 'token');
+  const naturalBudgetListReply = replies[0]?.text || '';
+  for (const nct of naturalCatTests) {
+    assert(naturalBudgetListReply.includes(nct.expectedLabel), `Budget list contains natural ${nct.name} (${nct.expectedLabel})`);
+    assert(naturalBudgetListReply.includes(nct.expectedSpent), `Budget list for natural ${nct.name} updated with spent ${nct.expectedSpent}`);
+  }
+
   // Also test /pencapaian bot command (Point 18)
   replies = [];
   await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/pencapaian', from: { first_name: 'NudgeUser' } } }, mdb, 'token');

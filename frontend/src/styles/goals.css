@@ -45,6 +45,11 @@
 }
 
 .koiny-click-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  gap: 4px;
   font-size: 10px;
   font-weight: 800;
   margin-top: 5px;
@@ -53,6 +58,7 @@
   background: rgba(245, 158, 11, 0.2);
   color: #b45309;
   letter-spacing: 0.3px;
+  line-height: 1.2;
   transition: background 0.2s ease, transform 0.2s ease;
 }
 

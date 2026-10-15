@@ -144,8 +144,42 @@ export function computeLocalReport(monthStr, transactions = [], goals = [], user
     }
   }
 
+  // Compute accurate consecutive day streak
+  const dateSet = new Set();
+  (transactions || []).forEach((t) => {
+    const dStr = String(t.date || t.createdAt || '').slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dStr)) dateSet.add(dStr);
+  });
+
+  const nowJakarta = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+  const baseDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+  const yesterdayObj = new Date(baseDate);
+  yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+  const yesterdayStr = `${yesterdayObj.getFullYear()}-${String(yesterdayObj.getMonth() + 1).padStart(2, '0')}-${String(yesterdayObj.getDate()).padStart(2, '0')}`;
+
+  let streak = 0;
+  if (dateSet.has(nowJakarta)) {
+    streak = 1;
+    for (let i = 1; i < 400; i++) {
+      const d = new Date(baseDate);
+      d.setDate(d.getDate() - i);
+      const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      if (dateSet.has(ds)) streak++;
+      else break;
+    }
+  } else if (dateSet.has(yesterdayStr)) {
+    streak = 1;
+    for (let i = 2; i < 400; i++) {
+      const d = new Date(baseDate);
+      d.setDate(d.getDate() - i);
+      const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      if (dateSet.has(ds)) streak++;
+      else break;
+    }
+  }
+
   const badges = [
-    { type: 'streak', icon: '🔥', text: '23 days', sub: 'logging streak' },
+    { type: 'streak', icon: '🔥', text: `${streak} days`, sub: 'logging streak' },
     { type: 'tx', icon: '📊', text: `${jumlahTransaksi}`, sub: 'transactions' },
     { type: 'budget', icon: '💰', text: '3/5', sub: 'budgets on track' },
     { type: 'goal', icon: '🎯', text: `${goalsList.filter((g) => g.persen >= 100).length || 1}`, sub: 'goals reached' },
@@ -163,7 +197,7 @@ export function computeLocalReport(monthStr, transactions = [], goals = [], user
     comparison,
     goals: goalsList,
     budgets: { total: 5, terjaga: 3 },
-    streak: 23,
+    streak,
     funFacts: { rataRataHarian, hariTerboros, kategoriTerhemat },
     insight,
     badges

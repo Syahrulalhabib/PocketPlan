@@ -4,14 +4,15 @@ import { SMART_TIPS } from '../utils/smartTips.js';
 
 export { SMART_TIPS };
 
-export const PockySvg = memo(({ isWaving = false, isSquishing = false }) => (
+export const PockySvg = memo(({ isWaving = false, isSquishing = false, width = 68, height = 72, className = '', style = {} }) => (
   <svg
-    width="68"
-    height="72"
+    width={width}
+    height={height}
     viewBox="0 0 68 72"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    className={`pocky-svg ${isSquishing ? 'squish' : ''}`}
+    className={`pocky-svg ${isSquishing ? 'squish' : ''} ${className}`.trim()}
+    style={style}
     aria-hidden="true"
   >
     <defs>

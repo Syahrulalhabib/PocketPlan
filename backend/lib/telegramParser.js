@@ -26,6 +26,7 @@ const EXPLICIT_CATEGORIES = {
   sedekah: 'Charity',
   donasi: 'Charity',
   infaq: 'Charity',
+  infak: 'Charity',
   zakat: 'Charity',
   sehat: 'Health',
   kesehatan: 'Health',
@@ -46,6 +47,38 @@ const EXPLICIT_CATEGORIES = {
   other: 'Other',
   lainnya: 'Other',
   umum: 'Other'
+};
+
+// Multi-word phrases checked before individual token inference
+const MULTI_WORD_KEYWORDS = {
+  'token listrik': 'Bills',
+  'paket data': 'Bills',
+  'tagihan listrik': 'Bills',
+  'tagihan air': 'Bills',
+  'tagihan wifi': 'Bills',
+  'first media': 'Bills',
+  'rumah sakit': 'Health',
+  'tes lab': 'Health',
+  'cek darah': 'Health',
+  'tiket nonton': 'Entertainment',
+  'tiket bioskop': 'Entertainment',
+  'tiket film': 'Entertainment',
+  'tiket konser': 'Entertainment',
+  'top up game': 'Entertainment',
+  'topup game': 'Entertainment',
+  'buku tulis': 'Education',
+  'alat tulis': 'Education',
+  'cuci motor': 'Transport',
+  'cuci mobil': 'Transport',
+  'tambal ban': 'Transport',
+  'servis motor': 'Transport',
+  'servis mobil': 'Transport',
+  'service motor': 'Transport',
+  'service mobil': 'Transport',
+  'sedekah subuh': 'Charity',
+  'kotak amal': 'Charity',
+  'anak yatim': 'Charity',
+  'panti asuhan': 'Charity'
 };
 
 // Item keywords to infer category when user doesn't specify an explicit category prefix
@@ -71,69 +104,164 @@ const INFERRED_KEYWORDS = {
   bbm: 'Transport',
   pertalite: 'Transport',
   pertamax: 'Transport',
+  solar: 'Transport',
+  dexlite: 'Transport',
+  shell: 'Transport',
+  spbu: 'Transport',
   ojol: 'Transport',
   grab: 'Transport',
   gojek: 'Transport',
   maxim: 'Transport',
+  indrive: 'Transport',
+  goride: 'Transport',
+  gocar: 'Transport',
   parkir: 'Transport',
   tol: 'Transport',
+  etoll: 'Transport',
   kereta: 'Transport',
+  krl: 'Transport',
+  mrt: 'Transport',
+  lrt: 'Transport',
   bus: 'Transport',
+  busway: 'Transport',
+  transjakarta: 'Transport',
   angkot: 'Transport',
+  taksi: 'Transport',
+  taxi: 'Transport',
+  ongkos: 'Transport',
+  tambal: 'Transport',
+  ban: 'Transport',
+  servis: 'Transport',
+  service: 'Transport',
+  oli: 'Transport',
+  helm: 'Transport',
 
   // Shopping
+  belanja: 'Shopping',
   pasar: 'Shopping',
   supermarket: 'Shopping',
+  minimarket: 'Shopping',
   indomaret: 'Shopping',
   alfamart: 'Shopping',
+  alfamidi: 'Shopping',
+  superindo: 'Shopping',
+  hypermart: 'Shopping',
+  transmart: 'Shopping',
+  shopee: 'Shopping',
+  tokopedia: 'Shopping',
+  lazada: 'Shopping',
+  blibli: 'Shopping',
   baju: 'Shopping',
+  kaos: 'Shopping',
+  kemeja: 'Shopping',
   celana: 'Shopping',
+  rok: 'Shopping',
   sepatu: 'Shopping',
+  sandal: 'Shopping',
+  tas: 'Shopping',
+  jaket: 'Shopping',
   mall: 'Shopping',
   skincare: 'Shopping',
+  makeup: 'Shopping',
+  parfum: 'Shopping',
+  sabun: 'Shopping',
+  shampo: 'Shopping',
+  tisu: 'Shopping',
 
   // Bills
+  tagihan: 'Bills',
   listrik: 'Bills',
+  token: 'Bills',
   pln: 'Bills',
   air: 'Bills',
   pdam: 'Bills',
   wifi: 'Bills',
   indihome: 'Bills',
+  biznet: 'Bills',
   internet: 'Bills',
   pulsa: 'Bills',
   kuota: 'Bills',
+  paket: 'Bills',
   kos: 'Bills',
   kost: 'Bills',
+  kontrakan: 'Bills',
   sewa: 'Bills',
   bpjs: 'Bills',
+  asuransi: 'Bills',
+  ipl: 'Bills',
+  pajak: 'Bills',
 
   // Charity
   donasi: 'Charity',
+  amal: 'Charity',
+  sedekah: 'Charity',
   infaq: 'Charity',
+  infak: 'Charity',
   zakat: 'Charity',
+  kitabisa: 'Charity',
+  masjid: 'Charity',
+  mushola: 'Charity',
+  gereja: 'Charity',
+  wakaf: 'Charity',
 
   // Health
   obat: 'Health',
   apotek: 'Health',
+  apotik: 'Health',
   dokter: 'Health',
   rs: 'Health',
+  rumahsakit: 'Health',
   klinik: 'Health',
+  puskesmas: 'Health',
+  vitamin: 'Health',
+  suplemen: 'Health',
+  paracetamol: 'Health',
+  panadol: 'Health',
+  masker: 'Health',
+  lab: 'Health',
+  laboratorium: 'Health',
 
   // Education
   buku: 'Education',
+  novel: 'Education',
+  gramedia: 'Education',
   kursus: 'Education',
+  les: 'Education',
+  bimbel: 'Education',
   kuliah: 'Education',
   spp: 'Education',
   sekolah: 'Education',
+  semester: 'Education',
+  skripsi: 'Education',
+  atk: 'Education',
+  pulpen: 'Education',
+  pensil: 'Education',
+  seminar: 'Education',
+  workshop: 'Education',
+  pelatihan: 'Education',
 
   // Entertainment
   nonton: 'Entertainment',
   bioskop: 'Entertainment',
   cinema: 'Entertainment',
+  xxi: 'Entertainment',
+  cgv: 'Entertainment',
+  cinepolis: 'Entertainment',
+  film: 'Entertainment',
+  tiket: 'Entertainment',
   game: 'Entertainment',
+  steam: 'Entertainment',
+  playstation: 'Entertainment',
+  topup: 'Entertainment',
+  karaoke: 'Entertainment',
   netflix: 'Entertainment',
   spotify: 'Entertainment',
+  youtube: 'Entertainment',
+  disney: 'Entertainment',
   liburan: 'Entertainment',
+  wisata: 'Entertainment',
+  hotel: 'Entertainment',
+  staycation: 'Entertainment',
 
   // Income
   bonus: 'Salary',
@@ -341,33 +469,58 @@ export function parseTransactionCommand(text, defaultType = 'Expense') {
   let description = '';
 
   if (remaining.length > 0) {
+    const fullRemaining = remaining.join(' ').toLowerCase();
     const firstRemainingKey = remaining[0].toLowerCase();
     
-    // Check if user specified explicit category first (e.g. /catat 50000 makan nasi padang)
-    if (EXPLICIT_CATEGORIES[firstRemainingKey]) {
-      category = EXPLICIT_CATEGORIES[firstRemainingKey];
-      description = remaining.slice(1).join(' ').trim() || remaining[0];
-    } else {
-      // User didn't give category prefix (e.g. /catat 15000 kopi kenangan)
-      description = remaining.join(' ').trim();
-      for (const w of remaining) {
-        const k = w.toLowerCase();
-        if (EXPLICIT_CATEGORIES[k]) {
-          category = EXPLICIT_CATEGORIES[k];
-          break;
-        }
-        if (INFERRED_KEYWORDS[k]) {
-          category = INFERRED_KEYWORDS[k];
-          break;
-        }
-        // Substring or emoji match
-        for (const [key, cat] of Object.entries(INFERRED_KEYWORDS)) {
-          if (k.includes(key)) {
-            category = cat;
+    // 1. Check multi-word natural phrases first (e.g. token listrik, tiket bioskop, cuci motor)
+    for (const [key, cat] of Object.entries(MULTI_WORD_KEYWORDS)) {
+      if (fullRemaining.includes(key)) {
+        category = cat;
+        description = remaining.join(' ').trim();
+        break;
+      }
+    }
+
+    // 2. Check if user specified explicit category first (e.g. /catat 50000 makan nasi padang)
+    if (category === (type === 'Income' ? 'Salary' : 'Other')) {
+      if (EXPLICIT_CATEGORIES[firstRemainingKey]) {
+        category = EXPLICIT_CATEGORIES[firstRemainingKey];
+        description = remaining.slice(1).join(' ').trim() || remaining[0];
+      } else {
+        description = remaining.join(' ').trim();
+        
+        // 3. Exact word match against EXPLICIT_CATEGORIES or INFERRED_KEYWORDS
+        for (const w of remaining) {
+          const k = w.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+          if (!k) continue;
+          if (EXPLICIT_CATEGORIES[k]) {
+            category = EXPLICIT_CATEGORIES[k];
+            break;
+          }
+          if (INFERRED_KEYWORDS[k]) {
+            category = INFERRED_KEYWORDS[k];
             break;
           }
         }
-        if (category !== (type === 'Income' ? 'Salary' : 'Other')) break;
+
+        // 4. Substring or emoji match for longer tokens (> 3 chars) or emojis
+        if (category === (type === 'Income' ? 'Salary' : 'Other')) {
+          for (const w of remaining) {
+            const k = w.toLowerCase();
+            for (const [key, cat] of Object.entries(INFERRED_KEYWORDS)) {
+              if (/[\p{Extended_Pictographic}]/u.test(key) && k.includes(key)) {
+                category = cat;
+                break;
+              }
+              // Only match substring if key is longer than 3 chars and matches word boundary or affix
+              if (key.length > 3 && (k.startsWith(key) || k.endsWith(key))) {
+                category = cat;
+                break;
+              }
+            }
+            if (category !== (type === 'Income' ? 'Salary' : 'Other')) break;
+          }
+        }
       }
     }
   }
