@@ -17,12 +17,13 @@ import {
   sendTelegramMessage,
   deleteTelegramMessage,
   cancelLinkCode,
-  syncBotCommands
+  syncBotCommands,
+  migrateTelegramDataToUser
 } from './lib/telegramBotCore.js';
 import { scanReceiptWithGemini } from './lib/geminiReceiptScanner.js';
 import { updateStreak } from './lib/streak.js';
 import { buildMonthlyReport } from './lib/reportHelper.js';
-import { generateAchievementCard } from './lib/telegramBot.js';
+
 import { formatAchievementItem } from './lib/achievementHelper.js';
 
 dotenv.config();
@@ -273,7 +274,7 @@ app.post('/api/telegram/web-login', async (req, res) => {
         botToken,
         targetChatId,
         '🎉 *Website Pocketplan Berhasil Terhubung!*\n\n' +
-        'Akun Telegram Anda baru saja terhubung dan login ke website Pocketplan. Catatan keuangan dan target impian Anda kini tersinkron secara real-time! 🌐🪙'
+        'Akun Telegram Anda baru saja terhubung dan login ke website Pocketplan. Catatan keuangan dan target impian Anda kini tersinkron secara real-time! 🌐'
       ).catch(() => {});
     }
 
@@ -446,10 +447,33 @@ app.get('/api/report', requireAuth, async (req, res) => {
       userRef.collection('budgets').get()
     ]);
 
-    const transactions = txSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    const goals = goalsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    const budgets = budgetsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
     const userData = userDoc.exists ? userDoc.data() : {};
+    let goalsDocs = [...goalsSnap.docs];
+    let txDocs = [...txSnap.docs];
+    let budgetDocs = [...budgetsSnap.docs];
+
+    if (userData.telegramChatId) {
+      const tgUid = `tg_${userData.telegramChatId}`;
+      const [tgGoalsSnap, tgTxSnap, tgBudgetSnap] = await Promise.all([
+        db.collection('users').doc(tgUid).collection('goals').get(),
+        db.collection('users').doc(tgUid).collection('transactions').get(),
+        db.collection('users').doc(tgUid).collection('budgets').get()
+      ]);
+      if (!tgGoalsSnap.empty) {
+        goalsDocs.push(...tgGoalsSnap.docs);
+        migrateTelegramDataToUser(userData.telegramChatId, uid, db).catch(() => {});
+      }
+      if (!tgTxSnap.empty) {
+        txDocs.push(...tgTxSnap.docs);
+      }
+      if (!tgBudgetSnap.empty) {
+        budgetDocs.push(...tgBudgetSnap.docs);
+      }
+    }
+
+    const transactions = txDocs.map((d) => ({ id: d.id, ...d.data() }));
+    const goals = goalsDocs.map((d) => ({ id: d.id, ...d.data() }));
+    const budgets = budgetDocs.map((d) => ({ id: d.id, ...d.data() }));
 
     const rep = buildMonthlyReport({
       month,
@@ -500,84 +524,7 @@ app.get('/api/achievements', requireAuth, async (req, res) => {
   }
 });
 
-app.get('/api/achievements/:key/card.png', requireAuth, async (req, res) => {
-  const uid = req.user.uid;
-  const key = req.params.key;
 
-  let seen = [];
-  let goalsMap = new Map();
-
-  if (!useFirestore) {
-    seen = ['streak_3', 'streak_7', 'goal_g1_50'];
-    const goalsList = getDemoGoals(uid);
-    goalsMap = new Map(goalsList.map((g) => [g.id, g.name]));
-  } else {
-    try {
-      const db = getDb();
-      const userRef = db.collection('users').doc(uid);
-      const [userDoc, goalsSnap] = await Promise.all([
-        userRef.get(),
-        userRef.collection('goals').get()
-      ]);
-      const userData = userDoc.exists ? userDoc.data() : {};
-      seen = Array.isArray(userData.achievementsSeen) ? userData.achievementsSeen : [];
-      goalsSnap.forEach((d) => goalsMap.set(d.id, d.data()?.name || 'Target'));
-    } catch (err) {
-      console.error('GET /api/achievements/:key/card.png fetch error:', err);
-      return res.status(500).json({ error: 'Gagal memuat kartu pencapaian.' });
-    }
-  }
-
-  if (!seen.includes(key)) {
-    return res.status(404).json({ error: 'Lencana tidak ditemukan atau belum dibuka.' });
-  }
-
-  try {
-    let opts;
-    if (key.startsWith('streak_')) {
-      const days = parseInt(key.replace('streak_', ''), 10) || 0;
-      opts = {
-        type: 'streak',
-        title: `Streak ${days} Hari!`,
-        subtitle: `${days} hari berturut-turut catat keuangan`,
-        streakDays: days
-      };
-    } else if (key.startsWith('goal_')) {
-      const parts = key.split('_');
-      const pct = parseInt(parts[parts.length - 1], 10) || 0;
-      const gId = parts.slice(1, -1).join('_');
-      const goalName = goalsMap.get(gId) || 'Target';
-      opts = {
-        type: 'goal',
-        title: goalName,
-        subtitle: `Progres ${pct}%`,
-        percent: pct
-      };
-    } else if (key.startsWith('challenge_win_')) {
-      opts = {
-        type: 'streak',
-        title: 'Pemenang Tantangan',
-        subtitle: 'Selamat atas kemenanganmu!',
-        streakDays: 0
-      };
-    } else {
-      opts = {
-        type: 'streak',
-        title: 'Achievement',
-        subtitle: key,
-        streakDays: 0
-      };
-    }
-
-    const png = await generateAchievementCard(opts);
-    res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Content-Disposition', `inline; filename="achievement-${key}.png"`);
-    res.send(png);
-  } catch (err) {
-    console.error('GET /api/achievements/:key/card.png render error:', err);
-    res.status(500).json({ error: 'Gagal merender kartu pencapaian.' });
-  }
-});
 
 // Custom error handler: prevent stack trace leaks in production
 app.use((err, req, res, _next) => {

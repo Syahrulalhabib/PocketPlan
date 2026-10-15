@@ -18,7 +18,7 @@ import {
 import { scanReceiptWithGemini } from './geminiReceiptScanner.js';
 import { updateStreak } from './streak.js';
 
-export { generateLinkCode, getLinkStatus, unlinkAccount, generateAchievementCard, generateAchievementSvg, sendTelegramPhoto };
+export { generateLinkCode, getLinkStatus, unlinkAccount, sendTelegramPhoto };
 
 const KEYBOARD = {
   keyboard: [
@@ -82,103 +82,10 @@ async function handleStreakAfterTransaction(chatId, uid, db, botToken) {
   }
 }
 
-// Fase 4: Achievement card system
-function stripEmoji(s) {
-  return String(s || '').replace(/[\u{1F300}-\u{1F9FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').replace(/\s+/g, ' ').trim();
-}
-
-function getAchievementTheme(type, percent, streakDays, barW) {
-  const isStreak = type === 'streak';
-  const pct = Math.min(100, Math.max(0, percent || 0));
-  if (isStreak) {
-    const days = streakDays || 0;
-    const checks = [0, 1, 2, 3, 4, 5, 6].map(i => {
-      const cx = 35 + i * 90;
-      return `<circle cx="${cx}" cy="22" r="18" fill="#FF5722"/>` +
-        `<path d="M${cx - 6} 22 L${cx - 2} 26 L${cx + 6} 17" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
-    }).join('');
-
-    return {
-      bg0: '#080C14', bg1: '#0F172A', glow: '#FF5722', glow2: '#FF9800',
-      b1: '#FF6B35', b2: '#FF0055', b3: '#6366F1',
-      numColor: '#FFB74D',
-      badgeBg: '#FF5722', badgeTxt: '#FF9E80', badgeLbl: 'STREAK MILESTONE',
-      num: days, subLbl: 'HARI BERTURUT-TURUT',
-      hero: `<g transform="translate(540, 330)">` +
-        `<path d="M0 -72 C16 -46 36 -20 36 16 C36 44 19 66 0 66 C-19 66 -36 44 -36 16 C-36 -20 -16 -46 0 -72 Z" fill="url(#flame)"/>` +
-        `<path d="M0 -45 C11 -28 24 -10 24 16 C24 35 12 50 0 50 C-12 50 -24 35 -24 16 C-24 -10 -11 -28 0 -45 Z" fill="#FF9800"/>` +
-        `<path d="M0 -20 C6 -8 14 5 14 20 C14 30 7 38 0 38 C-7 38 -14 30 -14 20 C-14 5 -6 -8 0 -20 Z" fill="#FFF176"/>` +
-        `</g>`,
-      tracker: `<g transform="translate(180, 840)">` +
-        `<rect width="720" height="110" rx="24" fill="#0A0F1D" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>` +
-        `<text x="360" y="38" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="bold" fill="#64748B">REKOR CATATAN AKTIF</text>` +
-        `<g transform="translate(55, 54)">${checks}</g>` +
-        `</g>`
-    };
-  }
-  return {
-    bg0: '#051512', bg1: '#0A221C', glow: '#10B981', glow2: '#06B6D4',
-    b1: '#10B981', b2: '#06B6D4', b3: '#3B82F6',
-    numColor: '#34D399',
-    badgeBg: '#10B981', badgeTxt: '#6EE7B7', badgeLbl: 'TARGET MILESTONE',
-    num: `${pct}%`, subLbl: 'TARGET TERCAPAI',
-    hero: `<g transform="translate(540, 330)">` +
-      `<circle cx="0" cy="0" r="65" fill="none" stroke="#10B981" stroke-width="7"/>` +
-      `<circle cx="0" cy="0" r="42" fill="none" stroke="#06B6D4" stroke-width="7"/>` +
-      `<circle cx="0" cy="0" r="20" fill="#FFFFFF"/>` +
-      `</g>`,
-    tracker: `<g transform="translate(180, 860)">` +
-      `<rect width="720" height="36" rx="18" fill="#061A14" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>` +
-      `<rect width="${barW}" height="36" rx="18" fill="#10B981"/>` +
-      `<text x="360" y="70" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" fill="#6EE7B7">${pct}% OF GOAL</text>` +
-      `</g>`
-  };
-}
 
 
-function generateAchievementSvg({ type, title, subtitle, percent, streakDays }) {
-  const isStreak = type === 'streak';
-  const pct = Math.min(100, Math.max(0, percent || 0));
-  const barW = Math.round((pct / 100) * 720);
-  const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  const safeTitle = esc(stripEmoji(title || (isStreak ? `Streak ${streakDays || 0} Hari!` : 'Target Tabungan')));
-  const safeSub = esc(stripEmoji(subtitle || (isStreak ? 'Disiplin finansial makin konsisten' : `Progres ${pct}% tercapai`)));
-  const dateStr = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
-  const t = getAchievementTheme(type, percent, streakDays, barW);
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0.8" y2="1"><stop offset="0%" stop-color="${t.bg0}"/><stop offset="50%" stop-color="${t.bg1}"/><stop offset="100%" stop-color="#020408"/></linearGradient>
-    <radialGradient id="glow" cx="50%" cy="30%" r="42%"><stop offset="0%" stop-color="${t.glow}" stop-opacity="0.45"/><stop offset="60%" stop-color="${t.glow2}" stop-opacity="0.12"/><stop offset="100%" stop-color="${t.bg1}" stop-opacity="0"/></radialGradient>
-    <linearGradient id="border" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${t.b1}"/><stop offset="50%" stop-color="${t.b2}"/><stop offset="100%" stop-color="${t.b3}"/></linearGradient>
-    <linearGradient id="flame" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#D84315"/><stop offset="50%" stop-color="#FF5722"/><stop offset="100%" stop-color="#FFD54F"/></linearGradient>
-    <linearGradient id="bGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#10B981"/><stop offset="100%" stop-color="#06B6D4"/></linearGradient>
-  </defs>
-  <rect width="1080" height="1350" fill="url(#bg)"/>
-  <circle cx="540" cy="330" r="450" fill="url(#glow)"/>
-  <rect x="50" y="50" width="980" height="1250" rx="44" fill="${t.bg1}" fill-opacity="0.85" stroke="url(#border)" stroke-width="2.5"/>
-  <rect x="360" y="110" width="360" height="54" rx="27" fill="${t.badgeBg}" fill-opacity="0.15" stroke="${t.badgeBg}" stroke-opacity="0.4" stroke-width="1.5"/>
-  <text x="540" y="145" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" fill="${t.badgeTxt}">${t.badgeLbl}</text>
-  <circle cx="540" cy="330" r="110" fill="#0E1626" stroke="url(#border)" stroke-width="4"/>
-  <circle cx="540" cy="330" r="85" fill="url(#glow)"/>
-  ${t.hero}
-  <text x="540" y="560" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="130" font-weight="bold" fill="${t.numColor}">${t.num}</text>
-  <text x="540" y="620" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="bold" fill="#94A3B8">${t.subLbl}</text>
-  <text x="540" y="715" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="44" font-weight="bold" fill="#FFFFFF">${safeTitle}</text>
-  <text x="540" y="765" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="normal" fill="#CBD5E1">${safeSub}</text>
-  ${t.tracker}
-  <line x1="120" y1="1025" x2="960" y2="1025" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
-  <text x="540" y="1085" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="bold" fill="#FFFFFF">POCKY • POCKETPLAN</text>
-  <text x="540" y="1125" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="normal" fill="#94A3B8">${dateStr} • pocketplan-rul.vercel.app</text>
-  <text x="540" y="1180" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="normal" fill="#64748B">Nominal &amp; Saldo Pribadi Tetap Terlindungi</text>
-</svg>`;
-}
 
-async function generateAchievementCard(opts) {
-  const svg = generateAchievementSvg(opts);
-  const sharp = (await import('sharp')).default;
-  return sharp(Buffer.from(svg)).png().toBuffer();
-}
 
 async function sendTelegramPhoto(botToken, chatId, pngBuffer, caption, options = {}) {
   if (!botToken || !chatId) return null;
@@ -211,12 +118,7 @@ async function checkAndOfferAchievement(chatId, uid, db, botToken, achievementKe
     seenAt[achievementKey] = new Date().toISOString();
     await userRef.set({ achievementsSeen: seen, achievementsSeenAt: seenAt }, { merge: true });
     await sendTelegramMessage(botToken, chatId,
-      `🏅 *Achievement Unlocked!*\n\n${title}\n_${subtitle}_`,
-      {
-        reply_markup: {
-          inline_keyboard: [[{ text: '🎨 Lihat Kartu', callback_data: `ach:${achievementKey}` }]]
-        }
-      }
+      `🏅 *Achievement Unlocked!*\n\n${title}\n_${subtitle}_`
     );
   } catch (err) {
     console.error('checkAndOfferAchievement error:', err?.message);
@@ -247,12 +149,7 @@ async function checkGoalAchievements(chatId, uid, db, botToken) {
             await userRef.set({ achievementsSeen: seen, achievementsSeenAt: seenAt }, { merge: true });
             const safeName = g.name || 'Target';
             await sendTelegramMessage(botToken, chatId,
-              `🏅 *Achievement Unlocked!*\n\n🎯 ${escapeMarkdown(safeName)} — ${milestone}%\n_Progres target tabunganmu!_`,
-              {
-                reply_markup: {
-                  inline_keyboard: [[{ text: '🎨 Lihat Kartu', callback_data: `ach:${key}` }]]
-                }
-              }
+              `🏅 *Achievement Unlocked!*\n\n🎯 ${escapeMarkdown(safeName)} — ${milestone}%\n_Progres target tabunganmu!_`
             );
           }
         }
@@ -342,13 +239,36 @@ async function maybeSendLinkNudge(chatId, uid, db, botToken) {
     if (txCount !== 20) return;
     await userRef.set({ linkNudgeSent: true }, { merge: true });
     await sendTelegramMessage(botToken, chatId,
-      '🪙 Pocky lihat kamu sudah catat 20 transaksi! Keren banget 🎉\n\n' +
+      'Pocky lihat kamu sudah catat 20 transaksi! Keren banget 🎉\n\n' +
       'Biar datamu aman kalau ganti HP, tautkan ke Pocketplan web yuk — ' +
       'tinggal ketik /link dengan kode dari menu *Profile* di web.'
     );
   } catch (err) {
     console.error('linkNudge error:', err?.message);
   }
+}
+
+function getTxMonth(t) {
+  if (!t) return '';
+  if (t.date && typeof t.date.toDate === 'function') {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(t.date.toDate()).slice(0, 7);
+  }
+  if (typeof t.date === 'string' && t.date.trim()) {
+    const s = t.date.trim();
+    if (/^\d{4}[-/]\d{2}/.test(s)) return s.slice(0, 7).replace('/', '-');
+    const dmy = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+    if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, '0')}`;
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(d).slice(0, 7);
+  }
+  if (t.createdAt) {
+    if (typeof t.createdAt.toDate === 'function') {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(t.createdAt.toDate()).slice(0, 7);
+    }
+    const d = new Date(t.createdAt);
+    if (!isNaN(d.getTime())) return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(d).slice(0, 7);
+  }
+  return '';
 }
 
 // Budget warning: check if expense category exceeds 80% or 100% of monthly budget
@@ -374,19 +294,26 @@ async function checkBudgetWarnings(chatId, uid, db, botToken, category) {
     if (!budgetDoc) return;
 
     const budget = budgetDoc.data();
-    const limit = Number(budget.monthlyLimit) || 0;
+    const limit = Number(budget.monthlyLimit || budget.amount) || 0;
     if (limit <= 0) return;
 
     const now = new Date();
     const nowJakarta = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(now);
     const monthKey = nowJakarta.slice(0, 7); // 'YYYY-MM'
 
-    // Fetch user transactions (in-memory filtering avoids composite index failure)
+    // Fetch user transactions (checking both uid and tg_<chatId>)
+    const txDocs = [];
     const txSnap = await db.collection('users').doc(uid).collection('transactions').get();
+    txDocs.push(...txSnap.docs);
+    if (uid !== `tg_${chatId}`) {
+      const altTxSnap = await db.collection('users').doc(`tg_${chatId}`).collection('transactions').get();
+      if (!altTxSnap.empty) txDocs.push(...altTxSnap.docs);
+    }
+
     let total = 0;
-    txSnap.forEach(d => {
+    txDocs.forEach(d => {
       const t = d.data();
-      if (t.type === 'Expense' && t.date && String(t.date).startsWith(monthKey)) {
+      if (t.type === 'Expense' && getTxMonth(t) === monthKey) {
         if (normalizeBudgetCategory(t.category).toLowerCase() === normTarget.toLowerCase()) {
           total += Number(t.amount) || 0;
         }
@@ -410,7 +337,7 @@ async function checkBudgetWarnings(chatId, uid, db, botToken, category) {
       await sendTelegramMessage(botToken, chatId,
         `⚠️ *Budget ${escapeMarkdown(catLabel)} hampir habis!*\n\n` +
         `Sudah terpakai *${formatRupiah(total)}* dari *${formatRupiah(limit)}* (${Math.round(pct)}%).\n` +
-        `Sisa budget: *${formatRupiah(Math.max(0, limit - total))}* — hati-hati ya! 🪙`
+        `Sisa budget: *${formatRupiah(Math.max(0, limit - total))}* — hati-hati ya!`
       );
     }
   } catch (err) {
@@ -473,7 +400,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
           return sendTelegramMessage(
             botToken,
             chatId,
-            `🥳 *Impian Tercapai!* 🎉\n\n*${escapeMarkdown(g.name)}* (${formatRupiah(amt)}) berhasil dibeli!\n\n✅ Pengeluaran dicatat\n🎯 Target selesai & diarsipkan\n\nHebat, nabungmu membuahkan hasil! 🪙`
+            `🥳 *Impian Tercapai!* 🎉\n\n*${escapeMarkdown(g.name)}* (${formatRupiah(amt)}) berhasil dibeli!\n\n✅ Pengeluaran dicatat\n🎯 Target selesai & diarsipkan\n\nHebat, nabungmu membuahkan hasil!`
           );
         }
       }
@@ -595,41 +522,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
       return;
     }
 
-    // Fase 4: achievement card callback
-    if (data.startsWith('ach:')) {
-      await answerTelegramCallback(botToken, cb.id, '🎨 Membuat kartu...');
-      const achKey = data.replace('ach:', '');
-      try {
-        let opts;
-        if (achKey.startsWith('streak_')) {
-          const days = parseInt(achKey.replace('streak_', ''), 10);
-          opts = { type: 'streak', title: `Streak ${days} Hari!`, subtitle: `${days} hari berturut-turut catat keuangan`, streakDays: days };
-        } else if (achKey.startsWith('goal_')) {
-          const parts = achKey.split('_');
-          const pct = parseInt(parts[parts.length - 1], 10);
-          const gId = parts.slice(1, -1).join('_');
-          let goalName = 'Target';
-          if (db && uid) {
-            try {
-              const gDoc = await db.collection('users').doc(uid).collection('goals').doc(gId).get();
-              if (gDoc.exists) goalName = gDoc.data()?.name || 'Target';
-            } catch {}
-          }
-          opts = { type: 'goal', title: goalName, subtitle: `Progres ${pct}%`, percent: pct };
-        } else {
-          opts = { type: 'streak', title: 'Achievement', subtitle: achKey, streakDays: 0 };
-        }
-        const png = await generateAchievementCard(opts);
-        const caption = opts.type === 'streak'
-          ? `🎨 *Kartu Achievement: Streak ${opts.streakDays} Hari!* 🔥\n\nSelamat atas konsistensi mencatat keuangan selama *${opts.streakDays} hari* berturut-turut! 🪙\n\n_Bagikan kartu ini ke status WA/IG kalau mau pamer kedisiplinan finansialmu._`
-          : `🎨 *Kartu Achievement: Target Tabungan* 🎯\n\nTarget tabungan sudah mencapai *${opts.percent}%*! Terus melangkah menuju kebebasan finansial. 💰`;
-        await sendTelegramPhoto(botToken, chatId, png, caption, { parse_mode: 'Markdown' });
-      } catch (err) {
-        console.error('achievement card error:', err?.message);
-        await sendTelegramMessage(botToken, chatId, '😅 Gagal membuat kartu. Coba lagi nanti ya!');
-      }
-      return;
-    }
+
 
     await answerTelegramCallback(botToken, cb.id);
     return;
@@ -662,7 +555,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
       );
     }
 
-    await sendTelegramMessage(botToken, chatId, '🔍 *Pocky lagi teliti membaca struk & bukti transaksi kamu nih...*\nSebentar ya, Pocky periksa apakah ini struk belanja, bukti transfer, atau tagihan! 🪙');
+    await sendTelegramMessage(botToken, chatId, '🔍 *Pocky lagi teliti membaca struk & bukti transaksi kamu nih...*\nSebentar ya, Pocky periksa apakah ini struk belanja, bukti transfer, atau tagihan!');
     try {
       const fileId = isPhoto
         ? msg.photo[msg.photo.length - 1].file_id
@@ -837,7 +730,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
         return sendTelegramMessage(
           botToken,
           chatId,
-          `🪙 *Hai ${userName}! Salam kenal, aku Pocky!*\n\n⚠️ Link tantangan tidak ditemukan atau sudah berakhir.\n\nAsisten keuangan pribadimu. Pocky bantu kamu:\n\n💸 Catat pemasukan & pengeluaran\n🧾 Scan foto struk otomatis\n🎯 Buat & pantau target tabungan\n📊 Cek saldo & riwayat kapan saja\n\nMulai: ketik \`kopi susu 25k\` atau kirim foto struk! 📖 /help`,
+          `*Hai ${userName}! Salam kenal, aku Pocky!*\n\n⚠️ Link tantangan tidak ditemukan atau sudah berakhir.\n\nAsisten keuangan pribadimu. Pocky bantu kamu:\n\n💸 Catat pemasukan & pengeluaran\n🧾 Scan foto struk otomatis\n🎯 Buat & pantau target tabungan\n📊 Cek saldo & riwayat kapan saja\n\nMulai: ketik \`kopi susu 25k\` atau kirim foto struk! 📖 /help`,
           { reply_markup: KEYBOARD }
         );
       }
@@ -878,7 +771,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
         return sendTelegramMessage(
           botToken,
           chatId,
-          `🪙 *Hai ${userName}! Salam kenal, aku Pocky!*\n\n🎁 Kamu diajak teman untuk pakai Pocketplan — selamat datang!\n\nAsisten keuangan pribadimu. Pocky bantu kamu:\n\n💸 Catat pemasukan & pengeluaran\n🧾 Scan foto struk otomatis\n🎯 Buat & pantau target tabungan\n📊 Cek saldo & riwayat kapan saja\n\nMulai: ketik \`kopi susu 25k\` atau kirim foto struk! 📖 /help`,
+          `*Hai ${userName}! Salam kenal, aku Pocky!*\n\n🎁 Kamu diajak teman untuk pakai Pocketplan — selamat datang!\n\nAsisten keuangan pribadimu. Pocky bantu kamu:\n\n💸 Catat pemasukan & pengeluaran\n🧾 Scan foto struk otomatis\n🎯 Buat & pantau target tabungan\n📊 Cek saldo & riwayat kapan saja\n\nMulai: ketik \`kopi susu 25k\` atau kirim foto struk! 📖 /help`,
           { reply_markup: KEYBOARD }
         );
       }
@@ -906,7 +799,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
     return sendTelegramMessage(
       botToken,
       chatId,
-      `🪙 *Hai ${userName}! Salam kenal, aku Pocky!*\n\nAsisten keuangan pribadimu dari Pocketplan. Pocky bantu kamu:\n\n💸 Catat pemasukan & pengeluaran\n🧾 Scan foto struk & bukti transfer otomatis\n🎯 Buat & pantau target tabungan\n📊 Cek saldo & riwayat kapan saja\n\n*Mulai gampang banget:*\n• Kirim foto struk atau bukti transfer → otomatis dicatat Pocky!\n• Ketik langsung → \`kopi susu 25k\`\n• Pengeluaran → \`/catat bensin 50k\`\n• Pemasukan → \`/masuk gaji 2jt\`\n• Target baru → \`/goal Laptop 10jt\`\n• Cek saldo → \`/saldo\`\n\nKetik /help untuk panduan lengkap 📖`,
+      `*Hai ${userName}! Salam kenal, aku Pocky!*\n\nAsisten keuangan pribadimu dari Pocketplan. Pocky bantu kamu:\n\n💸 Catat pemasukan & pengeluaran\n🧾 Scan foto struk & bukti transfer otomatis\n🎯 Buat & pantau target tabungan\n📊 Cek saldo & riwayat kapan saja\n\n*Mulai gampang banget:*\n• Kirim foto struk atau bukti transfer → otomatis dicatat Pocky!\n• Ketik langsung → \`kopi susu 25k\`\n• Pengeluaran → \`/catat bensin 50k\`\n• Pemasukan → \`/masuk gaji 2jt\`\n• Target baru → \`/goal Laptop 10jt\`\n• Cek saldo → \`/saldo\`\n\nKetik /help untuk panduan lengkap 📖`,
       { reply_markup: KEYBOARD }
     );
   }
@@ -1024,7 +917,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
       return sendTelegramMessage(
         botToken,
         chatId,
-        `🥳 *Impian Tercapai!* 🎉\n\n*${escapeMarkdown(g.name)}* (${formatRupiah(amt)}) berhasil dibeli!\n\n✅ Pengeluaran dicatat\n🎯 Target selesai & diarsipkan\n\nHebat, nabungmu membuahkan hasil! 🪙`
+        `🥳 *Impian Tercapai!* 🎉\n\n*${escapeMarkdown(g.name)}* (${formatRupiah(amt)}) berhasil dibeli!\n\n✅ Pengeluaran dicatat\n🎯 Target selesai & diarsipkan\n\nHebat, nabungmu membuahkan hasil!`
       );
     }
     return sendTelegramMessage(botToken, chatId, 'Target dibeli.');
@@ -1075,7 +968,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
     return sendTelegramMessage(
       botToken,
       chatId,
-      '📖 *PANDUAN LENGKAP POCKY* 🪙\n\n' +
+      '📖 *PANDUAN LENGKAP POCKY*\n\n' +
       '*🧾 SCAN STRUK BARENG POCKY*\n' +
       '• Cukup kirim foto struk belanja atau bukti transfer langsung ke chat ini!\n' +
       '• Pocky otomatis membaca nama toko, daftar barang, & total transaksi.\n\n' +
@@ -1155,7 +1048,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
       { reply_markup: KEYBOARD }
     );
   }
-  // /streak — check current streak status & view live achievement card
+  // /streak — check current streak status
   if (cmdText === '/streak' || cmdText.startsWith('/streak ') || text === '🔥 Cek Streak') {
     let streak = 0;
     let longest = 0;
@@ -1169,24 +1062,20 @@ export async function handleTelegramUpdate(update, db, botToken) {
         lastDate = uData.lastStreakDate || '-';
       } catch {}
     }
-    const buttons = [];
-    if (streak > 0) {
-      buttons.push([{ text: `🎨 Buat Kartu Streak (${streak} Hari)`, callback_data: `ach:streak_${streak}` }]);
-    }
     return sendTelegramMessage(botToken, chatId,
       `🔥 *Status Streak Keuangan Kamu*\n\n` +
       `• Streak Saat Ini: *${streak} hari* berturut-turut\n` +
       `• Rekor Terpanjang: *${longest} hari*\n` +
       `• Tanggal Terakhir: \`${lastDate}\`\n\n` +
       (streak > 0
-        ? `Hebat! Konsistensimu luar biasa. Ketuk tombol di bawah untuk cetak kartu pencapaian. 🪙`
+        ? `Hebat! Konsistensimu luar biasa. Terus pertahankan kebiasaan mencatat keuanganmu!`
         : `Yuk catat transaksi hari ini (misal: \`25k makan siang\`) untuk menyalakan streak baru! 💪`),
-      buttons.length > 0 ? { reply_markup: { inline_keyboard: buttons } } : { reply_markup: KEYBOARD }
+      { reply_markup: KEYBOARD }
     );
   }
 
-  // Developer test command — preview streak / goal achievement card (restricted to DEV_TELEGRAM_IDS)
-  if (cmdText === '/teststreak' || cmdText.startsWith('/teststreak ') || cmdText === '/testkartu' || cmdText.startsWith('/testkartu ')) {
+  // Developer test command — preview streak notification (restricted to DEV_TELEGRAM_IDS)
+  if (cmdText === '/teststreak' || cmdText.startsWith('/teststreak ')) {
     const devIds = (process.env.DEV_TELEGRAM_IDS || '')
       .split(',')
       .map((s) => s.trim())
@@ -1194,31 +1083,16 @@ export async function handleTelegramUpdate(update, db, botToken) {
     if (!devIds.includes(String(chatId))) {
       return; // Silent ignore for unauthorized users
     }
-    const rawArgs = text.replace(/^\/(teststreak|testkartu)(@\S+)?\s*/i, '').trim();
-    const isGoal = rawArgs.toLowerCase().startsWith('goal');
+    const rawArgs = text.replace(/^\/teststreak(@\S+)?\s*/i, '').trim();
     let days = 7;
     const parts = rawArgs.split(/\s+/).filter(Boolean);
     for (const p of parts) {
       if (/^\d+$/.test(p)) days = parseInt(p, 10);
     }
     const targetChatId = chatId;
-    const opts = isGoal
-      ? { type: 'goal', title: 'Target Tabungan', subtitle: 'Target Rp 10.000.000', percent: 75 }
-      : { type: 'streak', title: `Streak ${days} Hari!`, subtitle: `${days} hari berturut-turut catat keuangan`, streakDays: days };
-
-    try {
-      const png = await generateAchievementCard(opts);
-      const caption = opts.type === 'streak'
-        ? `🎨 *Kartu Achievement: Streak ${days} Hari!* 🔥\n\n• Streak: *${days} hari* berturut-turut\n• Status: *Aktif*\n\nSimpan atau bagikan kartu ini ke status IG/WA! 🪙`
-        : `🎨 *Kartu Achievement: Target Tabungan* 🎯\n\n• Progres: *${opts.percent}%* tercapai\n\nSimpan atau bagikan kartu ini ke status IG/WA! 💰`;
-
-      await sendTelegramPhoto(botToken, targetChatId, png, caption, { parse_mode: 'Markdown' });
-      return sendTelegramMessage(botToken, targetChatId,
-        `🔥 *Tes Notifikasi Streak Milestone*\n\nSelamat! Kamu telah mencapai streak *${days} hari* berturut-turut! 🎉\n\n_Pocky Developer Preview_`
-      );
-    } catch (err) {
-      return sendTelegramMessage(botToken, chatId, `⚠️ Gagal generate kartu: ${err?.message}`);
-    }
+    return sendTelegramMessage(botToken, targetChatId,
+      `🔥 *Tes Notifikasi Streak Milestone*\n\nSelamat! Kamu telah mencapai streak *${days} hari* berturut-turut! 🎉\n\n_Pocky Developer Preview_`
+    );
   }
 
 
@@ -1491,6 +1365,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
           category: normCat,
           rawCategory: rawCat,
           monthlyLimit: limit,
+          amount: limit,
           createdAt: new Date().toISOString()
         });
       } else {
@@ -1498,6 +1373,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
           category: normCat,
           rawCategory: rawCat,
           monthlyLimit: limit,
+          amount: limit,
           updatedAt: new Date().toISOString()
         }, { merge: true });
       }
@@ -1539,12 +1415,19 @@ export async function handleTelegramUpdate(update, db, botToken) {
       const nowJakarta = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(now);
       const currentMonthPrefix = nowJakarta.slice(0, 7);
 
-      // Fetch user transactions (in-memory filtering avoids composite index error)
+      // Fetch user transactions (checking both uid and tg_<chatId>)
+      const txDocs = [];
       const txSnap = await db.collection('users').doc(uid).collection('transactions').get();
+      txDocs.push(...txSnap.docs);
+      if (uid !== `tg_${chatId}`) {
+        const altTxSnap = await db.collection('users').doc(`tg_${chatId}`).collection('transactions').get();
+        if (!altTxSnap.empty) txDocs.push(...altTxSnap.docs);
+      }
+
       const spending = {};
-      txSnap.forEach(d => {
+      txDocs.forEach(d => {
         const t = d.data();
-        if (t.type === 'Expense' && t.date && String(t.date).startsWith(currentMonthPrefix)) {
+        if (t.type === 'Expense' && getTxMonth(t) === currentMonthPrefix) {
           const norm = normalizeBudgetCategory(t.category);
           spending[norm] = (spending[norm] || 0) + (Number(t.amount) || 0);
         }
@@ -1555,7 +1438,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
         const b = d.data();
         const norm = normalizeBudgetCategory(b.category);
         const spent = spending[norm] || 0;
-        const lim = Number(b.monthlyLimit) || 0;
+        const lim = Number(b.monthlyLimit || b.amount) || 0;
         const pct = lim > 0 ? Math.round((spent / lim) * 100) : 0;
         const statusIcon = pct >= 100 ? '🚨' : pct >= 80 ? '⚠️' : '✅';
         const catIcon = CATEGORY_ICONS[norm] || '📁';

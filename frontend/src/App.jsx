@@ -14,6 +14,7 @@ import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import VerificationPage from './pages/VerificationPage.jsx';
+import NotFoundPage from './pages/NotFoundPage.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import LoadingScreen from './components/LoadingScreen.jsx';
 
@@ -96,7 +97,7 @@ const App = () => {
           </ProtectedRoute>
         }
       />
-      <Route path="*" element={<Navigate to={location?.pathname === '/login' ? '/login' : '/dashboard'} replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 };

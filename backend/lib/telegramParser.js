@@ -405,11 +405,27 @@ export const CATEGORY_ICONS = {
 export function normalizeBudgetCategory(raw) {
   if (!raw) return 'Other';
   const clean = String(raw).trim().toLowerCase();
+
+  // 1. Direct dictionary match
   if (EXPLICIT_CATEGORIES[clean]) return EXPLICIT_CATEGORIES[clean];
   if (INFERRED_KEYWORDS[clean]) return INFERRED_KEYWORDS[clean];
-  const canonical = ['Food', 'Shopping', 'Transport', 'Bills', 'Health', 'Education', 'Entertainment', 'Charity', 'Salary', 'Other']
-    .find(c => c.toLowerCase() === clean);
-  if (canonical) return canonical;
+
+  // 2. Canonical direct match
+  const canonical = ['Food', 'Shopping', 'Transport', 'Bills', 'Health', 'Education', 'Entertainment', 'Charity', 'Salary', 'Other'];
+  const directCanon = canonical.find(c => c.toLowerCase() === clean);
+  if (directCanon) return directCanon;
+
+  // 3. Substring & alias matching (handling "Food & Dining", "Makanan (Food)", "Belanja (Shopping)", "Bills & Utilities", "Transportasi (Transport)", etc.)
+  if (clean.includes('food') || clean.includes('makan') || clean.includes('kuliner') || clean.includes('dining')) return 'Food';
+  if (clean.includes('transport') || clean.includes('kendaraan') || clean.includes('bensin') || clean.includes('ojol')) return 'Transport';
+  if (clean.includes('shop') || clean.includes('belanja') || clean.includes('mall') || clean.includes('pasar')) return 'Shopping';
+  if (clean.includes('bill') || clean.includes('tagih') || clean.includes('utilit') || clean.includes('listrik') || clean.includes('pulsa')) return 'Bills';
+  if (clean.includes('health') || clean.includes('sehat') || clean.includes('medis') || clean.includes('obat')) return 'Health';
+  if (clean.includes('edu') || clean.includes('didik') || clean.includes('sekolah') || clean.includes('kursus') || clean.includes('buku')) return 'Education';
+  if (clean.includes('ent') || clean.includes('hibur') || clean.includes('game') || clean.includes('rekreasi') || clean.includes('hobi')) return 'Entertainment';
+  if (clean.includes('char') || clean.includes('amal') || clean.includes('donasi') || clean.includes('sedekah') || clean.includes('zakat')) return 'Charity';
+  if (clean.includes('sal') || clean.includes('gaji') || clean.includes('income') || clean.includes('masuk')) return 'Salary';
+
   return clean.charAt(0).toUpperCase() + clean.slice(1);
 }
 

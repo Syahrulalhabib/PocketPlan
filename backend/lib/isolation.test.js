@@ -131,18 +131,7 @@ async function testRestApiIsolation() {
     assert.ok(!rawAch.includes('balance'), 'Achievements response must not leak balance');
     assert.ok(!rawAch.includes('nominal'), 'Achievements response must not leak nominal');
 
-    // Card PNG download (authorized key)
-    const rCard = await req(server, 'GET', '/api/achievements/streak_7/card.png');
-    assert.strictEqual(rCard.status, 200);
-    assert.strictEqual(rCard.headers['content-type'], 'image/png');
-    assert.ok(Buffer.isBuffer(rCard.body));
-    assert.ok(rCard.body.length > 100);
-
-    // Card PNG download (unauthorized / non-existent key = 404)
-    const rCardBogus = await req(server, 'GET', '/api/achievements/streak_9999/card.png');
-    assert.strictEqual(rCardBogus.status, 404);
-    assert.ok(rCardBogus.body.error);
-    console.log('    ✔ /api/achievements & /card.png privacy & 404 security passed');
+    console.log('    ✔ /api/achievements privacy passed');
 
     // Per-uid Map isolation (unit level, same pattern as getDemoTransactions)
     const mapA = new Map(), mapB = new Map();

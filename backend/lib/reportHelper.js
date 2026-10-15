@@ -12,11 +12,34 @@ export function getDaysInMonth(m) {
   return new Date(Date.UTC(y, mo, 0)).getUTCDate();
 }
 
+export function getTxMonth(t) {
+  if (!t) return '';
+  if (t.date && typeof t.date.toDate === 'function') {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(t.date.toDate()).slice(0, 7);
+  }
+  if (typeof t.date === 'string' && t.date.trim()) {
+    const s = t.date.trim();
+    if (/^\d{4}[-/]\d{2}/.test(s)) return s.slice(0, 7).replace('/', '-');
+    const dmy = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+    if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, '0')}`;
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(d).slice(0, 7);
+  }
+  if (t.createdAt) {
+    if (typeof t.createdAt.toDate === 'function') {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(t.createdAt.toDate()).slice(0, 7);
+    }
+    const d = new Date(t.createdAt);
+    if (!isNaN(d.getTime())) return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(d).slice(0, 7);
+  }
+  return '';
+}
+
 export function buildMonthlyReport({ month, transactions = [], goals = [], budgets = [], userDocData = {} }) {
   const prevMonth = getPrevMonth(month);
   const daysInMonth = getDaysInMonth(month);
-  const currTx = transactions.filter((t) => typeof t.date === 'string' && t.date.startsWith(month));
-  const prevTx = transactions.filter((t) => typeof t.date === 'string' && t.date.startsWith(prevMonth));
+  const currTx = transactions.filter((t) => getTxMonth(t) === month);
+  const prevTx = transactions.filter((t) => getTxMonth(t) === prevMonth);
 
   const currIn = currTx.filter((t) => t.type === 'Income');
   const currOut = currTx.filter((t) => t.type === 'Expense');
@@ -68,12 +91,23 @@ export function buildMonthlyReport({ month, transactions = [], goals = [], budge
     comparison.push({ nama: cat, bulanLalu: preVal, bulanIni: curVal, persenPerubahan: delta });
   }
 
-  const goalsList = goals.map((g) => ({
-    nama: g.name || 'Target',
-    terkumpul: Number(g.amount) || 0,
-    target: Number(g.target) || 0,
-    persen: Number(g.target) > 0 ? Math.min(100, Math.round(((Number(g.amount) || 0) / Number(g.target)) * 100)) : 0
-  }));
+  const baseBalance = Number(userDocData.baseBalance || 0);
+  const allIn = transactions.filter((t) => t.type === 'Income').reduce((s, t) => s + (Number(t.amount) || 0), 0);
+  const allOut = transactions.filter((t) => t.type === 'Expense').reduce((s, t) => s + (Number(t.amount) || 0), 0);
+  const currentBal = Math.max(0, baseBalance + allIn - allOut);
+
+  const goalsList = goals.map((g) => {
+    const tgt = Number(g.target) || 0;
+    const collected = Math.min(tgt, (g.amount !== undefined && Number(g.amount) > currentBal) ? Number(g.amount) : currentBal);
+    const pct = tgt > 0 ? Math.max(0, Math.min(100, Math.round((collected / tgt) * 100))) : 0;
+    return {
+      id: g.id,
+      nama: g.name || 'Target',
+      terkumpul: collected,
+      target: tgt,
+      persen: pct
+    };
+  });
 
   const budgetList = Array.isArray(budgets) ? budgets : [];
   let budgetTerjaga = 0;

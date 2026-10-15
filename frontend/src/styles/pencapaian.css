@@ -156,38 +156,7 @@
   margin-bottom: 16px;
 }
 
-.badge-actions {
-  margin-top: auto;
-}
 
-.btn-download-card {
-  width: 100%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: var(--pill);
-  font-size: 0.88rem;
-  font-weight: 700;
-  background: var(--primary);
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(228, 81, 83, 0.25);
-}
-
-.btn-download-card:hover {
-  background: var(--primary-dark);
-}
-
-.badge-share-hint {
-  font-size: 0.75rem;
-  color: var(--muted);
-  text-align: center;
-  margin-top: 8px;
-}
 
 /* Locked Card Variant */
 .badge-card.locked {

@@ -255,11 +255,11 @@ Gunakan teks ini saat setup bot via [@BotFather](https://t.me/BotFather):
 **Name:** `PocketPlan`
 **About (bio, maks 120 karakter):**
 ```
-Asisten keuangan pribadimu 🪙 Catat pemasukan & pengeluaran, buat target tabungan, cek saldo — semua dari Telegram.
+Asisten keuangan pribadimu. Catat pemasukan & pengeluaran, buat target tabungan, cek saldo — semua dari Telegram.
 ```
 **Description (saat user buka chat pertama kali):**
 ```
-🪙 PocketPlan — Asisten Keuangan Pribadi
+PocketPlan — Asisten Keuangan Pribadi
 
 Catat keuanganmu langsung dari Telegram:
 💸 Pengeluaran: ketik "kopi 25k"

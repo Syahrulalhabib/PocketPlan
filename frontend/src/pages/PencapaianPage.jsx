@@ -51,10 +51,9 @@ function formatDate(isoStr) {
 
 const PencapaianPage = () => {
   const { user, isDemo } = useAuth();
-  const { goals, showToast } = useData();
+  const { goals } = useData();
   const [unlockedBadges, setUnlockedBadges] = useState(isDemo ? DEMO_ACHIEVEMENTS : []);
   const [loading, setLoading] = useState(!isDemo);
-  const [downloadingKey, setDownloadingKey] = useState(null);
 
   useEffect(() => {
     document.title = 'Achievements & Milestones — Pocketplan';
@@ -125,30 +124,6 @@ const PencapaianPage = () => {
     return list;
   }, [unlockedBadges, goals]);
 
-  const handleDownload = async (badge) => {
-    setDownloadingKey(badge.key);
-    try {
-      const token = await getAuthToken();
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch(`/api/achievements/${badge.key}/card.png`, { headers });
-      if (!res.ok) throw new Error('Failed to download card');
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `achievement-${badge.key}.png`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      showToast('Achievement card downloaded! 🎉');
-    } catch (err) {
-      console.error('Download card error:', err);
-      showToast('Failed to download achievement card.', 'error');
-    } finally {
-      setDownloadingKey(null);
-    }
-  };
   return (
     <div className="pencapaian-container">
       <div className="pencapaian-header">
@@ -193,7 +168,6 @@ const PencapaianPage = () => {
           <div className="pencapaian-grid">
             {unlockedBadges.map((b) => {
               const formattedDate = formatDate(b.unlockedAt);
-              const isDownloading = downloadingKey === b.key;
               return (
                 <div key={b.key} className="badge-card">
                   <div className="badge-card-top">
@@ -205,19 +179,6 @@ const PencapaianPage = () => {
                   {formattedDate && (
                     <div className="badge-date">Unlocked on {formattedDate}</div>
                   )}
-                  <div className="badge-actions">
-                    <button
-                      type="button"
-                      className="btn-download-card"
-                      onClick={() => handleDownload(b)}
-                      disabled={isDownloading}
-                    >
-                      {isDownloading ? 'Downloading...' : '📥 Download Card'}
-                    </button>
-                    <div className="badge-share-hint">
-                      Save or share anywhere 🎉
-                    </div>
-                  </div>
                 </div>
               );
             })}

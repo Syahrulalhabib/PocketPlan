@@ -440,7 +440,7 @@ export async function cancelLinkCode(uid, db) {
   return { success: true };
 }
 export const DEFAULT_BOT_COMMANDS = [
-  { command: 'start', description: 'Mulai & sapa Pocky 🪙' },
+  { command: 'start', description: 'Mulai & sapa Pocky 👋' },
   { command: 'catat', description: 'Catat pengeluaran baru 💸' },
   { command: 'masuk', description: 'Catat pemasukan uang 💰' },
   { command: 'saldo', description: 'Cek total saldo dompet 📊' },

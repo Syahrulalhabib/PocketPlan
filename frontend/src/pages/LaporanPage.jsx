@@ -97,12 +97,23 @@ export function computeLocalReport(monthStr, transactions = [], goals = [], user
     comparison.push({ nama: cat, bulanLalu: preVal, bulanIni: curVal, persenPerubahan: delta });
   }
 
-  const goalsList = goals.map((g) => ({
-    nama: g.name || 'Goal',
-    terkumpul: Number(g.amount) || 0,
-    target: Number(g.target) || 0,
-    persen: Number(g.target) > 0 ? Math.min(100, Math.round(((Number(g.amount) || 0) / Number(g.target)) * 100)) : 0
-  }));
+  const baseBal = Number(user?.baseBalance || 0);
+  const allIn = transactions.filter((t) => t.type === 'Income').reduce((s, t) => s + (Number(t.amount) || 0), 0);
+  const allOut = transactions.filter((t) => t.type === 'Expense').reduce((s, t) => s + (Number(t.amount) || 0), 0);
+  const currentBal = Math.max(0, baseBal + allIn - allOut);
+
+  const goalsList = goals.map((g) => {
+    const tgt = Number(g.target) || 0;
+    const collected = Math.min(tgt, (g.amount !== undefined && Number(g.amount) > currentBal) ? Number(g.amount) : currentBal);
+    const pct = tgt > 0 ? Math.max(0, Math.min(100, Math.round((collected / tgt) * 100))) : 0;
+    return {
+      id: g.id,
+      nama: g.name || 'Goal',
+      terkumpul: collected,
+      target: tgt,
+      persen: pct
+    };
+  });
 
   const rataRataHarian = daysInMonth > 0 ? Math.round(totalPengeluaran / daysInMonth) : 0;
 
