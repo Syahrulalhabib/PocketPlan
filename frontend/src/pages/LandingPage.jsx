@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../providers/ThemeProvider.jsx';
 import { SunIcon, MoonIcon } from '../components/Icons.jsx';
-import { PockySvg } from '../components/FloatingMascot.jsx';
+import FloatingMascot from '../components/FloatingMascot.jsx';
 import pocketLogo from '../assets/pocket-logo.svg';
 
 const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME || 'yourpocketplan_bot';
@@ -270,11 +270,6 @@ const LandingPage = () => {
       {/* Hero */}
       <section className="landing-hero">
         <div className="landing-hero-content">
-          <div className="hero-companion-badge">
-            <PockySvg width={24} height={26} isWaving={true} />
-            <span>Meet Pocky, your personal Telegram finance companion</span>
-          </div>
-
           <h1 className="landing-hero-title">
             Smart Expense Tracking Without the Hassle with <span className="brand-highlight">Pocky</span>
           </h1>
@@ -319,7 +314,7 @@ const LandingPage = () => {
 
           <div className="telegram-card-header">
             <div className="telegram-avatar">
-              <PockySvg width={36} height={38} isWaving={false} />
+              <img src={pocketLogo} alt="Pocketplan Bot" />
             </div>
             <div className="telegram-info">
               <h4>Pocky — Pocketplan Bot</h4>
@@ -500,6 +495,8 @@ const LandingPage = () => {
           </div>
         </div>
       </footer>
+
+      <FloatingMascot />
     </div>
   );
 };

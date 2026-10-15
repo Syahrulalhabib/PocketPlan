@@ -37,15 +37,20 @@ const VerificationPage = () => {
 
   return (
     <div className={`auth-page ${isDark ? 'theme-dark' : ''}`}>
-      <button
-        type="button"
-        className="theme-btn-topbar auth-theme-toggle"
-        onClick={toggleTheme}
-        aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
-        title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
-      >
-        {isDark ? <SunIcon size={18} /> : <MoonIcon size={18} />}
-      </button>
+      <div className="auth-mobile-bar">
+        <Link to="/" className="mini-link auth-back-link">
+          &larr; Back to Home
+        </Link>
+        <button
+          type="button"
+          className="theme-btn-topbar auth-theme-toggle"
+          onClick={toggleTheme}
+          aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+          title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+        >
+          {isDark ? <SunIcon size={18} /> : <MoonIcon size={18} />}
+        </button>
+      </div>
       <div className="auth-hero left">
         <SavingsMascot mode="hero" />
       </div>

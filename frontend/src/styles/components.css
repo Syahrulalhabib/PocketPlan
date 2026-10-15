@@ -801,6 +801,21 @@
 }
 
 
+.auth-mobile-bar {
+  display: contents;
+}
+
+.auth-mobile-bar .auth-back-link {
+  display: none;
+}
+
+.auth-top-nav {
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .auth-theme-toggle {
   position: fixed;
   top: 20px;

@@ -176,32 +176,6 @@ html {
   justify-content: center;
 }
 
-/* Hero Companion Mascot Badge (Point 13) */
-.hero-companion-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px 6px 10px;
-  background: rgba(228, 81, 83, 0.08);
-  border: 1px solid rgba(228, 81, 83, 0.2);
-  border-radius: var(--pill);
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--primary);
-  margin-bottom: 20px;
-}
-.theme-dark .hero-companion-badge {
-  background: rgba(228, 81, 83, 0.15);
-  border-color: rgba(228, 81, 83, 0.3);
-  color: #ff8b8d;
-}
-.hero-companion-logo {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-  display: block;
-}
-
 /* 2. Hero Section */
 .landing-hero {
   max-width: 1200px;
@@ -1091,7 +1065,7 @@ html {
     padding: 24px 16px;
   }
   .landing-footer {
-    padding: 40px 16px 28px;
+    padding: 40px 16px 120px;
   }
   .landing-footer-grid {
     grid-template-columns: 1fr;
@@ -1105,12 +1079,33 @@ html {
   }
   .landing-footer-bottom {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    text-align: center;
     gap: 12px;
+    padding-top: 20px;
+    padding-bottom: 70px;
   }
   .landing-footer-bottom-links {
-    flex-direction: column;
-    gap: 8px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .landing-footer-bottom-links .footer-bottom-item {
+    font-size: 0.85rem;
+    color: var(--muted);
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 4px;
+  }
+  .landing-footer-copy {
+    font-size: 0.82rem;
+    color: var(--muted);
+    text-align: center;
+    margin: 0;
   }
 }
 
