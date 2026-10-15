@@ -130,15 +130,18 @@
 }
 
 .laporan-sheet .laporan-brand {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .laporan-sheet .laporan-logo {
   width: 36px;
   height: 36px;
   object-fit: contain;
+  display: block;
+  margin: 0;
+  flex-shrink: 0;
 }
 
 .laporan-sheet .laporan-word {
@@ -147,6 +150,10 @@
   line-height: 1;
   letter-spacing: -0.5px;
   color: #1f1f1f;
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
 }
 
 .laporan-sheet .laporan-word span {
@@ -635,6 +642,52 @@
   gap: 6px;
   font-weight: 700;
   color: #6b7280;
+}
+
+/* Mobile Responsive for Laporan Sheet & Print Layout (Points 3, 24) */
+@media (max-width: 680px) {
+  .laporan-sheet {
+    padding: 16px 12px;
+    border-radius: 14px;
+    width: 100%;
+  }
+
+  .laporan-sheet .laporan-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .laporan-sheet .laporan-period {
+    text-align: left;
+  }
+
+  .laporan-sheet .laporan-cards {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .laporan-sheet .laporan-grid2 {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .laporan-sheet .laporan-panel {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .laporan-sheet .laporan-panel table {
+    min-width: 440px;
+  }
+
+  .laporan-sheet .laporan-badges {
+    grid-template-columns: 1fr;
+  }
+
+  .laporan-sheet .laporan-goals {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Print Overrides */

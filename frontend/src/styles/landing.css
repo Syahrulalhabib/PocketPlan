@@ -2,14 +2,22 @@
    LANDING PAGE STYLES — POCKETPLAN (REFINED CRAFT & DEPTH)
    ======================================================== */
 
+html {
+  scroll-behavior: smooth;
+}
+
 .landing-wrap {
   min-height: 100vh;
-  background: var(--bg);
+  background: var(--bg) url('/bg-pattern.svg') center/cover fixed no-repeat;
   color: var(--text);
   display: flex;
   flex-direction: column;
   position: relative;
   overflow-x: hidden;
+}
+
+.theme-dark .landing-wrap {
+  background: var(--bg) url('/bg-pattern.svg') center/cover fixed no-repeat;
 }
 
 /* 1. Navbar */
@@ -94,6 +102,104 @@
   background: var(--primary-dark);
   box-shadow: 0 6px 20px rgba(228, 81, 83, 0.45);
   transform: translateY(-1px);
+}
+
+/* Mobile Hamburger Button & Drawer (Points 3, 24) */
+.landing-hamburger-btn {
+  display: none;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  color: var(--text);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--pill);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.landing-hamburger-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+.theme-dark .landing-hamburger-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.landing-mobile-drawer {
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border-bottom: 1px solid var(--card-border);
+  padding: 14px 20px 20px;
+  gap: 8px;
+  animation: drawerSlideDown 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+@keyframes drawerSlideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.mobile-drawer-link {
+  font-size: 0.96rem;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  padding: 11px 12px;
+  border-radius: 10px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  transition: all 0.15s ease;
+}
+.mobile-drawer-link:hover {
+  background: var(--bg-hover, rgba(228, 81, 83, 0.08));
+  color: var(--primary);
+}
+.mobile-drawer-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--card-border);
+}
+.mobile-drawer-actions .btn-landing-login,
+.mobile-drawer-actions .btn-landing-register {
+  flex: 1;
+  text-align: center;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Hero Companion Mascot Badge (Point 13) */
+.hero-companion-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 6px 10px;
+  background: rgba(228, 81, 83, 0.08);
+  border: 1px solid rgba(228, 81, 83, 0.2);
+  border-radius: var(--pill);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 20px;
+}
+.theme-dark .hero-companion-badge {
+  background: rgba(228, 81, 83, 0.15);
+  border-color: rgba(228, 81, 83, 0.3);
+  color: #ff8b8d;
+}
+.hero-companion-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  display: block;
 }
 
 /* 2. Hero Section */
@@ -293,16 +399,21 @@
   border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 .telegram-avatar {
-  width: 40px;
-  height: 40px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #e45153, #f59e0b);
+  background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
-  box-shadow: 0 4px 10px rgba(228, 81, 83, 0.25);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
   flex-shrink: 0;
+}
+.telegram-avatar img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  display: block;
 }
 .telegram-info h4 {
   font-size: 0.95rem;
@@ -376,6 +487,15 @@
   margin: 0 auto;
   padding: 64px 24px;
   width: 100%;
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.landing-section.is-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .section-head {
@@ -582,17 +702,22 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 12px;
 }
 .bot-cmd-tag {
   background: rgba(228, 81, 83, 0.09);
   color: var(--primary);
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: var(--pill);
   font-weight: 700;
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   border: 1px solid rgba(228, 81, 83, 0.2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
 }
 .theme-dark .bot-cmd-tag {
   background: rgba(228, 81, 83, 0.16);
@@ -600,19 +725,37 @@
 
 .bot-cmd-badge {
   font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--muted);
+  font-weight: 700;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 3px 8px;
+  border-radius: var(--pill);
   text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
 }
 
 .bot-cmd-reply {
+  position: relative;
   background: rgba(0, 0, 0, 0.025);
-  padding: 12px 14px;
+  padding: 12px 14px 12px 18px;
   border-radius: 12px;
   font-size: 0.85rem;
   line-height: 1.5;
-  border-left: 3px solid var(--primary);
   color: var(--text);
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+}
+.bot-cmd-reply::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #e45153 0%, #f59e0b 100%);
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
 }
 .theme-dark .bot-cmd-reply {
   background: rgba(255, 255, 255, 0.04);
@@ -685,32 +828,81 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* 9. Minimal Clean Footer */
+/* 9. Structured Professional Footer (Point 7) */
 .landing-footer {
   margin-top: auto;
   background: var(--card);
   border-top: 1px solid var(--card-border);
-  padding: 40px 24px 28px;
+  padding: 56px 24px 28px;
 }
 .landing-footer-inner {
   max-width: 1200px;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-  gap: 10px;
+}
+.landing-footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 48px;
+  margin-bottom: 40px;
+}
+.landing-footer-col.brand-col {
+  max-width: 400px;
 }
 .landing-footer-brand {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  margin-bottom: 14px;
 }
-.landing-footer-copy {
+.landing-footer-tagline {
   color: var(--muted);
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   line-height: 1.6;
   margin: 0;
+}
+.footer-col-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+.footer-links-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.footer-links-list a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.88rem;
+  transition: color 0.18s ease;
+}
+.footer-links-list a:hover {
+  color: var(--primary);
+}
+.landing-footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 24px;
+  border-top: 1px solid var(--card-border);
+  font-size: 0.82rem;
+  color: var(--muted);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.landing-footer-bottom-links {
+  display: flex;
+  gap: 10px;
+}
+.landing-footer-copy {
+  margin: 0;
+  color: var(--muted);
 }
 
 /* Animations & Tasteful Micro-interactions (T1) */
@@ -783,6 +975,25 @@
   .landing-nav-links {
     display: none;
   }
+  .landing-hamburger-btn {
+    display: inline-flex;
+  }
+  .landing-nav-actions .btn-landing-login,
+  .landing-nav-actions .btn-landing-register {
+    display: none;
+  }
+  .landing-nav-inner .brand {
+    order: 1;
+    margin-right: auto;
+  }
+  .landing-nav-inner .landing-nav-actions {
+    order: 2;
+    margin-left: auto;
+  }
+  .landing-footer-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -791,18 +1002,14 @@
     gap: 8px;
   }
   .landing-nav-actions {
-    gap: 6px;
+    gap: 8px;
   }
   .landing-nav-tg {
     display: none;
   }
-  .btn-landing-login, .btn-landing-register {
-    padding: 6px 12px;
-    font-size: 0.8rem;
-  }
   .landing-hero {
     padding: 28px 14px 24px;
-    gap: 28px;
+    gap: 24px;
   }
   .landing-hero-title {
     font-size: 1.85rem;
@@ -821,6 +1028,7 @@
     justify-content: center;
     padding: 12px 18px;
     font-size: 0.9rem;
+    min-height: 44px;
   }
   .hero-trust-strip {
     flex-direction: column;
@@ -842,7 +1050,12 @@
     padding: 24px 16px;
   }
   .landing-footer {
-    padding: 28px 14px 20px;
+    padding: 36px 14px 20px;
+  }
+  .landing-footer-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
   }
 }
 

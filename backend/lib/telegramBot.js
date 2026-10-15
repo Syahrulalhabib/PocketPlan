@@ -250,22 +250,32 @@ async function maybeSendLinkNudge(chatId, uid, db, botToken) {
 
 function getTxMonth(t) {
   if (!t) return '';
-  if (t.date && typeof t.date.toDate === 'function') {
-    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(t.date.toDate()).slice(0, 7);
+  const rawDate = t.date || t.tanggal;
+  if (rawDate && typeof rawDate.toDate === 'function') {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(rawDate.toDate()).slice(0, 7);
   }
-  if (typeof t.date === 'string' && t.date.trim()) {
-    const s = t.date.trim();
+  if (typeof rawDate === 'number' && !isNaN(rawDate)) {
+    const d = new Date(rawDate);
+    if (!isNaN(d.getTime())) return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(d).slice(0, 7);
+  }
+  if (typeof rawDate === 'string' && rawDate.trim()) {
+    const s = rawDate.trim();
     if (/^\d{4}[-/]\d{2}/.test(s)) return s.slice(0, 7).replace('/', '-');
     const dmy = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
     if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, '0')}`;
     const d = new Date(s);
     if (!isNaN(d.getTime())) return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(d).slice(0, 7);
   }
-  if (t.createdAt) {
-    if (typeof t.createdAt.toDate === 'function') {
-      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(t.createdAt.toDate()).slice(0, 7);
+  const rawCreated = t.createdAt || t.timestamp;
+  if (rawCreated) {
+    if (typeof rawCreated.toDate === 'function') {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(rawCreated.toDate()).slice(0, 7);
     }
-    const d = new Date(t.createdAt);
+    if (typeof rawCreated === 'number' && !isNaN(rawCreated)) {
+      const d = new Date(rawCreated);
+      if (!isNaN(d.getTime())) return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(d).slice(0, 7);
+    }
+    const d = new Date(rawCreated);
     if (!isNaN(d.getTime())) return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(d).slice(0, 7);
   }
   return '';
@@ -276,17 +286,19 @@ async function checkBudgetWarnings(chatId, uid, db, botToken, category) {
   if (!db || !uid || !category) return;
   try {
     const normTarget = normalizeBudgetCategory(category);
-    let budgetSnap = await db.collection('users').doc(uid).collection('budgets').get();
-    if (budgetSnap.empty && uid !== `tg_${chatId}`) {
+    const budgetDocs = [];
+    const budgetSnap = await db.collection('users').doc(uid).collection('budgets').get();
+    budgetDocs.push(...budgetSnap.docs);
+    if (uid !== `tg_${chatId}`) {
       const altSnap = await db.collection('users').doc(`tg_${chatId}`).collection('budgets').get();
       if (!altSnap.empty) {
         migrateTelegramDataToUser(chatId, uid, db).catch(() => {});
-        budgetSnap = altSnap;
+        budgetDocs.push(...altSnap.docs);
       }
     }
-    if (budgetSnap.empty) return;
+    if (budgetDocs.length === 0) return;
 
-    const budgetDoc = budgetSnap.docs.find(d => {
+    const budgetDoc = budgetDocs.find(d => {
       const c = d.data().category || '';
       return normalizeBudgetCategory(c).toLowerCase() === normTarget.toLowerCase() ||
              c.toLowerCase() === category.toLowerCase();
@@ -970,44 +982,31 @@ export async function handleTelegramUpdate(update, db, botToken) {
       chatId,
       '📖 *PANDUAN LENGKAP POCKY*\n\n' +
       '*🧾 SCAN STRUK BARENG POCKY*\n' +
-      '• Cukup kirim foto struk belanja atau bukti transfer langsung ke chat ini!\n' +
-      '• Pocky otomatis membaca nama toko, daftar barang, & total transaksi.\n\n' +
-      '*📝 CATAT PENGELUARAN*\n' +
-      '• `kopi susu 25k` — ketik langsung\n' +
-      '• `25k kopi susu` — nominal duluan juga bisa\n' +
-      '• `/catat bensin 50k` — pakai perintah\n' +
-      '• `/keluar makan siang 35k`\n\n' +
-      '*💰 CATAT PEMASUKAN*\n' +
-      '• `/masuk gaji 2jt`\n' +
-      '• `/masuk freelance 500k`\n\n' +
-      '*🎯 TARGET IMPIAN*\n' +
-      '• `/goal Laptop Baru 10jt` — buat target\n' +
-      '• `/goals` — lihat semua target & progres\n' +
-      '• `/beligoal Laptop` — beli target tercapai\n\n' +
-      '*💰 BUDGET BULANAN*\n' +
-      '• `/budget Makan 1jt` — atur batas\n' +
-      '• `/budget` — lihat semua budget\n' +
-      '• `/budget hapus Makan` — hapus budget\n\n' +
-      '*🎉 AJAK TEMAN*\n' +
-      '• `/ajak` — dapatkan link referral untuk ajak teman\n\n' +
-      '*🏆 TANTANGAN NABUNG BARENG (30 HARI)*\n' +
-      '• `/tantangan` — cek tantangan & progres peserta\n' +
-      '• *Tipe no_spend (Puasa Belanja)*: tantangan menahan diri tidak beli barang tertentu (kopi, boba, jajan, rokok, dll).\n' +
-      '  Format: `/tantangan buat no_spend Kopi 30 Hari Tanpa Kopi`\n' +
-      '• *Tipe daily_log (Rajin Catat)*: tantangan disiplin catat keuangan minimal 1x sehari bareng teman tanpa bolong.\n' +
-      '  Format: `/tantangan buat daily_log Nabung Konsisten 30 Hari`\n' +
-      '• `/tantangan gabung <ID>` — gabung lewat ID (atau klik link undangan teman)\n\n' +
-      '*⏰ PENGINGAT HARIAN*\n' +
-      '• `/pengingat` — kelola pengingat pagi & malam\n\n' +
-      '*📊 INFO KEUANGAN*\n' +
-      '• `/saldo` — cek sisa saldo\n' +
-      '• `/riwayat` — 5 transaksi terakhir\n' +
+      '• Kirim foto struk belanja atau bukti transfer langsung ke chat ini!\n\n' +
+      '*📝 CATAT CEPAT*\n' +
+      '• `kopi susu 25k` atau `/catat bensin 50k` — catat pengeluaran\n' +
+      '• `/masuk gaji 2.5jt` — catat pemasukan\n' +
       '• `/batal` — batalkan transaksi terakhir\n\n' +
-      '*🔗 LAINNYA*\n' +
-      '• `/web` — kode login website\n' +
-      '• `/link KODE` — hubungkan akun website\n' +
-      '• `/menu` — tampilkan keyboard menu\n\n' +
-      '💡 _Nominal bisa ditulis: 50k, 50rb, 50.000, 1.5jt, Rp50000_',
+      '*💰 BUDGET BULANAN*\n' +
+      '• `/budget [kategori] [nominal]` — atur batas belanja bulanan\n' +
+      '• `/budget` — cek status sisa budget semua kategori\n' +
+      '• `/budget hapus [kategori]` — hapus budget\n\n' +
+      '*🎯 TARGET & KONSISTENSI*\n' +
+      '• `/goal [nama] [target]` — buat target tabungan impian\n' +
+      '• `/goals` — cek progres tabungan & beli target yang tercapai\n' +
+      '• `/streak` — pantau rekor hari konsisten mencatat keuangan\n' +
+      '• `/pencapaian` — lihat galeri lencana & milestone keuanganmu\n\n' +
+      '*🏆 TANTANGAN NABUNG BARENG (30 HARI)*\n' +
+      '• `/tantangan` — kompetisi hemat 30 hari bareng teman (puasa jajan/rajin catat), dapatkan link undangan & lencana pencapaian\n\n' +
+      '*📊 INFO & SINKRONISASI*\n' +
+      '• `/saldo` — cek sisa saldo aktif & ringkasan arus kas\n' +
+      '• `/riwayat` — lihat 5 transaksi terakhir\n' +
+      '• `/web` — dapatkan kode passcode instan untuk login website\n' +
+      '• `/link [kode]` — hubungkan akun website dengan Telegram ini\n' +
+      '• `/pengingat` — atur jadwal pengingat pagi & malam\n' +
+      '• `/ajak` — bagikan link referral untuk undang teman\n' +
+      '• `/menu` — buka menu tombol cepat\n\n' +
+      '💡 _Format nominal fleksibel: 25k, 50rb, 50.000, 1.5jt, Rp50000_',
       { reply_markup: KEYBOARD }
     );
   }
@@ -1072,6 +1071,37 @@ export async function handleTelegramUpdate(update, db, botToken) {
         : `Yuk catat transaksi hari ini (misal: \`25k makan siang\`) untuk menyalakan streak baru! 💪`),
       { reply_markup: KEYBOARD }
     );
+  }
+
+  // /pencapaian or /achievements — check unlocked badges & milestones
+  if (cmdText === '/pencapaian' || cmdText === '/achievements' || text === '🏅 Pencapaian') {
+    let seen = [];
+    if (db && uid) {
+      try {
+        const uDoc = await db.collection('users').doc(uid).get();
+        const uData = uDoc.data() || {};
+        seen = Array.isArray(uData.achievementsSeen) ? uData.achievementsSeen : [];
+        if (uid !== `tg_${chatId}`) {
+          const altDoc = await db.collection('users').doc(`tg_${chatId}`).get();
+          const altData = altDoc.data() || {};
+          const altSeen = Array.isArray(altData.achievementsSeen) ? altData.achievementsSeen : [];
+          seen = Array.from(new Set([...seen, ...altSeen]));
+        }
+      } catch {}
+    }
+    if (seen.length === 0) {
+      return sendTelegramMessage(botToken, chatId,
+        `🏅 *Galeri Pencapaian Pocky*\n\n` +
+        `Belum ada lencana yang terbuka. Bangun streak mencatat dan capai target tabunganmu untuk membuka lencana eksklusif! 🚀`,
+        { reply_markup: KEYBOARD }
+      );
+    }
+    let msg = `🏅 *Galeri Pencapaian Pocky (${seen.length} Terbuka)*\n\n`;
+    seen.forEach((k) => {
+      msg += `✨ *${escapeMarkdown(k.replace(/_/g, ' ').toUpperCase())}*\n`;
+    });
+    msg += `\n_Lihat visual detail lencana di website menu Pencapaian!_`;
+    return sendTelegramMessage(botToken, chatId, msg, { reply_markup: KEYBOARD });
   }
 
   // Developer test command — preview streak notification (restricted to DEV_TELEGRAM_IDS)
@@ -1390,16 +1420,26 @@ export async function handleTelegramUpdate(update, db, botToken) {
 
     // /budget — list all budgets
     try {
-      let budgetSnap = await db.collection('users').doc(uid).collection('budgets').get();
-      if (budgetSnap.empty && uid !== `tg_${chatId}`) {
+      const budgetMap = new Map();
+      const budgetSnap = await db.collection('users').doc(uid).collection('budgets').get();
+      budgetSnap.docs.forEach(d => {
+        const norm = normalizeBudgetCategory(d.data().category);
+        budgetMap.set(norm, d.data());
+      });
+      if (uid !== `tg_${chatId}`) {
         const altSnap = await db.collection('users').doc(`tg_${chatId}`).collection('budgets').get();
         if (!altSnap.empty) {
           migrateTelegramDataToUser(chatId, uid, db).catch(() => {});
-          budgetSnap = altSnap;
+          altSnap.docs.forEach(d => {
+            const norm = normalizeBudgetCategory(d.data().category);
+            if (!budgetMap.has(norm)) {
+              budgetMap.set(norm, d.data());
+            }
+          });
         }
       }
 
-      if (budgetSnap.empty) {
+      if (budgetMap.size === 0) {
         return sendTelegramMessage(botToken, chatId,
           '💰 *Belum ada budget*\n\n' +
           'Atur batas pengeluaran bulanan:\n' +
@@ -1434,9 +1474,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
       });
 
       let out = `💰 *Budget Bulan Ini (${currentMonthPrefix})*\n\n`;
-      budgetSnap.forEach(d => {
-        const b = d.data();
-        const norm = normalizeBudgetCategory(b.category);
+      budgetMap.forEach((b, norm) => {
         const spent = spending[norm] || 0;
         const lim = Number(b.monthlyLimit || b.amount) || 0;
         const pct = lim > 0 ? Math.round((spent / lim) * 100) : 0;

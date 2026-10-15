@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../providers/ThemeProvider.jsx';
 import { SunIcon, MoonIcon } from '../components/Icons.jsx';
 import pocketLogo from '../assets/pocket-logo.svg';
@@ -60,28 +60,28 @@ const steps = [
 const botCommands = [
   {
     cmd: '/catat',
-    example: 'nasi padang 32000',
-    reply: 'Pengeluaran Rp 32.000 (Makanan) berhasil dicatat. Saldo Anda telah diperbarui.'
+    example: 'lunch padang 32000',
+    reply: 'Expense of Rp 32,000 (Food) recorded successfully.\nYour balance has been updated.'
   },
   {
     cmd: '/saldo',
     example: '',
-    reply: 'Saldo Saat Ini: Rp 3.250.000\nPemasukan: Rp 5.000.000 | Pengeluaran: Rp 1.750.000'
+    reply: 'Current Balance: Rp 3,250,000\nIncome: Rp 5,000,000 | Expense: Rp 1,750,000'
   },
   {
     cmd: '/budget',
     example: '',
-    reply: 'Anggaran Makanan: Rp 850.000 / Rp 1.500.000 (56% terpakai) • Status: Aman'
+    reply: 'Food Budget: Rp 850,000 / Rp 1,500,000 (56% used) • Status: Safe'
   },
   {
     cmd: '/streak',
     example: '',
-    reply: 'Streak Aktif: 7 hari berturut-turut. Rekor terpanjang: 14 hari.'
+    reply: 'Active Streak: 7 consecutive days. Best record: 14 days.'
   },
   {
     cmd: '/tantangan',
     example: '',
-    reply: 'Tantangan: "Hemat Kopi 7 Hari" — Hari ke-4 dari 7. Tetap disiplin!'
+    reply: 'Challenge: "7 Days Coffee-Free" — Day 4 of 7. Stay disciplined!'
   }
 ];
 
@@ -106,9 +106,12 @@ const faqs = [
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
   const [openFaq, setOpenFaq] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const observerRef = useRef(null);
 
   const toggleFaq = (index) => {
     setOpenFaq((prev) => (prev === index ? null : index));
@@ -125,6 +128,53 @@ const LandingPage = () => {
     }
   }, []);
 
+  // IntersectionObserver for smooth fade/slide-in on section entry (Point 1)
+  useEffect(() => {
+    const sections = document.querySelectorAll('.landing-section');
+    if ('IntersectionObserver' in window) {
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+            }
+          });
+        },
+        { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+      );
+      sections.forEach((sec) => observerRef.current?.observe(sec));
+    } else {
+      sections.forEach((sec) => sec.classList.add('is-visible'));
+    }
+
+    return () => {
+      observerRef.current?.disconnect();
+    };
+  }, []);
+
+  // Route-based smooth section scroll (Point 5)
+  useEffect(() => {
+    const path = location.pathname.replace(/^\//, '');
+    if (['features', 'how-it-works', 'commands', 'faq'].includes(path)) {
+      const el = document.getElementById(path);
+      if (el) {
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 80);
+      }
+    }
+  }, [location.pathname]);
+
+  const handleNavClick = (sectionId, e) => {
+    e.preventDefault();
+    setMobileMenuOpen(false);
+    navigate(`/${sectionId}`);
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   return (
     <div className="landing-wrap">
       {/* Navbar */}
@@ -136,10 +186,18 @@ const LandingPage = () => {
           </div>
 
           <nav className="landing-nav-links" aria-label="Public Navigation">
-            <a href="#features" className="landing-nav-link">Features</a>
-            <a href="#how-it-works" className="landing-nav-link">How It Works</a>
-            <a href="#commands" className="landing-nav-link">Commands</a>
-            <a href="#faq" className="landing-nav-link">FAQ</a>
+            <a href="/features" onClick={(e) => handleNavClick('features', e)} className="landing-nav-link">
+              Features
+            </a>
+            <a href="/how-it-works" onClick={(e) => handleNavClick('how-it-works', e)} className="landing-nav-link">
+              How It Works
+            </a>
+            <a href="/commands" onClick={(e) => handleNavClick('commands', e)} className="landing-nav-link">
+              Commands
+            </a>
+            <a href="/faq" onClick={(e) => handleNavClick('faq', e)} className="landing-nav-link">
+              FAQ
+            </a>
           </nav>
 
           <div className="landing-nav-actions">
@@ -152,18 +210,70 @@ const LandingPage = () => {
             >
               {isDark ? <SunIcon size={18} /> : <MoonIcon size={18} />}
             </button>
-            <a href={telegramUrl} target="_blank" rel="noreferrer" className="landing-nav-link landing-nav-tg">
-              Telegram Bot
-            </a>
             <Link to="/login" className="btn-landing-login">Login</Link>
             <Link to="/register" className="btn-landing-register">Register</Link>
+
+            {/* Mobile Hamburger Button (Point 3, 24) */}
+            <button
+              type="button"
+              className="landing-hamburger-btn"
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={mobileMenuOpen}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                {mobileMenuOpen ? (
+                  <>
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </>
+                ) : (
+                  <>
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                    <line x1="3" y1="18" x2="21" y2="18" />
+                  </>
+                )}
+              </svg>
+            </button>
           </div>
         </div>
+
+        {/* Mobile Navigation Drawer */}
+        {mobileMenuOpen && (
+          <div className="landing-mobile-drawer">
+            <a href="/features" onClick={(e) => handleNavClick('features', e)} className="mobile-drawer-link">
+              Features
+            </a>
+            <a href="/how-it-works" onClick={(e) => handleNavClick('how-it-works', e)} className="mobile-drawer-link">
+              How It Works
+            </a>
+            <a href="/commands" onClick={(e) => handleNavClick('commands', e)} className="mobile-drawer-link">
+              Commands
+            </a>
+            <a href="/faq" onClick={(e) => handleNavClick('faq', e)} className="mobile-drawer-link">
+              FAQ
+            </a>
+            <div className="mobile-drawer-actions">
+              <Link to="/login" className="btn-landing-login" onClick={() => setMobileMenuOpen(false)}>
+                Login
+              </Link>
+              <Link to="/register" className="btn-landing-register" onClick={() => setMobileMenuOpen(false)}>
+                Register
+              </Link>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Hero */}
       <section className="landing-hero">
         <div className="landing-hero-content">
+          <div className="hero-companion-badge">
+            <img src={pocketLogo} alt="Pocky Mascot" className="hero-companion-logo" />
+            <span>Meet Pocky, your personal Telegram finance companion</span>
+          </div>
+
           <h1 className="landing-hero-title">
             Smart Expense Tracking Without the Hassle with <span className="brand-highlight">Pocky</span>
           </h1>
@@ -199,7 +309,7 @@ const LandingPage = () => {
 
           <div className="telegram-card-header">
             <div className="telegram-avatar">
-              <img src={pocketLogo} alt="Pocky Mascot" style={{ width: '22px', height: '22px' }} />
+              <img src={pocketLogo} alt="Pocky Mascot" />
             </div>
             <div className="telegram-info">
               <h4>Pocky — Pocketplan Bot</h4>
@@ -212,9 +322,10 @@ const LandingPage = () => {
               <div className="chat-bubble-footer">12:30 PM <span className="bubble-check">✓✓</span></div>
             </div>
             <div className="chat-bubble bot">
-              <b>Pengeluaran Dicatat</b><br />
-              Kategori: <b>Makanan</b><br />
-              Nominal: <b>Rp 32.000</b>
+              <b>✅ Pengeluaran Berhasil Dicatat</b><br />
+              📁 Kategori: <b>Makanan</b><br />
+              💸 Nominal: <b>Rp 32.000</b><br />
+              💳 Saldo diperbarui otomatis
               <div className="chat-bubble-footer">12:30 PM</div>
             </div>
             <div className="chat-bubble user">
@@ -222,8 +333,8 @@ const LandingPage = () => {
               <div className="chat-bubble-footer">12:31 PM <span className="bubble-check">✓✓</span></div>
             </div>
             <div className="chat-bubble bot">
-              <b>Status Streak: 7 Hari Aktif</b><br />
-              Konsistensi pencatatan Anda berjalan lancar!
+              <b>🔥 Status Streak: 7 Hari Aktif</b><br />
+              ✨ Konsistensi pencatatan Anda berjalan lancar!
               <div className="chat-bubble-footer">12:31 PM</div>
             </div>
           </div>
@@ -336,13 +447,48 @@ const LandingPage = () => {
       {/* Footer */}
       <footer className="landing-footer">
         <div className="landing-footer-inner">
-          <div className="brand landing-footer-brand" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-            <img src={pocketLogo} alt="Pocketplan logo" className="brand-logo" />
-            <span className="brand-title">Pocketplan</span>
+          <div className="landing-footer-grid">
+            <div className="landing-footer-col brand-col">
+              <div className="brand landing-footer-brand" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+                <img src={pocketLogo} alt="Pocketplan logo" className="brand-logo" />
+                <span className="brand-title">Pocketplan</span>
+              </div>
+              <p className="landing-footer-tagline">
+                Smart personal finance tracking integrated with Telegram bot and modern web dashboard. Master your cashflow with ease.
+              </p>
+            </div>
+
+            <div className="landing-footer-col">
+              <div className="footer-col-title">Navigation</div>
+              <ul className="footer-links-list">
+                <li><a href="/features" onClick={(e) => handleNavClick('features', e)}>Features</a></li>
+                <li><a href="/how-it-works" onClick={(e) => handleNavClick('how-it-works', e)}>How It Works</a></li>
+                <li><a href="/commands" onClick={(e) => handleNavClick('commands', e)}>Commands</a></li>
+                <li><a href="/faq" onClick={(e) => handleNavClick('faq', e)}>FAQ</a></li>
+              </ul>
+            </div>
+
+            <div className="landing-footer-col">
+              <div className="footer-col-title">Quick Access</div>
+              <ul className="footer-links-list">
+                <li><Link to="/login">Web App Sign In</Link></li>
+                <li><Link to="/register">Create Account</Link></li>
+                <li><Link to="/demo">Interactive Demo</Link></li>
+                <li><a href={telegramUrl} target="_blank" rel="noreferrer">Telegram Bot (@yourpocketplan_bot)</a></li>
+              </ul>
+            </div>
           </div>
-          <p className="landing-footer-copy">
-            &copy; {new Date().getFullYear()} Pocketplan. Kelola keuangan harian lebih tertata langsung dari Telegram dan web.
-          </p>
+
+          <div className="landing-footer-bottom">
+            <p className="landing-footer-copy">
+              &copy; {new Date().getFullYear()} Pocketplan. All rights reserved.
+            </p>
+            <div className="landing-footer-bottom-links">
+              <span>Privacy & Security</span>
+              <span>&bull;</span>
+              <span>Terms of Service</span>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

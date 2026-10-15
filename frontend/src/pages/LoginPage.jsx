@@ -2,8 +2,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../providers/AuthProvider.jsx';
 import { useTheme } from '../providers/ThemeProvider.jsx';
-import { EyeIcon } from '../components/Icons.jsx';
+import { EyeIcon, SunIcon, MoonIcon } from '../components/Icons.jsx';
 import SavingsMascot from '../components/SavingsMascot.jsx';
+import pocketLogo from '../assets/pocket-logo.svg';
 
 const LoginPage = () => {
   const { login, googleLogin, resetPassword, loginWithTelegram } = useAuth();
@@ -136,18 +137,24 @@ const LoginPage = () => {
     <div className={`auth-page ${isDark ? 'theme-dark' : ''}`}>
       <button
         type="button"
-        className={`theme-toggle ${isDark ? 'active' : ''}`}
+        className="theme-btn-topbar auth-theme-toggle"
         onClick={toggleTheme}
-        aria-pressed={isDark}
         aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+        title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
       >
-        <span className="toggle-thumb" />
-        <span className="toggle-labels">
-          <span className="sun">☀</span>
-          <span className="moon">☾</span>
-        </span>
+        {isDark ? <SunIcon size={18} /> : <MoonIcon size={18} />}
       </button>
       <div className="auth-panel card">
+        <div className="auth-top-nav" style={{ marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="brand" onClick={() => navigate('/')} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <img src={pocketLogo} alt="Pocketplan logo" style={{ width: '32px', height: '26px' }} />
+            <span style={{ fontWeight: 800, fontSize: '18px', letterSpacing: '-0.02em', color: 'var(--text)' }}>Pocketplan</span>
+          </div>
+          <Link to="/" className="mini-link" style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--primary)' }}>
+            &larr; Back to Home
+          </Link>
+        </div>
+
         <div className="auth-header">
           <h1>WELCOME BACK</h1>
           <p>Welcome back! Smart saving starts with one small step.</p>
@@ -166,7 +173,7 @@ const LoginPage = () => {
             className={`pill small ${loginMethod === 'telegram' ? 'active' : ''}`}
             onClick={() => { setLoginMethod('telegram'); setError(''); }}
           >
-            ✈️ Telegram Bot
+            Telegram Bot
           </button>
         </div>
 
@@ -182,10 +189,10 @@ const LoginPage = () => {
               required
             />
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0.25rem 0 1rem', lineHeight: '1.4' }}>
-              💡 Chat Telegram bot <strong>@yourpocketplan_bot</strong> and send command <code>/web</code> to get your instant login passcode! ✨
+              Chat Telegram bot <strong>@yourpocketplan_bot</strong> and send command <code>/web</code> to get your instant login passcode!
             </p>
             <button className="pill btn-primary auth-submit" disabled={loading}>
-              {loading ? 'Verifying...' : '🚀 Sign in with Telegram'}
+              {loading ? 'Verifying...' : 'Sign in with Telegram'}
             </button>
             <a
               href="https://t.me/yourpocketplan_bot"
@@ -194,7 +201,7 @@ const LoginPage = () => {
               className="pill btn-secondary auth-submit"
               style={{ textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              Chat Pocky on Telegram (@yourpocketplan_bot) ✨
+              Chat Pocky on Telegram (@yourpocketplan_bot)
             </a>
             {error && <div className="form-status">{error}</div>}
             {!error && status && <div className="form-status">{status}</div>}
@@ -246,7 +253,7 @@ const LoginPage = () => {
         </div>
         <div className="auth-footer" style={{ marginTop: '8px' }}>
           <Link to="/demo" className="primary-link" style={{ fontWeight: 600, fontSize: '0.88rem' }}>
-            ✨ Coba tanpa daftar (Mode Demo)
+            Coba tanpa daftar (Mode Demo)
           </Link>
         </div>
       </div>

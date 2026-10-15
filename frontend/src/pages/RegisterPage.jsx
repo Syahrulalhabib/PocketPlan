@@ -2,8 +2,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../providers/AuthProvider.jsx';
 import { useTheme } from '../providers/ThemeProvider.jsx';
 import { useState } from 'react';
-import { EyeIcon } from '../components/Icons.jsx';
+import { EyeIcon, SunIcon, MoonIcon } from '../components/Icons.jsx';
 import SavingsMascot from '../components/SavingsMascot.jsx';
+import pocketLogo from '../assets/pocket-logo.svg';
 
 const RegisterPage = () => {
   const { register } = useAuth();
@@ -59,21 +60,26 @@ const RegisterPage = () => {
     <div className={`auth-page ${isDark ? 'theme-dark' : ''}`}>
       <button
         type="button"
-        className={`theme-toggle ${isDark ? 'active' : ''}`}
+        className="theme-btn-topbar auth-theme-toggle"
         onClick={toggleTheme}
-        aria-pressed={isDark}
         aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+        title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
       >
-        <span className="toggle-thumb" />
-        <span className="toggle-labels">
-          <span className="sun">☀</span>
-          <span className="moon">☾</span>
-        </span>
+        {isDark ? <SunIcon size={18} /> : <MoonIcon size={18} />}
       </button>
       <div className="auth-hero left">
         <SavingsMascot mode="hero" />
       </div>
       <div className="auth-panel card">
+        <div className="auth-top-nav" style={{ marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="brand" onClick={() => navigate('/')} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <img src={pocketLogo} alt="Pocketplan logo" style={{ width: '32px', height: '26px' }} />
+            <span style={{ fontWeight: 800, fontSize: '18px', letterSpacing: '-0.02em', color: 'var(--text)' }}>Pocketplan</span>
+          </div>
+          <Link to="/" className="mini-link" style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--primary)' }}>
+            &larr; Back to Home
+          </Link>
+        </div>
         <div className="auth-header">
           <h1>REGISTRATION</h1>
           <p>Start your journey to smart saving and a brighter future.</p>

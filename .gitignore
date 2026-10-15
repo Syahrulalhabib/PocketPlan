@@ -22,11 +22,12 @@ backend/.vercel
 
 
 # Receipt scanner batch artifacts
-struk_input/*
-!struk_input/.gitkeep
-output_json/*
-!output_json/.gitkeep
+struk_input/
+output_json/
 output_rekap.csv
+
+# Screenshots
+screenshots/
 
 # Vercel local state
 .vercel

@@ -114,25 +114,31 @@
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.16);
-  color: #fff;
+  border: 1px solid var(--card-border, #e5e7eb);
+  background: var(--card, #ffffff);
+  color: var(--text, #1f2937);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .theme-btn-topbar:hover {
-  background: rgba(255, 255, 255, 0.28);
-  transform: translateY(-1px);
+  background: var(--bg-hover, #f3f4f6);
+  border-color: var(--primary, #e45153);
+  color: var(--primary, #e45153);
+  transform: translateY(-1px) scale(1.05);
 }
 
 .theme-dark .theme-btn-topbar {
   background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #f9fafb;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 .theme-dark .theme-btn-topbar:hover {
   background: rgba(255, 255, 255, 0.16);
+  color: #fbbf24;
 }
 
 .user-wrap {
