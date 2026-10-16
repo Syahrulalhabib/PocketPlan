@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { parseAmount, parseTransactionCommand, formatRupiah, normalizeBudgetCategory } from './telegramParser.js';
+import { parseAmount, parseTransactionCommand, formatRupiah, normalizeBudgetCategory, guessBudgetCategory } from './telegramParser.js';
 import { generateLinkCode, getLinkStatus, unlinkAccount, linkChatWithCode, cancelLinkCode, DEFAULT_BOT_COMMANDS, invalidateUidCache } from './telegramBotCore.js';
 import { handleTelegramUpdate } from './telegramBot.js';
 
@@ -67,6 +67,14 @@ assert.strictEqual(normalizeBudgetCategory('belanja'), 'Shopping');
 assert.strictEqual(normalizeBudgetCategory('Belanja (Shopping)'), 'Shopping');
 assert.strictEqual(normalizeBudgetCategory('tagihan'), 'Bills');
 assert.strictEqual(normalizeBudgetCategory('Bills & Utilities'), 'Bills');
+
+// Category guessing tests
+const guessedLaptop = guessBudgetCategory('beli laptop');
+assert.strictEqual(guessedLaptop.category, 'Shopping');
+assert.strictEqual(guessedLaptop.isGuessed, true);
+const directFood = guessBudgetCategory('makan');
+assert.strictEqual(directFood.category, 'Food');
+assert.strictEqual(directFood.isGuessed, false);
 
 
 // 3. Bot commands flow
@@ -750,6 +758,58 @@ async function testBot() {
   // No Rp amounts in challenge messages
   for (const r of replies) {
     if ((r.text || '').includes('Tantangan')) assert(!r.text.match(/Rp\s*[\d.,]+/), 'No Rp in challenge msg');
+  }
+
+  // Test /help includes new tantangan guide & referral
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/help', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  const helpText = replies[0]?.text || '';
+  assert(helpText.includes('TANTANGAN DISIPLIN (30 HARI)'), '/help contains tantangan disiplin');
+  assert(helpText.includes('Cara ikut (3 langkah)'), '/help contains 3 steps to join');
+  assert(helpText.includes('Cara BUAT tantangan baru'), '/help contains create guide');
+  assert(helpText.includes('Cara KELUAR & HAPUS'), '/help contains leave and delete commands');
+  assert(helpText.includes('/ajak'), '/help contains referral /ajak explanation');
+
+  // Test /budget category guessing scenario: /budget beli laptop 10jt -> /catat beli laptop 9,5jt
+  invalidateUidCache();
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 9000 }, text: '/masuk bonus 20jt', from: { first_name: 'LaptopUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Pemasukan Dicatat')), 'Income 20jt recorded for LaptopUser');
+
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 9000 }, text: '/budget beli laptop 10jt', from: { first_name: 'LaptopUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Maksudmu kategori *Shopping*? Budget dibuat untuk *Shopping*.')), '/budget guesses Shopping and confirms');
+
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 9000 }, text: '/catat beli laptop 9,5jt', from: { first_name: 'LaptopUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Masuk budget *Shopping*') && (r.text || '').includes('95%')), 'Expense confirms budget progress 95%');
+  assert(replies.some(r => (r.text || '').includes('hampir habis') && (r.text || '').includes('⚠️')), '9.5jt on 10jt budget triggers warning 80%');
+
+  // Second expense exceeds 100%
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 9000 }, text: '/catat aksesoris hp 1jt', from: { first_name: 'LaptopUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('habis') && (r.text || '').includes('🚨')), 'Over limit triggers warning 100%');
+
+  // Test /tantangan keluar & hapus
+  const cId = Object.keys(nudgeStore.challenges)[0];
+  if (cId) {
+    // Another user joins
+    await handleTelegramUpdate({ message: { chat: { id: 8000 }, text: `/tantangan gabung ${cId}`, from: { first_name: 'Joiner' } } }, mdb, 'token');
+    
+    // User 8000 leaves
+    replies = [];
+    await handleTelegramUpdate({ message: { chat: { id: 8000 }, text: `/tantangan keluar ${cId}`, from: { first_name: 'Joiner' } } }, mdb, 'token');
+    assert(replies.some(r => (r.text || '').includes('keluar dari tantangan')), 'User 8000 leaves challenge');
+
+    // Non-creator tries to delete
+    replies = [];
+    await handleTelegramUpdate({ message: { chat: { id: 8000 }, text: `/tantangan hapus ${cId}`, from: { first_name: 'Joiner' } } }, mdb, 'token');
+    assert(replies.some(r => (r.text || '').includes('Hanya pembuat')), 'Non-creator cannot delete challenge');
+
+    // Creator deletes challenge
+    replies = [];
+    await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: `/tantangan hapus ${cId}`, from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+    assert(replies.some(r => (r.text || '').includes('berhasil dibatalkan/dihapus')), 'Creator deletes challenge');
   }
 
   // /start join_idngawur → greeting

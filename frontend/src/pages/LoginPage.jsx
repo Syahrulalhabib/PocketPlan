@@ -124,8 +124,12 @@ const LoginPage = () => {
     }
     setLoading(true);
     try {
-      await loginWithTelegram(tgCode.trim());
-      navigate('/dashboard');
+      const loggedUser = await loginWithTelegram(tgCode.trim());
+      if (loggedUser?.needsVerification) {
+        navigate('/verification');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err?.message || 'Gagal login via Telegram. Pastikan kode benar.');
     } finally {

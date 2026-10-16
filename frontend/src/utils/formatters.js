@@ -48,3 +48,12 @@ export const stripUndefined = (obj) => {
     Object.entries(obj).filter(([_, v]) => v !== undefined)
   );
 };
+
+export const isDummyEmail = (email) => {
+  if (!email) return true;
+  const lower = String(email).trim().toLowerCase();
+  return lower.endsWith('@telegram.pocketplan') ||
+         lower.endsWith('@pocketplan.app') ||
+         lower.includes('telegram') ||
+         lower.startsWith('tg_');
+};

@@ -9,8 +9,7 @@
     "dev": "node index.js",
     "test": "node lib/telegram.test.js && node lib/isolation.test.js && node lib/geminiReceiptScanner.test.js && node lib/report.test.js && node lib/achievement.test.js",
     "test:streak:dev": "node scripts/sendDevTest.js",
-    "telegram:poll": "node scripts/pollTelegram.js",
-    "scan:batch": "node ../scripts/scanReceiptsBatch.js"
+    "telegram:poll": "node scripts/pollTelegram.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

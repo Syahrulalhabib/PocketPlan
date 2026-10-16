@@ -204,13 +204,13 @@ app.post('/api/telegram/cancel-link-code', requireAuth, async (req, res) => {
   }
 });
 
-app.post('/api/cron/reminders', async (req, res) => {
-  const secret = process.env.CRON_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET;
+app.all('/api/cron/reminders', async (req, res) => {
+  const secret = (process.env.CRON_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
   if (!secret) {
-    return res.status(401).json({ error: 'CRON_SECRET or TELEGRAM_WEBHOOK_SECRET must be configured' });
+    return res.status(401).json({ error: 'CRON_SECRET must be configured' });
   }
-  const incoming = req.headers['authorization']?.replace('Bearer ', '') || req.query?.secret;
-  if (incoming !== secret) {
+  const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() || req.query?.secret;
+  if (!incoming || incoming !== secret) {
     return res.status(403).json({ error: 'Forbidden' });
   }
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -219,6 +219,14 @@ app.post('/api/cron/reminders', async (req, res) => {
   const force = req.query?.force === 'true' || req.query?.force === '1';
   try {
     const result = await dispatchDailyReminders(getDb(), token, type, force);
+    if (type === 'morning') {
+      dispatchChallengeEvaluation(getDb(), token).catch((e) => console.error('Challenge eval error:', e));
+      const now = new Date();
+      const dayOfWeek = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', weekday: 'short' }).format(now);
+      if (dayOfWeek === 'Mon') {
+        dispatchWeeklyRecap(getDb(), token).catch((e) => console.error('Weekly recap error:', e));
+      }
+    }
     res.json({ ok: true, type, ...result });
   } catch (err) {
     console.error('Cron reminders error:', err);
@@ -554,36 +562,10 @@ if (!process.env.VERCEL) {
     console.log(`Pocketplan API running on http://localhost:${PORT}`);
   });
 
-  // Background reminder scheduler (checks once every 60s for 06:00 WIB and 23:00 WIB)
+  // Sync bot commands on startup
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (botToken) {
     syncBotCommands(botToken).catch((e) => console.error('syncBotCommands error:', e));
-    setInterval(() => {
-      try {
-        const now = new Date();
-        const parts = new Intl.DateTimeFormat('id-ID', {
-          timeZone: 'Asia/Jakarta',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        }).formatToParts(now);
-        const hour = parts.find((p) => p.type === 'hour')?.value;
-        const minute = parts.find((p) => p.type === 'minute')?.value;
-        if (hour === '06' && minute === '00') {
-          dispatchDailyReminders(getDb(), botToken, 'morning').catch((e) => console.error('Auto morning reminder error:', e));
-          dispatchChallengeEvaluation(getDb(), botToken).catch((e) => console.error('Auto challenge eval error:', e));
-          // Weekly recap on Monday 06:00 WIB
-          const dayOfWeek = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', weekday: 'short' }).format(now);
-          if (dayOfWeek === 'Mon') {
-            dispatchWeeklyRecap(getDb(), botToken).catch((e) => console.error('Auto weekly recap error:', e));
-          }
-        } else if (hour === '23' && minute === '00') {
-          dispatchDailyReminders(getDb(), botToken, 'evening').catch((e) => console.error('Auto evening reminder error:', e));
-        }
-      } catch (err) {
-        console.error('Reminder interval error:', err);
-      }
-    }, 60 * 1000).unref();
   }
 }
 

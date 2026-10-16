@@ -167,6 +167,25 @@ const INFERRED_KEYWORDS = {
   sabun: 'Shopping',
   shampo: 'Shopping',
   tisu: 'Shopping',
+  laptop: 'Shopping',
+  komputer: 'Shopping',
+  pc: 'Shopping',
+  hp: 'Shopping',
+  handphone: 'Shopping',
+  gadget: 'Shopping',
+  elektronik: 'Shopping',
+  ipad: 'Shopping',
+  tablet: 'Shopping',
+  mouse: 'Shopping',
+  keyboard: 'Shopping',
+  headset: 'Shopping',
+  earphone: 'Shopping',
+  tws: 'Shopping',
+  charger: 'Shopping',
+  kabel: 'Shopping',
+  casing: 'Shopping',
+  beli: 'Shopping',
+  membeli: 'Shopping',
 
   // Bills
   tagihan: 'Bills',
@@ -584,31 +603,82 @@ export const CATEGORY_ICONS = {
   Other: '📦'
 };
 
+export function guessBudgetCategory(raw) {
+  if (!raw) return { category: 'Other', isGuessed: false, raw: '' };
+  const clean = String(raw).trim();
+  const lower = clean.toLowerCase();
+
+  // 1. Direct canonical match
+  const canonical = ['Food', 'Shopping', 'Transport', 'Bills', 'Health', 'Education', 'Entertainment', 'Charity', 'Other'];
+  const directCanon = canonical.find(c => c.toLowerCase() === lower);
+  if (directCanon) return { category: directCanon, isGuessed: false, raw: clean };
+
+  // 2. Direct dictionary match for exact category words
+  if (EXPLICIT_CATEGORIES[lower]) {
+    const cat = EXPLICIT_CATEGORIES[lower];
+    return { category: cat === 'Salary' ? 'Other' : cat, isGuessed: false, raw: clean };
+  }
+
+  // 3. Exact category synonyms & common aliases
+  if (['makan', 'makanan', 'food', 'kuliner', 'dining'].includes(lower)) return { category: 'Food', isGuessed: false, raw: clean };
+  if (['transport', 'transportasi', 'kendaraan'].includes(lower)) return { category: 'Transport', isGuessed: false, raw: clean };
+  if (['belanja', 'shopping'].includes(lower)) return { category: 'Shopping', isGuessed: false, raw: clean };
+  if (['tagihan', 'bill', 'bills', 'utilitas', 'utilities'].includes(lower)) return { category: 'Bills', isGuessed: false, raw: clean };
+  if (['kesehatan', 'sehat', 'health', 'medis'].includes(lower)) return { category: 'Health', isGuessed: false, raw: clean };
+  if (['edukasi', 'pendidikan', 'education', 'sekolah', 'kursus'].includes(lower)) return { category: 'Education', isGuessed: false, raw: clean };
+  if (['hiburan', 'entertainment', 'rekreasi'].includes(lower)) return { category: 'Entertainment', isGuessed: false, raw: clean };
+  if (['amal', 'donasi', 'sedekah', 'charity'].includes(lower)) return { category: 'Charity', isGuessed: false, raw: clean };
+  if (['other', 'lain', 'lainnya', 'umum'].includes(lower)) return { category: 'Other', isGuessed: false, raw: clean };
+
+  // Compound phrases like "Food & Dining", "Makanan (Food)", "Belanja (Shopping)", "Bills & Utilities", "Transportasi (Transport)"
+  if (lower.includes('food') || lower.includes('makan') || lower.includes('kuliner') || lower.includes('dining')) return { category: 'Food', isGuessed: false, raw: clean };
+  if (lower.includes('transport') || lower.includes('kendaraan')) return { category: 'Transport', isGuessed: false, raw: clean };
+  if (lower.includes('shopping') || lower.includes('belanja')) return { category: 'Shopping', isGuessed: false, raw: clean };
+  if (lower.includes('bills') || lower.includes('tagih') || lower.includes('utilit')) return { category: 'Bills', isGuessed: false, raw: clean };
+  if (lower.includes('health') || lower.includes('sehat') || lower.includes('medis')) return { category: 'Health', isGuessed: false, raw: clean };
+  if (lower.includes('education') || lower.includes('didik') || lower.includes('sekolah')) return { category: 'Education', isGuessed: false, raw: clean };
+  if (lower.includes('entertainment') || lower.includes('hibur')) return { category: 'Entertainment', isGuessed: false, raw: clean };
+  if (lower.includes('charity') || lower.includes('amal') || lower.includes('donasi')) return { category: 'Charity', isGuessed: false, raw: clean };
+
+  // 4. Freeform phrase (e.g. "beli laptop", "kopi siang", "tiket nonton") → guess closest category
+  const words = lower.split(/\s+/).map(w => w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')).filter(Boolean);
+  const prioritizedWords = words.filter(w => !['beli', 'membeli', 'buat', 'untuk', 'ke', 'di'].includes(w));
+  for (const w of [...prioritizedWords, ...words]) {
+    if (INFERRED_KEYWORDS[w]) {
+      const cat = INFERRED_KEYWORDS[w];
+      return { category: cat === 'Salary' ? 'Other' : cat, isGuessed: true, raw: clean };
+    }
+    if (EXPLICIT_CATEGORIES[w]) {
+      const cat = EXPLICIT_CATEGORIES[w];
+      return { category: cat === 'Salary' ? 'Other' : cat, isGuessed: true, raw: clean };
+    }
+  }
+
+  // Substring checks
+  if (lower.includes('laptop') || lower.includes('hp') || lower.includes('baju') || lower.includes('beli')) {
+    return { category: 'Shopping', isGuessed: true, raw: clean };
+  }
+  if (lower.includes('bensin') || lower.includes('ojol') || lower.includes('parkir')) {
+    return { category: 'Transport', isGuessed: true, raw: clean };
+  }
+  if (lower.includes('listrik') || lower.includes('pulsa') || lower.includes('wifi')) {
+    return { category: 'Bills', isGuessed: true, raw: clean };
+  }
+  if (lower.includes('obat') || lower.includes('klinik') || lower.includes('dokter')) {
+    return { category: 'Health', isGuessed: true, raw: clean };
+  }
+  if (lower.includes('buku') || lower.includes('les') || lower.includes('kuliah')) {
+    return { category: 'Education', isGuessed: true, raw: clean };
+  }
+  if (lower.includes('game') || lower.includes('nonton') || lower.includes('film')) {
+    return { category: 'Entertainment', isGuessed: true, raw: clean };
+  }
+
+  return { category: 'Other', isGuessed: true, raw: clean };
+}
+
 export function normalizeBudgetCategory(raw) {
   if (!raw) return 'Other';
-  const clean = String(raw).trim().toLowerCase();
-
-  // 1. Canonical direct match
-  const canonical = ['Food', 'Shopping', 'Transport', 'Bills', 'Health', 'Education', 'Entertainment', 'Charity', 'Salary', 'Other'];
-  const directCanon = canonical.find(c => c.toLowerCase() === clean);
-  if (directCanon) return directCanon;
-
-  // 2. Direct dictionary match
-  if (EXPLICIT_CATEGORIES[clean]) return EXPLICIT_CATEGORIES[clean];
-  if (INFERRED_KEYWORDS[clean]) return INFERRED_KEYWORDS[clean];
-
-  // 3. Substring & alias matching (handling "Food & Dining", "Makanan (Food)", "Belanja (Shopping)", "Bills & Utilities", "Transportasi (Transport)", etc.)
-  if (clean.includes('food') || clean.includes('makan') || clean.includes('kuliner') || clean.includes('dining')) return 'Food';
-  if (clean.includes('transport') || clean.includes('kendaraan') || clean.includes('bensin') || clean.includes('ojol')) return 'Transport';
-  if (clean.includes('shop') || clean.includes('belanja') || clean.includes('mall') || clean.includes('pasar')) return 'Shopping';
-  if (clean.includes('bill') || clean.includes('tagih') || clean.includes('utilit') || clean.includes('listrik') || clean.includes('pulsa')) return 'Bills';
-  if (clean.includes('health') || clean.includes('sehat') || clean.includes('medis') || clean.includes('obat')) return 'Health';
-  if (clean.includes('edu') || clean.includes('didik') || clean.includes('sekolah') || clean.includes('kursus') || clean.includes('buku')) return 'Education';
-  if (clean.includes('ent') || clean.includes('hibur') || clean.includes('game') || clean.includes('rekreasi') || clean.includes('hobi')) return 'Entertainment';
-  if (clean.includes('char') || clean.includes('amal') || clean.includes('donasi') || clean.includes('sedekah') || clean.includes('zakat') || clean.includes('infaq')) return 'Charity';
-  if (clean.includes('sal') || clean.includes('gaji') || clean.includes('income') || clean.includes('masuk')) return 'Salary';
-  if (clean.includes('other') || clean.includes('lain') || clean.includes('umum')) return 'Other';
-
-  return clean.charAt(0).toUpperCase() + clean.slice(1);
+  return guessBudgetCategory(raw).category;
 }
 

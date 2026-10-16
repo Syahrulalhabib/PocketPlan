@@ -1,4 +1,4 @@
-import { parseTransactionCommand, parseAmount, formatRupiah, normalizeBudgetCategory, CATEGORY_LABELS, CATEGORY_ICONS } from './telegramParser.js';
+import { parseTransactionCommand, parseAmount, formatRupiah, normalizeBudgetCategory, guessBudgetCategory, CATEGORY_LABELS, CATEGORY_ICONS } from './telegramParser.js';
 import {
   sendTelegramMessage,
   answerTelegramCallback,
@@ -283,7 +283,7 @@ function getTxMonth(t) {
 
 // Budget warning: check if expense category exceeds 80% or 100% of monthly budget
 async function checkBudgetWarnings(chatId, uid, db, botToken, category) {
-  if (!db || !uid || !category) return;
+  if (!db || !uid || !category) return null;
   try {
     const normTarget = normalizeBudgetCategory(category);
     const budgetDocs = [];
@@ -296,18 +296,18 @@ async function checkBudgetWarnings(chatId, uid, db, botToken, category) {
         budgetDocs.push(...altSnap.docs);
       }
     }
-    if (budgetDocs.length === 0) return;
+    if (budgetDocs.length === 0) return null;
 
     const budgetDoc = budgetDocs.find(d => {
       const c = d.data().category || '';
       return normalizeBudgetCategory(c).toLowerCase() === normTarget.toLowerCase() ||
              c.toLowerCase() === category.toLowerCase();
     });
-    if (!budgetDoc) return;
+    if (!budgetDoc) return null;
 
     const budget = budgetDoc.data();
     const limit = Number(budget.monthlyLimit || budget.amount) || 0;
-    if (limit <= 0) return;
+    if (limit <= 0) return null;
 
     const now = new Date();
     const nowJakarta = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(now);
@@ -336,28 +336,37 @@ async function checkBudgetWarnings(chatId, uid, db, botToken, category) {
       }
     });
 
-    const pct = (total / limit) * 100;
+    const pct = Math.round((total / limit) * 100);
     const warn80Key = `warn80_${monthKey}`;
     const warn100Key = `warn100_${monthKey}`;
     const catLabel = CATEGORY_LABELS[normTarget] || budget.rawCategory || normTarget;
 
     if (pct >= 100 && !budget[warn100Key]) {
-      await budgetDoc.ref.set({ [warn100Key]: true }, { merge: true });
+      await budgetDoc.ref.set({ [warn100Key]: true, [warn80Key]: true }, { merge: true });
       await sendTelegramMessage(botToken, chatId,
         `🚨 *Budget ${escapeMarkdown(catLabel)} habis!*\n\n` +
-        `Bulan ini kamu sudah keluar *${formatRupiah(total)}* dari batas *${formatRupiah(limit)}* (${Math.round(pct)}%).\n` +
+        `Bulan ini kamu sudah keluar *${formatRupiah(total)}* dari batas *${formatRupiah(limit)}* (${pct}%).\n` +
         `Yuk tahan dulu pengeluaran ${escapeMarkdown(catLabel)} ya! 💪`
       );
     } else if (pct >= 80 && !budget[warn80Key]) {
       await budgetDoc.ref.set({ [warn80Key]: true }, { merge: true });
       await sendTelegramMessage(botToken, chatId,
         `⚠️ *Budget ${escapeMarkdown(catLabel)} hampir habis!*\n\n` +
-        `Sudah terpakai *${formatRupiah(total)}* dari *${formatRupiah(limit)}* (${Math.round(pct)}%).\n` +
+        `Sudah terpakai *${formatRupiah(total)}* dari *${formatRupiah(limit)}* (${pct}%).\n` +
         `Sisa budget: *${formatRupiah(Math.max(0, limit - total))}* — hati-hati ya!`
       );
     }
+
+    return {
+      category: normTarget,
+      label: catLabel,
+      total,
+      limit,
+      pct
+    };
   } catch (err) {
     console.error('budgetWarning error:', err?.message);
+    return null;
   }
 }
 
@@ -616,11 +625,12 @@ export async function handleTelegramUpdate(update, db, botToken) {
       };
 
       let txId = '';
+      let budgetInfo = null;
       if (db) {
         const docRef = await db.collection('users').doc(uid).collection('transactions').add(tx);
         txId = docRef.id;
         await maybeSendLinkNudge(chatId, uid, db, botToken);
-        if (tx.type === 'Expense') await checkBudgetWarnings(chatId, uid, db, botToken, tx.category);
+        if (tx.type === 'Expense') budgetInfo = await checkBudgetWarnings(chatId, uid, db, botToken, tx.category);
         await handleStreakAfterTransaction(chatId, uid, db, botToken);
       }
 
@@ -647,6 +657,11 @@ export async function handleTelegramUpdate(update, db, botToken) {
         entityLabel = '🏢 *Layanan / Penyedia:*';
       }
 
+      let budgetText = '';
+      if (budgetInfo) {
+        budgetText = `\nMasuk budget *${escapeMarkdown(budgetInfo.category)}*: ${formatRupiah(budgetInfo.total)} / ${formatRupiah(budgetInfo.limit)} (${budgetInfo.pct}%)\n`;
+      }
+
       const reply = `${headerTitle}\n\n` +
         `${entityLabel} ${escapeMarkdown(r.merchant_name)}\n` +
         `💵 *Total:* *${amountSign}${formatRupiah(r.total_amount)}* (${txType === 'Income' ? '🟢 Pemasukan' : '🔴 Pengeluaran'})\n` +
@@ -654,6 +669,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
         `📅 *Tanggal:* ${formatShortDate(r.date)}\n` +
         `💳 *Metode:* ${escapeMarkdown(r.payment_method)}\n` +
         itemSummary +
+        budgetText +
         `\n✨ Sudah rapi tersimpan di Pocketplan kamu!\n\n` +
         `💡 _Ada yang keliru? Ketik \`/koreksi 150k\` atau pilih opsi di bawah ini:_ 👇`;
 
@@ -1000,20 +1016,29 @@ export async function handleTelegramUpdate(update, db, botToken) {
       '• `/goals` — cek progres tabungan & beli target yang tercapai\n' +
       '• `/streak` — pantau rekor hari konsisten mencatat keuangan\n' +
       '• `/pencapaian` — lihat galeri lencana & milestone keuanganmu\n\n' +
-      '*🏆 TANTANGAN HEMAT (30 HARI)*\n' +
-      '• *Apa itu:* Ajang seru melatih disiplin finansial bareng teman selama 30 hari.\n' +
-      '• *Cara ikut:*\n' +
-      '   1️⃣ Ketik `/tantangan` untuk melihat daftar tantangan aktif\n' +
-      '   2️⃣ Buat baru (misal: `/tantangan buat no_spend Kopi Puasa Kopi`)\n' +
-      '   3️⃣ Bagikan link undangan ke teman untuk gabung & tanding bersama!\n' +
-      '• *Yang didapat:* Lencana prestasi eksklusif & poin konsistensi di `/pencapaian`!\n\n' +
+      '*🏆 TANTANGAN DISIPLIN (30 HARI)*\n' +
+      '• *Apa itu:* Ajang 30 hari melatih disiplin finansial (puasa belanja atau rajin catat) sendiri atau tanding bareng teman.\n' +
+      '• *Cara ikut (3 langkah):*\n' +
+      '   1️⃣ Ketik `/tantangan` untuk melihat daftar tantangan aktif, atau buka link undangan dari teman\n' +
+      '   2️⃣ Ketik `/tantangan gabung <id>` untuk masuk (atau otomatis gabung via link)\n' +
+      '   3️⃣ Catat keuangan tiap hari agar streak harian hijau ✅ dan posisi leaderboard naik!\n' +
+      '• *Cara BUAT tantangan baru:*\n' +
+      '   • Puasa Belanja: `/tantangan buat no_spend <Kategori> <Judul>`\n' +
+      '     _Contoh: `/tantangan buat no_spend Kopi 30 Hari Tanpa Kopi`_\n' +
+      '   • Rajin Catat: `/tantangan buat daily_log <Kategori> <Judul>`\n' +
+      '     _Contoh: `/tantangan buat daily_log Nabung 30 Hari Rajin Catat`_\n' +
+      '• *Cara KELUAR & HAPUS:*\n' +
+      '   • Keluar tantangan: `/tantangan keluar <id>`\n' +
+      '   • Hapus/batalkan tantangan yang kamu buat: `/tantangan hapus <id>`\n' +
+      '• *Fitur di dalam:* Leaderboard progres harian (`/tantangan`) & link undangan instan untuk teman bertanding.\n' +
+      '• *Yang didapat:* Lencana prestasi (Juara 🏆 / Selesai 👏) dan poin konsistensi di `/pencapaian`!\n\n' +
       '*📊 INFO & SINKRONISASI*\n' +
       '• `/saldo` — cek sisa saldo aktif & ringkasan arus kas\n' +
       '• `/riwayat` — lihat 5 transaksi terakhir\n' +
       '• `/web` — dapatkan kode passcode instan untuk login website\n' +
       '• `/link [kode]` — hubungkan akun website dengan Telegram ini\n' +
       '• `/pengingat` — atur jadwal pengingat pagi & malam\n' +
-      '• `/ajak` — bagikan link referral untuk undang teman\n' +
+      '• `/ajak` — undang teman pakai Pocky via link referral khusus. Saat teman bergabung, kamu langsung dapat notifikasi, counter referral bertambah, dan membuka badge eksklusif di `/pencapaian`!\n' +
       '• `/menu` — buka menu tombol cepat\n\n' +
       '💡 _Format nominal fleksibel: 25k, 50rb, 50.000, 1.5jt, Rp50000_',
       { reply_markup: KEYBOARD }
@@ -1305,6 +1330,53 @@ export async function handleTelegramUpdate(update, db, botToken) {
       }
     }
 
+    // /tantangan keluar <id>
+    const keluarMatch = args.match(/^keluar\s+(\S+)/i);
+    if (keluarMatch) {
+      const challengeId = keluarMatch[1];
+      try {
+        const cRef = db.collection('challenges').doc(challengeId);
+        const cDoc = await cRef.get();
+        if (!cDoc.exists) return sendTelegramMessage(botToken, chatId, '❌ Tantangan tidak ditemukan.');
+        const cData = cDoc.data();
+        const existing = (cData.participants || []).filter(p => String(p.chatId) !== String(chatId));
+        if (existing.length === (cData.participants || []).length) {
+          return sendTelegramMessage(botToken, chatId, 'ℹ️ Kamu belum bergabung di tantangan ini.');
+        }
+        await cRef.set({ participants: existing }, { merge: true });
+        return sendTelegramMessage(botToken, chatId,
+          `🚪 *Kamu telah keluar dari tantangan:*\n📌 *${escapeMarkdown(cData.title)}*`,
+          { reply_markup: KEYBOARD }
+        );
+      } catch (err) {
+        console.error('tantangan keluar error:', err?.message);
+        return sendTelegramMessage(botToken, chatId, '❌ Gagal keluar dari tantangan.');
+      }
+    }
+
+    // /tantangan hapus <id>
+    const hapusTantanganMatch = args.match(/^hapus\s+(\S+)/i);
+    if (hapusTantanganMatch) {
+      const challengeId = hapusTantanganMatch[1];
+      try {
+        const cRef = db.collection('challenges').doc(challengeId);
+        const cDoc = await cRef.get();
+        if (!cDoc.exists) return sendTelegramMessage(botToken, chatId, '❌ Tantangan tidak ditemukan.');
+        const cData = cDoc.data();
+        if (String(cData.creatorChatId) !== String(chatId)) {
+          return sendTelegramMessage(botToken, chatId, `❌ Hanya pembuat tantangan yang dapat menghapus tantangan ini.\nUntuk keluar, ketik: \`/tantangan keluar ${challengeId}\``);
+        }
+        await cRef.set({ status: 'cancelled' }, { merge: true });
+        return sendTelegramMessage(botToken, chatId,
+          `🗑️ *Tantangan berhasil dibatalkan/dihapus:*\n📌 *${escapeMarkdown(cData.title)}*`,
+          { reply_markup: KEYBOARD }
+        );
+      } catch (err) {
+        console.error('tantangan hapus error:', err?.message);
+        return sendTelegramMessage(botToken, chatId, '❌ Gagal menghapus tantangan.');
+      }
+    }
+
     // /tantangan (list active challenges)
     try {
       const cSnap = await db.collection('challenges').where('status', '==', 'active').get();
@@ -1334,7 +1406,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
         const startD = new Date(c.startDate + 'T00:00:00');
         const todayD = new Date(todayStr + 'T00:00:00');
         const daysPassed = Math.max(0, Math.min(totalDays, Math.round((todayD - startD) / (86400000))));
-        out += `📌 *${escapeMarkdown(c.title)}*\n📅 Hari ${daysPassed}/${totalDays}\n`;
+        out += `📌 *${escapeMarkdown(c.title)}* (ID: \`${c.id}\`)\n📅 Hari ${daysPassed}/${totalDays}\n`;
         for (const p of (c.participants || [])) {
           const progress = p.progress || {};
           const passedDays = Object.values(progress).filter(v => v === true).length;
@@ -1350,6 +1422,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
         }
         out += '\n';
       }
+      out += '_Keluar: `/tantangan keluar <id>` • Hapus: `/tantangan hapus <id>`_';
       return sendTelegramMessage(botToken, chatId, out, { reply_markup: KEYBOARD });
     } catch (err) {
       console.error('tantangan list error:', err?.message);
@@ -1387,7 +1460,8 @@ export async function handleTelegramUpdate(update, db, botToken) {
     const setMatch = args.match(/^(.+?)\s+([\d.,]+(?:k|rb|jt|juta|ribu)?(?:\d*)?)$/i);
     if (setMatch) {
       const rawCat = setMatch[1].trim();
-      const normCat = normalizeBudgetCategory(rawCat);
+      const guessed = guessBudgetCategory(rawCat);
+      const normCat = guessed.category;
       const limit = parseAmount(setMatch[2]);
       if (!limit || limit <= 0) return sendTelegramMessage(botToken, chatId, '❌ Nominal budget tidak valid.');
 
@@ -1419,8 +1493,12 @@ export async function handleTelegramUpdate(update, db, botToken) {
 
       const label = CATEGORY_LABELS[normCat] || normCat;
       const icon = CATEGORY_ICONS[normCat] || '💰';
+      let confirmationPrefix = '';
+      if (guessed.isGuessed) {
+        confirmationPrefix = `Maksudmu kategori *${escapeMarkdown(normCat)}*? Budget dibuat untuk *${escapeMarkdown(normCat)}*.\n\n`;
+      }
       return sendTelegramMessage(botToken, chatId,
-        `${icon} *Budget ${escapeMarkdown(label)} diatur!*\n` +
+        `${confirmationPrefix}${icon} *Budget ${escapeMarkdown(label)} diatur!*\n` +
         `Batas bulanan: *${formatRupiah(limit)}*\n\n` +
         `_Pocky akan kirim peringatan otomatis jika pengeluaran mencapai 80% dan 100%!_`,
         { reply_markup: KEYBOARD }
@@ -1533,9 +1611,12 @@ export async function handleTelegramUpdate(update, db, botToken) {
         );
       }
     }
+    let budgetInfo = null;
     if (db) await db.collection('users').doc(uid).collection('transactions').add(parsed);
     await maybeSendLinkNudge(chatId, uid, db, botToken);
-    if (parsed.type === 'Expense') await checkBudgetWarnings(chatId, uid, db, botToken, parsed.category);
+    if (parsed.type === 'Expense') {
+      budgetInfo = await checkBudgetWarnings(chatId, uid, db, botToken, parsed.category);
+    }
     await handleStreakAfterTransaction(chatId, uid, db, botToken);
     if (parsed.type === 'Income') {
       return sendTelegramMessage(
@@ -1544,10 +1625,14 @@ export async function handleTelegramUpdate(update, db, botToken) {
         `🎉 *Yey, Pemasukan Dicatat Pocky!* 💰\n🟢 +*${formatRupiah(parsed.amount)}*\n📝 *${escapeMarkdown(parsed.description)}*\n📁 ${escapeMarkdown(parsed.category)} • 📅 ${formatShortDate(parsed.date)}`
       );
     }
+    let budgetText = '';
+    if (budgetInfo) {
+      budgetText = `\n\nMasuk budget *${escapeMarkdown(budgetInfo.category)}*: ${formatRupiah(budgetInfo.total)} / ${formatRupiah(budgetInfo.limit)} (${budgetInfo.pct}%)`;
+    }
     return sendTelegramMessage(
       botToken,
       chatId,
-      `💸 *Pengeluaran Dicatat Pocky!* ✨\n🔴 -*${formatRupiah(parsed.amount)}*\n📝 *${escapeMarkdown(parsed.description)}*\n📁 ${escapeMarkdown(parsed.category)} • 📅 ${formatShortDate(parsed.date)}\n\n💡 _Salah catat? Ketik \`/batal\` buat menghapus._`
+      `💸 *Pengeluaran Dicatat Pocky!* ✨\n🔴 -*${formatRupiah(parsed.amount)}*\n📝 *${escapeMarkdown(parsed.description)}*\n📁 ${escapeMarkdown(parsed.category)} • 📅 ${formatShortDate(parsed.date)}${budgetText}\n\n💡 _Salah catat? Ketik \`/batal\` buat menghapus._`
     );
   }
 

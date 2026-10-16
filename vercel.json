@@ -8,6 +8,10 @@
       "maxDuration": 30
     }
   },
+  "crons": [
+    { "path": "/api/cron/reminders?type=morning", "schedule": "0 23 * * *" },
+    { "path": "/api/cron/reminders?type=evening", "schedule": "0 16 * * *" }
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.js" },
     { "source": "/(.*)", "destination": "/index.html" }

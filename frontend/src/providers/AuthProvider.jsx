@@ -11,9 +11,15 @@ import {
   updateProfileName,
   updateProfileData,
   resetPasswordEmail,
-  sendVerificationEmail
+  sendVerificationEmail,
+  updateUserEmail,
+  updateUserPassword,
+  reloadAuthUser
 } from '../services/firebase';
 import { telegramWebLogin } from '../services/telegramApi';
+
+import { isDummyEmail } from '../utils/formatters.js';
+export { isDummyEmail };
 
 const AuthContext = createContext(undefined);
 
@@ -88,14 +94,21 @@ export const AuthProvider = ({ children }) => {
           } catch {}
         }
         const isTg = Boolean(extraTg?.isTelegramUser || fbUser.uid.startsWith('tg_'));
+        const resolvedEmail = fbUser.email || extraTg?.email || (isTg ? `${fbUser.uid}@telegram.pocketplan` : 'user@pocketplan.app');
+        const emailVerified = Boolean(fbUser.emailVerified || extraTg?.emailVerified);
+        const webPasswordSet = Boolean(extraTg?.webPasswordSet);
+        const needsVerification = isDummyEmail(resolvedEmail) || !emailVerified || (isTg && !webPasswordSet);
         const resolved = {
           id: fbUser.uid,
           name: fbUser.displayName || extraTg?.name || fbUser.email || (isTg ? 'Telegram User' : 'User'),
-          email: fbUser.email || extraTg?.email || (isTg ? `${fbUser.uid}@telegram.pocketplan` : 'user@pocketplan.app'),
+          email: resolvedEmail,
           photoURL: fbUser.photoURL || extraTg?.photoURL || undefined,
           isTelegramUser: isTg,
           telegramChatId: extraTg?.telegramChatId || (isTg && fbUser.uid.startsWith('tg_') ? fbUser.uid.replace('tg_', '') : undefined),
-          telegramUsername: extraTg?.telegramUsername || undefined
+          telegramUsername: extraTg?.telegramUsername || undefined,
+          emailVerified,
+          webPasswordSet,
+          needsVerification
         };
         setUser(resolved);
         if (isTg) {
@@ -191,18 +204,83 @@ export const AuthProvider = ({ children }) => {
       await signInWithToken(tgUser.customToken);
     }
     const chatId = tgUser.telegramChatId || (tgUser.uid?.startsWith('tg_') ? tgUser.uid.replace('tg_', '') : undefined);
+    const resolvedEmail = tgUser.email || `${tgUser.uid || 'user'}@telegram.pocketplan`;
+    const emailVerified = Boolean(tgUser.emailVerified);
+    const webPasswordSet = Boolean(tgUser.webPasswordSet);
+    const needsVerification = isDummyEmail(resolvedEmail) || !emailVerified || !webPasswordSet;
     const resolvedUser = {
       id: tgUser.uid || tgUser.id,
       name: tgUser.name || 'Telegram User',
-      email: tgUser.email || `${tgUser.uid || 'user'}@telegram.pocketplan`,
+      email: resolvedEmail,
       photoURL: tgUser.photoURL || undefined,
       telegramChatId: chatId,
       telegramUsername: tgUser.telegramUsername || undefined,
-      isTelegramUser: true
+      isTelegramUser: true,
+      emailVerified,
+      webPasswordSet,
+      needsVerification
     };
     setUser(resolvedUser);
     localStorage.setItem('pocketplan_tg_user', JSON.stringify(resolvedUser));
     return resolvedUser;
+  };
+
+  const changeEmailAndSendVerification = async (newEmail) => {
+    if (!newEmail || !newEmail.includes('@')) throw new Error('Email tidak valid.');
+    if (firebaseEnabled) {
+      try {
+        await updateUserEmail(newEmail);
+      } catch (e) {
+        console.warn('updateUserEmail notice:', e?.message);
+      }
+      await sendVerificationEmail();
+    }
+    const updated = {
+      ...user,
+      email: newEmail,
+      emailVerified: false,
+      needsVerification: true
+    };
+    setUser(updated);
+    if (user?.isTelegramUser) {
+      localStorage.setItem('pocketplan_tg_user', JSON.stringify(updated));
+    }
+    return updated;
+  };
+
+  const checkEmailVerified = async () => {
+    if (firebaseEnabled) {
+      const refreshed = await reloadAuthUser();
+      if (refreshed?.emailVerified) {
+        const updated = { ...user, emailVerified: true };
+        setUser(updated);
+        if (user?.isTelegramUser) localStorage.setItem('pocketplan_tg_user', JSON.stringify(updated));
+        return true;
+      }
+      return false;
+    }
+    const updated = { ...user, emailVerified: true };
+    setUser(updated);
+    if (user?.isTelegramUser) localStorage.setItem('pocketplan_tg_user', JSON.stringify(updated));
+    return true;
+  };
+
+  const setupWebPassword = async (newPassword) => {
+    if (!newPassword || newPassword.length < 6) throw new Error('Password minimal 6 karakter.');
+    if (firebaseEnabled) {
+      await updateUserPassword(newPassword);
+    }
+    const updated = {
+      ...user,
+      emailVerified: true,
+      webPasswordSet: true,
+      needsVerification: false
+    };
+    setUser(updated);
+    if (user?.isTelegramUser) {
+      localStorage.setItem('pocketplan_tg_user', JSON.stringify(updated));
+    }
+    return updated;
   };
 
   const logout = async () => {
@@ -271,7 +349,10 @@ export const AuthProvider = ({ children }) => {
       logout,
       updateProfileInfo,
       resetPassword,
-      resendVerification
+      resendVerification,
+      changeEmailAndSendVerification,
+      checkEmailVerified,
+      setupWebPassword
     }),
     [user, loading, isDemo, startDemo, exitDemo, updateProfileInfo]
   );

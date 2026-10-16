@@ -11,7 +11,10 @@ import {
   signOut,
   sendEmailVerification,
   sendPasswordResetEmail,
-  updateProfile
+  updateProfile,
+  updateEmail,
+  updatePassword,
+  reload
 } from 'firebase/auth';
 import {
   getFirestore,
@@ -77,6 +80,19 @@ export const resetPasswordEmail = (email) => sendPasswordResetEmail(auth, email)
 export const watchAuth = (cb) => onAuthStateChanged(auth, cb);
 export const updateProfileName = (name) => (auth?.currentUser && name ? updateProfile(auth.currentUser, { displayName: name }) : undefined);
 export const updateProfileData = (data) => (auth?.currentUser ? updateProfile(auth.currentUser, data) : undefined);
+export const updateUserEmail = (newEmail) => {
+  if (!auth?.currentUser) return Promise.reject(new Error('No authenticated user'));
+  return updateEmail(auth.currentUser, newEmail);
+};
+export const updateUserPassword = (newPassword) => {
+  if (!auth?.currentUser) return Promise.reject(new Error('No authenticated user'));
+  return updatePassword(auth.currentUser, newPassword);
+};
+export const reloadAuthUser = async () => {
+  if (!auth?.currentUser) return null;
+  await reload(auth.currentUser);
+  return auth.currentUser;
+};
 
 export const getAuthToken = () => (auth?.currentUser ? auth.currentUser.getIdToken() : Promise.resolve(null));
 

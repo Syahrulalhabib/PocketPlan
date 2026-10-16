@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { evaluatePasswordStrength, stripUndefined } from '../src/utils/formatters.js';
+import { evaluatePasswordStrength, stripUndefined, isDummyEmail } from '../src/utils/formatters.js';
 import { SMART_TIPS } from '../src/utils/smartTips.js';
 
 const toLocalDayKey = (date) =>
@@ -48,6 +48,13 @@ const cleaned = stripUndefined(testData);
 assert.strictEqual('category' in cleaned, false);
 assert.strictEqual(cleaned.name, 'Trip');
 assert.strictEqual(cleaned.target, 5000000);
+
+// 7. Verify dummy email detector
+assert.strictEqual(isDummyEmail('tg_12345@telegram.pocketplan'), true);
+assert.strictEqual(isDummyEmail('user@pocketplan.app'), true);
+assert.strictEqual(isDummyEmail(''), true);
+assert.strictEqual(isDummyEmail('syahrul@gmail.com'), false);
+assert.strictEqual(isDummyEmail('budi.santoso@yahoo.co.id'), false);
 // 7. Verify T9-A: Newest sorting puts newly added bot transaction at index 0
 const sortTransactions = (list, sortOrder = 'newest') => {
   return [...list].sort((a, b) => {

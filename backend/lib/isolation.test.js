@@ -8,10 +8,10 @@ import {
 
 global.fetch = async () => ({ json: async () => ({ ok: true }) });
 
-function req(server, method, path, body) {
+function req(server, method, path, body, customHeaders = {}) {
   return new Promise((resolve, reject) => {
     const u = new URL(path, `http://localhost:${server.address().port}`);
-    const opts = { method, hostname: u.hostname, port: u.port, path: `${u.pathname}${u.search}`, headers: {} };
+    const opts = { method, hostname: u.hostname, port: u.port, path: `${u.pathname}${u.search}`, headers: { ...customHeaders } };
     if (body) { const d = JSON.stringify(body); opts.headers['Content-Type'] = 'application/json'; opts.headers['Content-Length'] = Buffer.byteLength(d); }
     const r = http.request(opts, (res) => {
       const chunks = [];
@@ -132,6 +132,22 @@ async function testRestApiIsolation() {
     assert.ok(!rawAch.includes('nominal'), 'Achievements response must not leak nominal');
 
     console.log('    ✔ /api/achievements privacy passed');
+
+    // Cron reminders endpoint tests (GET & POST with Bearer CRON_SECRET)
+    process.env.CRON_SECRET = 'test-cron-secret-123';
+    process.env.TELEGRAM_BOT_TOKEN = 'test-bot-token';
+
+    const rCronUnauth = await req(server, 'GET', '/api/cron/reminders?type=morning');
+    assert.strictEqual(rCronUnauth.status, 403);
+
+    const rCronAuth = await req(server, 'GET', '/api/cron/reminders?type=morning', null, {
+      authorization: 'Bearer test-cron-secret-123'
+    });
+    assert.strictEqual(rCronAuth.status, 200);
+    assert.strictEqual(rCronAuth.body.ok, true);
+    assert.strictEqual(rCronAuth.body.type, 'morning');
+
+    console.log('    ✔ /api/cron/reminders GET auth & dispatch passed');
 
     // Per-uid Map isolation (unit level, same pattern as getDemoTransactions)
     const mapA = new Map(), mapB = new Map();
