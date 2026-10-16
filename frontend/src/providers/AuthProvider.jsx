@@ -389,13 +389,7 @@ export const AuthProvider = ({ children }) => {
         await signOutUser();
         return;
       }
-      const res = await fetch('/api/auth/send-verification-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      }).catch(() => null);
-      if (res && res.ok) return;
-      throw new Error('Gagal mengirim ulang email verifikasi.');
+      throw new Error('Silakan masuk ke akun Anda terlebih dahulu untuk mengirim ulang verifikasi.');
     }
     await new Promise((resolve) => setTimeout(resolve, 300));
   };
