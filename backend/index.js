@@ -18,6 +18,7 @@ import {
   deleteTelegramMessage,
   cancelLinkCode,
   syncBotCommands,
+  DEFAULT_BOT_COMMANDS,
   migrateTelegramDataToUser,
   completeTelegramLink
 } from './lib/telegramBotCore.js';
@@ -245,6 +246,26 @@ app.all('/api/cron/reminders', async (req, res) => {
   } catch (err) {
     console.error('Cron reminders error:', err);
     res.status(500).json({ error: 'Internal cron error' });
+  }
+});
+
+app.post('/api/admin/sync-commands', async (req, res) => {
+  const secret = (process.env.ADMIN_SECRET || process.env.CRON_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
+  if (!secret) {
+    return res.status(401).json({ error: 'ADMIN_SECRET or CRON_SECRET must be configured' });
+  }
+  const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() || req.query?.secret || req.body?.secret;
+  if (!incoming || incoming !== secret) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) return res.status(500).json({ error: 'TELEGRAM_BOT_TOKEN not configured' });
+  try {
+    const result = await syncBotCommands(token);
+    res.json({ ok: true, commandsCount: DEFAULT_BOT_COMMANDS.length, result });
+  } catch (err) {
+    console.error('sync-commands error:', err);
+    res.status(500).json({ error: err.message || 'Failed to sync commands' });
   }
 });
 

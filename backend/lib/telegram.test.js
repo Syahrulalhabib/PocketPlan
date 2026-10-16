@@ -657,6 +657,8 @@ async function testBot() {
 
   // Test DEFAULT_BOT_COMMANDS includes budget, ajak, streak (tantangan removed)
   assert(DEFAULT_BOT_COMMANDS.some(c => c.command === 'budget'), 'budget in bot commands');
+  const budgetCmd = DEFAULT_BOT_COMMANDS.find(c => c.command === 'budget');
+  assert(budgetCmd && budgetCmd.description.includes('custom per item'), 'budget description is custom per item');
   assert(DEFAULT_BOT_COMMANDS.some(c => c.command === 'ajak'), 'ajak in bot commands');
   assert(!DEFAULT_BOT_COMMANDS.some(c => c.command === 'tantangan'), 'tantangan removed from bot commands');
   assert(DEFAULT_BOT_COMMANDS.some(c => c.command === 'streak'), 'streak in bot commands');
@@ -756,6 +758,9 @@ async function testBot() {
   const helpText = replies[0]?.text || '';
   assert(!helpText.includes('TANTANGAN DISIPLIN'), '/help does not contain tantangan disiplin');
   assert(helpText.includes('/ajak'), '/help contains referral /ajak explanation');
+  assert(helpText.includes('BUDGET BELANJA (CUSTOM PER ITEM)'), '/help explains custom per item budget');
+  assert(helpText.includes('/budget</code> — menu interaktif'), '/help explains menu first for budget');
+  assert(!helpText.includes('[kategori]'), '/help does not reference [kategori] in budget');
 
   // Test /budget custom label: /budget beli laptop 10jt -> /budget beli hp 10jt -> separate budgets
   invalidateUidCache();

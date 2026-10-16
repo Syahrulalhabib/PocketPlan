@@ -1215,10 +1215,10 @@ export async function handleTelegramUpdate(update, db, botToken) {
       '• <code>kopi susu 25k</code> atau <code>/catat bensin 50k</code> — pengeluaran\n' +
       '• <code>/masuk gaji 2.5jt</code> — pemasukan\n' +
       '• <code>/batal</code> — batalkan transaksi terakhir\n\n' +
-      '<b>💰 BUDGET BULANAN</b>\n' +
-      '• <code>/budget [kategori] [nominal]</code> — atur batas belanja\n' +
-      '• <code>/budget</code> — cek sisa budget semua kategori\n' +
-      '• <code>/budget hapus [kategori]</code> — hapus budget\n\n' +
+      '<b>💰 BUDGET BELANJA (CUSTOM PER ITEM)</b>\n' +
+      '• <code>/budget</code> — menu interaktif: buat baru, lihat detail, ubah limit, atau hapus via tombol\n' +
+      '• <i>Cara cepat:</i> <code>/budget [label] [nominal]</code> (misal: <code>/budget laptop 10jt</code>)\n' +
+      '• <i>Hapus cepat:</i> <code>/budget hapus [label]</code>\n\n' +
       '<b>🎯 TARGET &amp; KONSISTENSI</b>\n' +
       '• <code>/goal [nama] [target]</code> — buat target tabungan\n' +
       '• <code>/goals</code> — cek progres &amp; beli target tercapai\n' +

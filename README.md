@@ -182,6 +182,7 @@ Base URL: `http://localhost:4000`
 | `POST` | `/api/telegram/unlink` | Disconnect Telegram from user account | Yes (Bearer Token) |
 | `POST` | `/api/telegram/web-login` | Exchange 6-char bot code for web session | No |
 | `POST` | `/api/cron/reminders` | Trigger daily morning/evening reminders | Secret (`CRON_SECRET`) |
+| `POST` | `/api/admin/sync-commands` | Force-sync Telegram bot commands | Secret (`ADMIN_SECRET` / `CRON_SECRET`) |
 | `GET` | `/api/transactions` | Fetch user transactions | Optional (Token) |
 | `POST` | `/api/transactions` | Create new transaction | Optional (Token) |
 | `DELETE` | `/api/transactions/:id` | Remove transaction (404 if not found) | Optional (Token) |
@@ -247,6 +248,22 @@ curl -X POST "https://api.telegram.org/bot<TOKEN>/setWebhook" \
 ```
 
 Ini memastikan endpoint `/api/telegram-webhook` hanya menerima request dari Telegram.
+
+### 🔄 Sinkronisasi Command Telegram Bot
+
+Command bot disinkronkan otomatis saat server startup (`syncBotCommands`). Jika perlu trigger manual tanpa redeploy:
+
+1. **Via Endpoint Admin API:**
+   ```bash
+   curl -X POST "https://yourapp.vercel.app/api/admin/sync-commands" \
+     -H "Authorization: Bearer YOUR_CRON_SECRET"
+   ```
+2. **Fallback Manual via BotFather:**
+   Jika sync API terkendala atau cache preview command di Telegram client masih menyimpan command lama (mis. `/tantangan`):
+   - Buka [@BotFather](https://t.me/BotFather) di Telegram
+   - Kirim `/setcommands`
+   - Pilih bot Anda (`@yourpocketplan_bot`)
+   - Masukkan daftar command dari `DEFAULT_BOT_COMMANDS` (atau kosongkan untuk mereset daftar command)
 
 ### 📝 BotFather Bio & Description
 

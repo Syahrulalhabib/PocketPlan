@@ -4,6 +4,7 @@ import { useTheme } from '../providers/ThemeProvider.jsx';
 import { useState, useEffect } from 'react';
 import { EyeIcon, SunIcon, MoonIcon } from '../components/Icons.jsx';
 import SavingsMascot from '../components/SavingsMascot.jsx';
+import { PockySvg } from '../components/FloatingMascot.jsx';
 import pocketLogo from '../assets/pocket-logo.svg';
 
 const RegisterPage = () => {
@@ -94,6 +95,9 @@ const RegisterPage = () => {
     <div className={`auth-page ${isDark ? 'theme-dark' : ''}`}>
       <div className="auth-hero left">
         <SavingsMascot mode="hero" />
+      </div>
+      <div className="auth-mobile-mascot" aria-hidden="true">
+        <PockySvg width={80} height={84} isWaving={true} />
       </div>
       <div className="auth-panel card">
         <div className="auth-top-nav">

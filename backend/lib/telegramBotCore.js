@@ -755,7 +755,7 @@ export const DEFAULT_BOT_COMMANDS = [
 
   { command: 'pengingat', description: 'Atur pengingat harian otomatis ⏰' },
   { command: 'koreksi', description: 'Koreksi nominal struk/catatan ✏️' },
-  { command: 'budget', description: 'Atur batas budget per kategori 💰' },
+  { command: 'budget', description: 'Atur budget belanja custom per item 💰' },
   { command: 'ajak', description: 'Ajak teman pakai Pocky 🎉' },
   { command: 'batal', description: 'Batalkan transaksi terakhir 🗑️' },
   { command: 'help', description: 'Panduan lengkap Pocky 📖' },
@@ -770,7 +770,13 @@ export async function syncBotCommands(botToken) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ commands: DEFAULT_BOT_COMMANDS })
     });
-    return await res.json();
+    const data = await res.json();
+    if (data?.ok) {
+      console.log('✅ Bot commands synced:', DEFAULT_BOT_COMMANDS.length, 'commands');
+    } else {
+      console.error('❌ Failed to sync bot commands:', data);
+    }
+    return data;
   } catch (err) {
     console.error('syncBotCommands error:', err.message);
     return null;

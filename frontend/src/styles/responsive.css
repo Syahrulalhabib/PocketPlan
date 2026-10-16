@@ -2,6 +2,10 @@
    Mobile & Responsive Layout System
    ========================================= */
 
+.auth-mobile-mascot {
+  display: none;
+}
+
 @media (max-width: 992px) {
   .page-shell {
     padding: 16px 20px 48px;
@@ -355,7 +359,7 @@
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 10px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
   }
 
   .page-header-row .section-title {
@@ -368,12 +372,32 @@
     margin: 2px 0 0;
   }
 
-  .page-header-row .btn-add {
+  /* Single action button in header (e.g. GoalsPage) - compact, proportional */
+  .page-header-row > .btn-add {
+    flex: 0 0 auto;
+    width: auto;
     padding: 8px 14px;
     font-size: 12.5px;
     border-radius: 999px;
-    flex: 1;
+    white-space: nowrap;
     box-shadow: 0 3px 10px rgba(228, 81, 83, 0.3);
+  }
+
+  /* Multi-action button container in header (e.g. TransactionsPage) */
+  .page-header-actions {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .page-header-actions .btn-add {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+    padding: 8px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+    border-radius: 999px;
   }
   /* Koiny Banner on Mobile & Tablet */
   .koiny-goals-banner {
@@ -711,26 +735,43 @@
     flex-direction: column;
     justify-content: flex-start;
     align-items: center;
+    min-height: 100vh;
     min-height: 100dvh;
-    min-height: 100vh; /* fallback */
-    padding: 12px 14px 32px;
-    padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
-    gap: 8px;
+    min-height: -webkit-fill-available;
+    padding: calc(12px + env(safe-area-inset-top, 0px)) 14px calc(28px + env(safe-area-inset-bottom, 0px));
+    gap: 0;
+    box-sizing: border-box;
   }
 
   .auth-hero {
-    order: -1 !important;
-    margin: 4px auto 10px;
-    width: 100%;
+    display: none !important;
+  }
+
+  .auth-mobile-mascot {
     display: flex;
     justify-content: center;
+    align-items: center;
+    margin: 4px auto 14px;
+    width: 100%;
+  }
+
+  .auth-mobile-mascot svg {
+    width: 80px;
+    height: 84px;
+    filter: drop-shadow(0 6px 16px rgba(228, 81, 83, 0.28));
+  }
+
+  .auth-page input,
+  .auth-page select,
+  .auth-page textarea,
+  .auth-page button {
+    -webkit-appearance: none;
   }
 
   .auth-page input,
   .auth-page select,
   .auth-page textarea {
     font-size: 16px; /* iOS zoom prevention */
-    -webkit-appearance: none;
   }
 
   .savings-hero-stage {
@@ -980,6 +1021,47 @@
 @media (max-width: 480px) {
   .page-shell {
     padding: 10px 12px 32px;
+    max-width: 100vw;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  .demo-persistent-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 8px 12px;
+    gap: 6px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    margin-bottom: 10px;
+    border-radius: 12px;
+  }
+
+  .demo-banner-content {
+    width: 100%;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .demo-banner-text {
+    font-size: 0.74rem;
+    line-height: 1.3;
+    word-break: break-word;
+    min-width: 0;
+  }
+
+  .demo-banner-actions {
+    width: 100%;
+    gap: 6px;
+  }
+
+  .demo-banner-btn {
+    flex: 1;
+    text-align: center;
+    padding: 6px 8px;
+    font-size: 0.76rem;
   }
 
   .section-title {
@@ -1050,23 +1132,25 @@
 
   .page-header-actions {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     width: 100%;
   }
 
   .page-header-actions .btn-add {
-    flex: 1;
+    flex: 1 1 0;
     min-width: 0;
     justify-content: center;
-    padding: 7px 10px;
-    font-size: 12px;
+    padding: 7px 8px;
+    font-size: 11.5px;
     white-space: nowrap;
   }
 
-  .page-header-row .btn-add {
+  .page-header-row > .btn-add {
+    flex: 0 0 auto;
+    width: auto;
     padding: 7px 12px;
     font-size: 12px;
-    flex: 1;
+    white-space: nowrap;
   }
   .koiny-goals-banner {
     padding: 14px 12px;

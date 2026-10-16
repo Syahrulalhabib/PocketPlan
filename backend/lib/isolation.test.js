@@ -153,6 +153,19 @@ async function testRestApiIsolation() {
 
     console.log('    ✔ /api/cron/reminders GET auth & dispatch passed');
 
+    // Admin sync commands endpoint test
+    const rSyncUnauth = await req(server, 'POST', '/api/admin/sync-commands');
+    assert.strictEqual(rSyncUnauth.status, 403);
+
+    const rSyncAuth = await req(server, 'POST', '/api/admin/sync-commands', null, {
+      authorization: 'Bearer test-cron-secret-123'
+    });
+    assert.strictEqual(rSyncAuth.status, 200);
+    assert.strictEqual(rSyncAuth.body.ok, true);
+    assert.strictEqual(typeof rSyncAuth.body.commandsCount, 'number');
+    assert(rSyncAuth.body.commandsCount > 0);
+    console.log('    ✔ /api/admin/sync-commands POST auth & sync passed');
+
     // Per-uid Map isolation (unit level, same pattern as getDemoTransactions)
     const mapA = new Map(), mapB = new Map();
     function getList(map, uid) { if (!map.has(uid)) map.set(uid, [{ id: '1' }]); return map.get(uid); }

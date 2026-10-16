@@ -4,6 +4,7 @@ import { useAuth } from '../providers/AuthProvider.jsx';
 import { useTheme } from '../providers/ThemeProvider.jsx';
 import { EyeIcon, SunIcon, MoonIcon } from '../components/Icons.jsx';
 import SavingsMascot from '../components/SavingsMascot.jsx';
+import { PockySvg } from '../components/FloatingMascot.jsx';
 import pocketLogo from '../assets/pocket-logo.svg';
 
 const LoginPage = () => {
@@ -136,6 +137,9 @@ const LoginPage = () => {
 
   return (
     <div className={`auth-page ${isDark ? 'theme-dark' : ''}`}>
+      <div className="auth-mobile-mascot" aria-hidden="true">
+        <PockySvg width={80} height={84} isWaving={true} />
+      </div>
       <div className="auth-panel card">
         <div className="auth-top-nav">
           <Link to="/" className="mini-link auth-back-link">

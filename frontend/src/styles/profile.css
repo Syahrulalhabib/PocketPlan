@@ -78,6 +78,32 @@
     font-size: 12px;
     padding: 5px 10px;
     gap: 5px;
+    white-space: nowrap;
+  }
+  .profile-top-title span {
+    white-space: nowrap;
+  }
+  .profile-back-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    gap: 4px;
+  }
+}
+
+@media (max-width: 360px) {
+  .profile-top-title {
+    font-size: 11px;
+    padding: 4px 8px;
+    gap: 4px;
+    white-space: nowrap;
+  }
+  .profile-top-title span {
+    white-space: nowrap;
+  }
+  .profile-back-btn {
+    padding: 5px 10px;
+    font-size: 11px;
+    gap: 3px;
   }
 }
 
