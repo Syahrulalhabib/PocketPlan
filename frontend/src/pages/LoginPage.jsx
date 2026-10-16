@@ -61,10 +61,7 @@ const LoginPage = () => {
       navigate('/dashboard');
     } catch (err) {
       const code = err?.code || '';
-      const msg = err?.message?.toLowerCase() || '';
-      if (msg.includes('email not verified')) {
-        setError('Please verify your email before signing in.');
-      } else if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
+      if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
         setError('Incorrect email or password. If you signed up with Google, use the Google button.');
       } else if (code === 'auth/too-many-requests') {
         setError('Too many attempts. Please try again later.');

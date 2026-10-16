@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth, isDummyEmail } from '../providers/AuthProvider.jsx';
+import { useAuth } from '../providers/AuthProvider.jsx';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading, isDemo } = useAuth();
@@ -8,8 +8,8 @@ const ProtectedRoute = ({ children }) => {
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
 
-  // Enforce mandatory email verification & password setup for new/dummy/unverified accounts
-  if (!isDemo && (user.needsVerification || isDummyEmail(user.email) || !user.emailVerified)) {
+  // Enforce mandatory password setup for telegram-linked accounts
+  if (!isDemo && user.needsVerification) {
     return <Navigate to="/verification" replace state={{ from: location }} />;
   }
 

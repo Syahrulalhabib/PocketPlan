@@ -79,13 +79,6 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
         return;
       }
-      const isPasswordUser = fbUser?.providerData?.some((p) => p.providerId === 'password');
-      if (fbUser && isPasswordUser && !fbUser.emailVerified) {
-        signOutUser();
-        setUser(null);
-        setLoading(false);
-        return;
-      }
       if (fbUser) {
         const savedTg = localStorage.getItem('pocketplan_tg_user');
         let extraTg = null;
@@ -99,7 +92,7 @@ export const AuthProvider = ({ children }) => {
         const resolvedEmail = fbUser.email || extraTg?.email || (isTg ? `${fbUser.uid}@telegram.pocketplan` : 'user@pocketplan.app');
         const emailVerified = Boolean(fbUser.emailVerified || extraTg?.emailVerified);
         const webPasswordSet = Boolean(extraTg?.webPasswordSet);
-        const needsVerification = isDummyEmail(resolvedEmail) || !emailVerified || (isTg && !webPasswordSet);
+        const needsVerification = isTg ? (isDummyEmail(resolvedEmail) || !emailVerified || !webPasswordSet) : false;
         const resolved = {
           id: fbUser.uid,
           name: fbUser.displayName || extraTg?.name || fbUser.email || (isTg ? 'Telegram User' : 'User'),
@@ -137,10 +130,6 @@ export const AuthProvider = ({ children }) => {
     setIsDemo(false);
     if (firebaseEnabled) {
       const credentials = await signInEmail(email, password);
-      if (!credentials.user.emailVerified) {
-        await signOutUser();
-        throw new Error('Email not verified. Please check your inbox.');
-      }
       setUser({
         id: credentials.user.uid,
         name: credentials.user.displayName || credentials.user.email || 'User',
