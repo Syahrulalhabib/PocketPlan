@@ -70,24 +70,35 @@ const ActionCard = ({
           Tautan Verifikasi Kedaluwarsa
         </h1>
         <p style={{ fontSize: '14px', color: 'var(--text-subtle, #64748b)', margin: '0 0 20px', lineHeight: 1.5 }}>
-          Tautan verifikasi ini sudah kedaluwarsa karena telah melewati batas waktu 24 jam. Silakan masukkan email Anda untuk mengirim ulang tautan baru.
+          Tautan verifikasi ini sudah kedaluwarsa karena telah melewati batas waktu 24 jam.
         </p>
-        <form className="auth-form" onSubmit={handleResendFromAction} style={{ textAlign: 'left' }}>
-          <label>Email Akun Anda</label>
-          <input
-            className="input"
-            type="email"
-            placeholder="nama@gmail.com"
-            value={resendEmail}
-            onChange={(e) => setResendEmail(e.target.value)}
-            required
-          />
-          <button className="pill btn-primary auth-submit" disabled={resendLoading}>
-            {resendLoading ? 'Mengirim...' : 'Kirim Ulang Email Verifikasi'}
-          </button>
-          {error && <div className="form-status" style={{ color: '#ef4444' }}>{error}</div>}
-          {!error && status && <div className="form-status" style={{ color: '#10b981' }}>{status}</div>}
-        </form>
+        {user ? (
+          <div className="auth-form" style={{ textAlign: 'center' }}>
+            <p style={{ fontSize: '14px', margin: '0 0 12px', color: 'var(--text)' }}>
+              Kirim ulang link verifikasi ke: <strong>{user.email}</strong>
+            </p>
+            <button
+              type="button"
+              className="pill btn-primary auth-submit"
+              onClick={handleResendFromAction}
+              disabled={resendLoading}
+            >
+              {resendLoading ? 'Mengirim...' : 'Kirim Ulang Email Verifikasi'}
+            </button>
+            {error && <div className="form-status" style={{ color: '#ef4444' }}>{error}</div>}
+            {!error && status && <div className="form-status" style={{ color: '#10b981' }}>{status}</div>}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <button
+              type="button"
+              className="pill btn-primary auth-submit"
+              onClick={() => navigate('/login')}
+            >
+              Masuk untuk Minta Link Baru
+            </button>
+          </div>
+        )}
         <div className="auth-footer" style={{ marginTop: '20px' }}>
           <Link to="/login" className="primary-link">Kembali ke Halaman Masuk</Link>
         </div>
@@ -105,24 +116,35 @@ const ActionCard = ({
           Tautan Tidak Valid
         </h1>
         <p style={{ fontSize: '14px', color: 'var(--text-subtle, #64748b)', margin: '0 0 20px', lineHeight: 1.5 }}>
-          Tautan verifikasi tidak dikenali, rusak, atau mungkin sudah pernah digunakan sebelumnya.
+          Tautan verifikasi tidak dikenali, rusak, atau sudah pernah digunakan sebelumnya.
         </p>
-        <form className="auth-form" onSubmit={handleResendFromAction} style={{ textAlign: 'left' }}>
-          <label>Email Anda</label>
-          <input
-            className="input"
-            type="email"
-            placeholder="nama@gmail.com"
-            value={resendEmail}
-            onChange={(e) => setResendEmail(e.target.value)}
-            required
-          />
-          <button className="pill btn-primary auth-submit" disabled={resendLoading}>
-            {resendLoading ? 'Mengirim...' : 'Kirim Link Verifikasi Baru'}
-          </button>
-          {error && <div className="form-status" style={{ color: '#ef4444' }}>{error}</div>}
-          {!error && status && <div className="form-status" style={{ color: '#10b981' }}>{status}</div>}
-        </form>
+        {user ? (
+          <div className="auth-form" style={{ textAlign: 'center' }}>
+            <p style={{ fontSize: '14px', margin: '0 0 12px', color: 'var(--text)' }}>
+              Kirim ulang link verifikasi ke: <strong>{user.email}</strong>
+            </p>
+            <button
+              type="button"
+              className="pill btn-primary auth-submit"
+              onClick={handleResendFromAction}
+              disabled={resendLoading}
+            >
+              {resendLoading ? 'Mengirim...' : 'Kirim Link Verifikasi Baru'}
+            </button>
+            {error && <div className="form-status" style={{ color: '#ef4444' }}>{error}</div>}
+            {!error && status && <div className="form-status" style={{ color: '#10b981' }}>{status}</div>}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <button
+              type="button"
+              className="pill btn-primary auth-submit"
+              onClick={() => navigate('/login')}
+            >
+              Masuk ke Akun
+            </button>
+          </div>
+        )}
         <div className="auth-footer" style={{ marginTop: '20px' }}>
           <Link to="/login" className="primary-link">Kembali ke Halaman Masuk</Link>
         </div>
@@ -312,23 +334,18 @@ const VerificationPage = () => {
   };
 
   const handleResendFromAction = async (e) => {
-    e.preventDefault();
-    const target = (resendEmail || user?.email || '').trim();
-    if (!target || !target.includes('@')) {
-      setError('Masukkan alamat email yang valid.');
+    if (e && e.preventDefault) e.preventDefault();
+    if (!user) {
+      navigate('/login');
       return;
     }
     setResendLoading(true);
     setError('');
     setStatus('');
     try {
-      if (user) {
-        await changeEmailAndSendVerification(target);
-      } else {
-        await resendVerification(target);
-      }
+      await sendVerificationEmail();
       setResendSuccess(true);
-      setStatus(`Tautan verifikasi baru berhasil dikirim ke ${target}. Silakan periksa inbox Anda.`);
+      setStatus(`Tautan verifikasi baru berhasil dikirim ke ${user.email}. Silakan periksa inbox Anda.`);
     } catch (err) {
       setError(err?.message || 'Gagal mengirim ulang email verifikasi.');
     } finally {
