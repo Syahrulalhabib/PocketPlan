@@ -749,7 +749,8 @@ async function testBot() {
   invalidateUidCache();
   replies = [];
   await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/tantangan', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
-  assert(replies.some(r => (r.text || '').includes('Belum ada tantangan')), 'No challenges');
+  assert(replies.some(r => (r.text || '').includes('TANTANGAN')), '/tantangan shows inline menu');
+  assert(replies.some(r => r.reply_markup?.inline_keyboard), '/tantangan has inline keyboard');
 
   replies = [];
   await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/tantangan buat no_spend Kopi 30 Hari Tanpa Kopi', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
@@ -811,6 +812,32 @@ async function testBot() {
     await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: `/tantangan hapus ${cId}`, from: { first_name: 'NudgeUser' } } }, mdb, 'token');
     assert(replies.some(r => (r.text || '').includes('berhasil dibatalkan/dihapus')), 'Creator deletes challenge');
   }
+
+  // --- Tantangan inline menu callback tests ---
+  // First create a challenge via text command for callback testing
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/tantangan buat no_spend Kopi 30 Hari Tanpa Kopi Inline', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Tantangan Dibuat')), 'Challenge created for inline tests');
+
+  // tng:menu callback
+  replies = [];
+  await handleTelegramUpdate({ callback_query: { id: 'cb1', data: 'tng:menu', message: { chat: { id: 5000 }, message_id: 100 }, from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('TANTANGAN')), 'tng:menu shows menu');
+
+  // tng:list callback
+  replies = [];
+  await handleTelegramUpdate({ callback_query: { id: 'cb2', data: 'tng:list', message: { chat: { id: 5000 }, message_id: 100 }, from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Tantangan Aktif') || (r.text || '').includes('Belum ada')), 'tng:list shows list');
+
+  // tng:milik callback
+  replies = [];
+  await handleTelegramUpdate({ callback_query: { id: 'cb3', data: 'tng:milik', message: { chat: { id: 5000 }, message_id: 100 }, from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Tantanganku') || (r.text || '').includes('belum ikut')), 'tng:milik shows my challenges');
+
+  // tng:buat callback
+  replies = [];
+  await handleTelegramUpdate({ callback_query: { id: 'cb4', data: 'tng:buat', message: { chat: { id: 5000 }, message_id: 100 }, from: { first_name: 'NudgeUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Buat Tantangan')), 'tng:buat shows type selection');
 
   // /start join_idngawur → greeting
   invalidateUidCache();
