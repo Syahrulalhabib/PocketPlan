@@ -238,7 +238,7 @@ const FloatingMascot = () => {
     triggerCoinBurst();
   }, [triggerCoinBurst]);
 
-  const isAuthRoute = ['/login', '/register', '/verification'].includes(location.pathname);
+  const isAuthRoute = ['/login', '/registration', '/verification'].includes(location.pathname);
   if (isAuthRoute) return null;
   return (
     <aside

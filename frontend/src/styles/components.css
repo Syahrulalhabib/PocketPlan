@@ -810,10 +810,40 @@
 }
 
 .auth-top-nav {
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
+}
+
+.auth-top-nav .brand {
+  margin-right: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.auth-top-nav .brand img {
+  display: block;
+}
+
+.auth-top-nav a,
+.auth-top-nav .mini-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--primary);
+  line-height: 1;
+  transition: opacity 0.2s ease;
+}
+
+.auth-top-nav a:hover,
+.auth-top-nav .mini-link:hover {
+  opacity: 0.8;
 }
 
 .auth-theme-toggle {

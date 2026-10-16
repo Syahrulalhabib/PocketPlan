@@ -151,11 +151,11 @@ const LoginPage = () => {
       </div>
       <div className="auth-panel card">
         <div className="auth-top-nav">
-          <div className="brand" onClick={() => navigate('/')} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+          <div className="brand" onClick={() => navigate('/')}>
             <img src={pocketLogo} alt="Pocketplan logo" style={{ width: '32px', height: '26px' }} />
             <span style={{ fontWeight: 800, fontSize: '18px', letterSpacing: '-0.02em', color: 'var(--text)' }}>Pocketplan</span>
           </div>
-          <Link to="/" className="mini-link" style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--primary)' }}>
+          <Link to="/" className="mini-link">
             &larr; Back to Home
           </Link>
         </div>
@@ -254,7 +254,7 @@ const LoginPage = () => {
           </form>
         )}
         <div className="auth-footer">
-          Don&apos;t have an account? <Link to="/register" className="primary-link">Sign up for free</Link>
+          Don&apos;t have an account? <Link to="/registration" className="primary-link">Sign up for free</Link>
         </div>
         <div className="auth-footer" style={{ marginTop: '8px' }}>
           <Link to="/demo" className="primary-link" style={{ fontWeight: 600, fontSize: '0.88rem' }}>

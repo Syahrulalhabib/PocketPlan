@@ -212,7 +212,7 @@ const LandingPage = () => {
               {isDark ? <SunIcon size={18} /> : <MoonIcon size={18} />}
             </button>
             <Link to="/login" className="btn-landing-login">Login</Link>
-            <Link to="/register" className="btn-landing-register">Register</Link>
+            <Link to="/registration" className="btn-landing-register">Register</Link>
 
             {/* Mobile Hamburger Button (Point 3, 24) */}
             <button
@@ -259,7 +259,7 @@ const LandingPage = () => {
               <Link to="/login" className="btn-landing-login" onClick={() => setMobileMenuOpen(false)}>
                 Login
               </Link>
-              <Link to="/register" className="btn-landing-register" onClick={() => setMobileMenuOpen(false)}>
+              <Link to="/registration" className="btn-landing-register" onClick={() => setMobileMenuOpen(false)}>
                 Register
               </Link>
             </div>
@@ -477,7 +477,7 @@ const LandingPage = () => {
               <div className="footer-col-title">Quick Access</div>
               <ul className="footer-links-list">
                 <li><Link to="/login">Web App Sign In</Link></li>
-                <li><Link to="/register">Create Account</Link></li>
+                <li><Link to="/registration">Create Account</Link></li>
                 <li><Link to="/demo">Interactive Demo</Link></li>
                 <li><a href={telegramUrl} target="_blank" rel="noreferrer">Telegram Bot (@yourpocketplan_bot)</a></li>
               </ul>

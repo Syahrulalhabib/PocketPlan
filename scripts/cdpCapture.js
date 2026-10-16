@@ -127,10 +127,10 @@ server.listen(5310, async () => {
     await capture('http://localhost:5310/login', 'after_login_mobile_light', 375, 812, false);
     await capture('http://localhost:5310/login', 'after_login_mobile_dark', 375, 812, true);
 
-    await capture('http://localhost:5310/register', 'after_register_desktop_light', 1280, 800, false);
-    await capture('http://localhost:5310/register', 'after_register_desktop_dark', 1280, 800, true);
-    await capture('http://localhost:5310/register', 'after_register_mobile_light', 375, 812, false);
-    await capture('http://localhost:5310/register', 'after_register_mobile_dark', 375, 812, true);
+    await capture('http://localhost:5310/registration', 'after_register_desktop_light', 1280, 800, false);
+    await capture('http://localhost:5310/registration', 'after_register_desktop_dark', 1280, 800, true);
+    await capture('http://localhost:5310/registration', 'after_register_mobile_light', 375, 812, false);
+    await capture('http://localhost:5310/registration', 'after_register_mobile_dark', 375, 812, true);
 
     await capture('http://localhost:5310/reports', 'after_report_mobile_360', 360, 800, false, true);
     await capture('http://localhost:5310/reports/print', 'after_report_print_mobile_360', 360, 800, false, true);

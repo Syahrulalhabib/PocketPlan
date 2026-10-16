@@ -393,11 +393,11 @@ html {
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+  background: linear-gradient(135deg, #e45153 0%, #dc2626 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  box-shadow: 0 4px 14px rgba(228, 81, 83, 0.35);
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -420,7 +420,7 @@ html {
 }
 .telegram-info p {
   font-size: 0.78rem;
-  color: #10b981;
+  color: #e45153;
   margin: 2px 0 0;
   font-weight: 600;
 }
@@ -1065,7 +1065,7 @@ html {
     padding: 24px 16px;
   }
   .landing-footer {
-    padding: 40px 16px 120px;
+    padding: 40px 16px 24px;
   }
   .landing-footer-grid {
     grid-template-columns: 1fr;
@@ -1083,7 +1083,7 @@ html {
     text-align: center;
     gap: 12px;
     padding-top: 20px;
-    padding-bottom: 70px;
+    padding-bottom: 24px;
   }
   .landing-footer-bottom-links {
     display: flex;

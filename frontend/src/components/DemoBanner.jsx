@@ -14,7 +14,7 @@ const DemoBanner = () => {
 
   const handleRegister = () => {
     exitDemo();
-    navigate('/register');
+    navigate('/registration');
   };
 
   return (

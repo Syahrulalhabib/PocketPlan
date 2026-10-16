@@ -4,6 +4,7 @@ import { useAuth } from '../providers/AuthProvider.jsx';
 import { useTheme } from '../providers/ThemeProvider.jsx';
 import { SunIcon, MoonIcon } from '../components/Icons.jsx';
 import SavingsMascot from '../components/SavingsMascot.jsx';
+import pocketLogo from '../assets/pocket-logo.svg';
 
 const VerificationPage = () => {
   const { resendVerification } = useAuth();
@@ -55,6 +56,15 @@ const VerificationPage = () => {
         <SavingsMascot mode="hero" />
       </div>
       <div className="auth-panel card">
+        <div className="auth-top-nav">
+          <div className="brand" onClick={() => navigate('/')}>
+            <img src={pocketLogo} alt="Pocketplan logo" style={{ width: '32px', height: '26px' }} />
+            <span style={{ fontWeight: 800, fontSize: '18px', letterSpacing: '-0.02em', color: 'var(--text)' }}>Pocketplan</span>
+          </div>
+          <Link to="/" className="mini-link">
+            &larr; Back to Home
+          </Link>
+        </div>
         <div className="auth-header">
           <h1>EMAIL VERIFICATION</h1>
           <p>Request a verification email for your account.</p>
@@ -80,7 +90,7 @@ const VerificationPage = () => {
           <Link to="/login" className="primary-link">Back to sign in</Link>
         </div>
         <div className="auth-footer">
-          <button type="button" className="mini-link" onClick={() => navigate('/register')}>
+          <button type="button" className="mini-link" onClick={() => navigate('/registration')}>
             Create a new account
           </button>
         </div>

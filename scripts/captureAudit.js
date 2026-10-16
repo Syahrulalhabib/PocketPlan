@@ -56,8 +56,8 @@ server.listen(5299, async () => {
   const tasks = [
     { url: 'http://localhost:5299/login', name: 'before_login_desktop', width: 1280, height: 800 },
     { url: 'http://localhost:5299/login', name: 'before_login_mobile', width: 375, height: 812 },
-    { url: 'http://localhost:5299/register', name: 'before_register_desktop', width: 1280, height: 800 },
-    { url: 'http://localhost:5299/register', name: 'before_register_mobile', width: 375, height: 812 },
+    { url: 'http://localhost:5299/registration', name: 'before_register_desktop', width: 1280, height: 800 },
+    { url: 'http://localhost:5299/registration', name: 'before_register_mobile', width: 375, height: 812 },
     { url: 'http://localhost:5299/reports', name: 'before_laporan_mobile_360', width: 360, height: 800 },
     { url: 'http://localhost:5299/reports/print', name: 'before_laporan_cetak_mobile_360', width: 360, height: 800 },
   ];

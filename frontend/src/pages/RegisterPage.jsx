@@ -77,11 +77,11 @@ const RegisterPage = () => {
       </div>
       <div className="auth-panel card">
         <div className="auth-top-nav">
-          <div className="brand" onClick={() => navigate('/')} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+          <div className="brand" onClick={() => navigate('/')}>
             <img src={pocketLogo} alt="Pocketplan logo" style={{ width: '32px', height: '26px' }} />
             <span style={{ fontWeight: 800, fontSize: '18px', letterSpacing: '-0.02em', color: 'var(--text)' }}>Pocketplan</span>
           </div>
-          <Link to="/" className="mini-link" style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--primary)' }}>
+          <Link to="/" className="mini-link">
             &larr; Back to Home
           </Link>
         </div>
