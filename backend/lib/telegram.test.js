@@ -208,7 +208,7 @@ async function testBot() {
   await handleTelegramUpdate({
     message: { chat: { id: 888 }, text: '/help', from: { first_name: 'User' } }
   }, null, 'token');
-  assert(replies[0].text.includes('SCAN STRUK BARENG POCKY'));
+  assert(replies[0].text.includes('SCAN STRUK'));
   assert(!replies[0].text.includes(' AI '));
 
   // Test receipt scan on 503 / queue overload
@@ -766,9 +766,9 @@ async function testBot() {
   await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/help', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
   const helpText = replies[0]?.text || '';
   assert(helpText.includes('TANTANGAN DISIPLIN (30 HARI)'), '/help contains tantangan disiplin');
-  assert(helpText.includes('Cara ikut (3 langkah)'), '/help contains 3 steps to join');
-  assert(helpText.includes('Cara BUAT tantangan baru'), '/help contains create guide');
-  assert(helpText.includes('Cara KELUAR &amp; HAPUS'), '/help contains leave and delete commands');
+  assert(helpText.includes('menu interaktif'), '/help contains interactive menu guide');
+  assert(helpText.includes('Tantangan Aktif'), '/help contains active challenges button');
+  assert(helpText.includes('Tantanganku'), '/help contains my challenges button');
   assert(helpText.includes('/ajak'), '/help contains referral /ajak explanation');
 
   // Test /budget category guessing scenario: /budget beli laptop 10jt -> /catat beli laptop 9,5jt
