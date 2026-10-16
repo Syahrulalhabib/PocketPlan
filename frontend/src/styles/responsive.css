@@ -2,10 +2,6 @@
    Mobile & Responsive Layout System
    ========================================= */
 
-.auth-mobile-mascot {
-  display: none;
-}
-
 @media (max-width: 992px) {
   .page-shell {
     padding: 16px 20px 48px;
@@ -744,21 +740,11 @@
   }
 
   .auth-hero {
-    display: none !important;
-  }
-
-  .auth-mobile-mascot {
+    order: -1 !important;
+    margin: 4px auto 12px;
+    width: 100%;
     display: flex;
     justify-content: center;
-    align-items: center;
-    margin: 4px auto 14px;
-    width: 100%;
-  }
-
-  .auth-mobile-mascot svg {
-    width: 80px;
-    height: 84px;
-    filter: drop-shadow(0 6px 16px rgba(228, 81, 83, 0.28));
   }
 
   .auth-page input,
@@ -949,6 +935,18 @@
   .profile-avatar-wrapper {
     width: 90px;
     height: 90px;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+  }
+
+  .profile-avatar-initial {
+    font-size: 34px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
   }
 
   .profile-stats-strip {

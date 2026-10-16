@@ -4,7 +4,6 @@ import { useAuth, isDummyEmail } from '../providers/AuthProvider.jsx';
 import { useTheme } from '../providers/ThemeProvider.jsx';
 import { SunIcon, MoonIcon, EyeIcon } from '../components/Icons.jsx';
 import SavingsMascot from '../components/SavingsMascot.jsx';
-import { PockySvg } from '../components/FloatingMascot.jsx';
 import pocketLogo from '../assets/pocket-logo.svg';
 
 const ActionCard = ({
@@ -377,10 +376,6 @@ const VerificationPage = () => {
     <div className={`auth-page ${isDark ? 'theme-dark' : ''}`}>
       <div className="auth-hero left">
         <SavingsMascot mode="hero" />
-      </div>
-
-      <div className="auth-mobile-mascot" aria-hidden="true">
-        <PockySvg width={80} height={84} isWaving={true} />
       </div>
 
       <div className="auth-panel card">

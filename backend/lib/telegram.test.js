@@ -80,7 +80,7 @@ assert.strictEqual(directFood.isGuessed, false);
 // 3. Bot commands flow
 async function testBot() {
   const uid = 'test-uid';
-  const { code, deepLink } = await generateLinkCode(uid, null, 'PocketPlanBot');
+  const { code, deepLink } = await generateLinkCode(uid, null, 'yourpocketplan_bot');
   assert.strictEqual(code.length, 6);
   assert(deepLink.includes(code));
 
@@ -958,6 +958,87 @@ async function testBot() {
 
 
 
+
+  // --- Test Goals Interactive Menu (gol:*) & Bot Username ---
+  invalidateUidCache();
+  nudgeStore.users['tg_9500'] = { name: 'GoalUser', isTelegramUser: true };
+  nudgeStore.telegram_links['9500'] = { uid: 'tg_9500' };
+
+  // 1. /ajak contains yourpocketplan_bot
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 9500 }, text: '/ajak', from: { first_name: 'GoalUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('https://t.me/yourpocketplan_bot?start=ref_9500')), '/ajak uses yourpocketplan_bot');
+  assert(!replies.some(r => (r.text || '').includes('PocketPlanBot')), '/ajak does not contain old bot name');
+
+  // 2. /goals with empty goals shows interactive button
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 9500 }, text: '/goals', from: { first_name: 'GoalUser' } } }, mdb, 'token');
+  const emptyGoalsReply = replies[0];
+  assert(emptyGoalsReply.text.includes('TARGET IMPIANMU'), '/goals displays target impian header');
+  assert(emptyGoalsReply.reply_markup?.inline_keyboard?.some(row => row.some(b => b.callback_data === 'gol:buat')), '/goals has [➕ Buat Goal Baru] button');
+
+  // 3. gol:buat callback triggers name prompt
+  replies = [];
+  await handleTelegramUpdate({ callback_query: { id: 'gol_cb1', data: 'gol:buat', message: { chat: { id: 9500 }, message_id: 401 }, from: { first_name: 'GoalUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Buat Target Impian Baru')), 'gol:buat asks for target name');
+
+  // 4. Send target name -> prompts for amount
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 9500 }, text: 'Macbook Air M2', from: { first_name: 'GoalUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Macbook Air M2') && (r.text || '').includes('Berapa target nominal')), 'name input prompts for nominal');
+
+  // 5. Send target amount -> saves goal
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 9500 }, text: '18jt', from: { first_name: 'GoalUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Target Impian Dibuat') && (r.text || '').includes('18.000.000')), 'nominal input saves goal with 18jt target');
+
+  // Find created goal ID
+  const goalsObj = nudgeStore.users['tg_9500']._sub?.goals || {};
+  const goalEntry = Object.entries(goalsObj).find(([, g]) => g.name === 'Macbook Air M2');
+  assert(goalEntry, 'Goal Macbook Air M2 exists in store');
+  const [createdGoalId] = goalEntry;
+
+  // 6. /goals now shows list with detail button
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 9500 }, text: '/goals', from: { first_name: 'GoalUser' } } }, mdb, 'token');
+  const listWithGoal = replies[0];
+  assert(listWithGoal.text.includes('Macbook Air M2'), 'List shows goal name');
+  assert(listWithGoal.reply_markup?.inline_keyboard?.some(row => row.some(b => b.callback_data === `gol:detail:${createdGoalId}`)), 'List has [👁️ Detail] button');
+
+  // 7. gol:detail callback
+  replies = [];
+  await handleTelegramUpdate({ callback_query: { id: 'gol_cb2', data: `gol:detail:${createdGoalId}`, message: { chat: { id: 9500 }, message_id: 402 }, from: { first_name: 'GoalUser' } } }, mdb, 'token');
+  const goalDetailMsg = replies.find(r => r.chat_id);
+  assert(goalDetailMsg.text.includes('DETAIL TARGET: Macbook Air M2'), 'Detail shows title');
+  assert(goalDetailMsg.text.includes('18.000.000'), 'Detail shows 18.000.000 target');
+  assert(goalDetailMsg.reply_markup?.inline_keyboard?.some(row => row.some(b => b.callback_data === `gol:ubah:${createdGoalId}`)), 'Detail has [✏️ Ubah Target] button');
+  assert(goalDetailMsg.reply_markup?.inline_keyboard?.some(row => row.some(b => b.callback_data === `gol:hapus_prompt:${createdGoalId}`)), 'Detail has [🗑️ Hapus Target] button');
+
+  // 8. gol:ubah -> prompts for new amount
+  replies = [];
+  await handleTelegramUpdate({ callback_query: { id: 'gol_cb3', data: `gol:ubah:${createdGoalId}`, message: { chat: { id: 9500 }, message_id: 403 }, from: { first_name: 'GoalUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Ubah Nominal Target')), 'gol:ubah prompts for new amount');
+
+  // Send new amount -> 15jt
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 9500 }, text: '15jt', from: { first_name: 'GoalUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('15.000.000')), 'target updated to 15jt');
+  assert.strictEqual(nudgeStore.users['tg_9500']._sub.goals[createdGoalId].target, 15000000, 'target stored as 15000000');
+
+  // 9. gol:hapus_prompt -> confirmation
+  replies = [];
+  await handleTelegramUpdate({ callback_query: { id: 'gol_cb4', data: `gol:hapus_prompt:${createdGoalId}`, message: { chat: { id: 9500 }, message_id: 404 }, from: { first_name: 'GoalUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Konfirmasi Hapus Target')), 'shows delete confirmation');
+
+  // 10. gol:hapus_confirm -> deletes goal
+  replies = [];
+  await handleTelegramUpdate({ callback_query: { id: 'gol_cb5', data: `gol:hapus_confirm:${createdGoalId}`, message: { chat: { id: 9500 }, message_id: 405 }, from: { first_name: 'GoalUser' } } }, mdb, 'token');
+  assert(!nudgeStore.users['tg_9500']._sub?.goals?.[createdGoalId], 'goal deleted from store');
+
+  // 11. Test dispatchDailyReminders with targetChatId & force
+  const { dispatchDailyReminders } = await import('./telegramBot.js');
+  const remRes = await dispatchDailyReminders(mdb, 'token', 'evening', true, '9500');
+  assert(remRes.sent >= 0, 'dispatchDailyReminders executed with details');
 
   console.log('All Telegram integration tests passed!');
 }

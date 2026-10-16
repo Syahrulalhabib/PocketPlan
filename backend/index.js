@@ -222,18 +222,30 @@ app.post('/api/telegram/cancel-link-code', requireAuth, async (req, res) => {
 app.all('/api/cron/reminders', async (req, res) => {
   const secret = (process.env.CRON_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
   if (!secret) {
+    console.warn('[cron] CRON_SECRET not configured on server');
     return res.status(401).json({ error: 'CRON_SECRET must be configured' });
   }
-  const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() || req.query?.secret;
+  const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() ||
+    req.headers['x-admin-secret'] || req.query?.secret;
   if (!incoming || incoming !== secret) {
+    console.warn('[cron] Unauthorized cron attempt');
     return res.status(403).json({ error: 'Forbidden' });
   }
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return res.status(500).json({ error: 'TELEGRAM_BOT_TOKEN not configured' });
-  const type = req.query?.type === 'evening' ? 'evening' : 'morning';
+
+  // Resilient type detection: query parameter or current WIB hour (06:00 WIB morning vs 23:00 WIB evening)
+  let type = req.query?.type;
+  if (!type || (type !== 'morning' && type !== 'evening')) {
+    const hourWib = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', hour: 'numeric', hour12: false }).format(new Date()));
+    type = (hourWib >= 15 && hourWib <= 23) ? 'evening' : 'morning';
+  }
+
   const force = req.query?.force === 'true' || req.query?.force === '1';
+  const targetChatId = req.query?.chatId || null;
+
   try {
-    const result = await dispatchDailyReminders(getDb(), token, type, force);
+    const result = await dispatchDailyReminders(getDb(), token, type, force, targetChatId);
     cleanExpiredTempMessages(getDb(), token).catch((e) => console.error('Temp messages cleanup error:', e));
     if (type === 'morning') {
       const now = new Date();
@@ -246,6 +258,36 @@ app.all('/api/cron/reminders', async (req, res) => {
   } catch (err) {
     console.error('Cron reminders error:', err);
     res.status(500).json({ error: 'Internal cron error' });
+  }
+});
+
+app.all('/api/admin/test-reminder', async (req, res) => {
+  const secret = (process.env.ADMIN_SECRET || process.env.CRON_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
+  if (!secret) {
+    return res.status(401).json({ error: 'ADMIN_SECRET or CRON_SECRET must be configured' });
+  }
+  const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() ||
+    req.headers['x-admin-secret'] || req.query?.secret || req.body?.secret;
+  if (!incoming || incoming !== secret) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) return res.status(500).json({ error: 'TELEGRAM_BOT_TOKEN not configured' });
+
+  let type = req.query?.type || req.body?.type;
+  if (!type || (type !== 'morning' && type !== 'evening')) {
+    const hourWib = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', hour: 'numeric', hour12: false }).format(new Date()));
+    type = (hourWib >= 15 && hourWib <= 23) ? 'evening' : 'morning';
+  }
+  const force = req.query?.force !== 'false' && req.body?.force !== false; // Default force=true for test
+  const chatId = req.query?.chatId || req.body?.chatId || null;
+
+  try {
+    const result = await dispatchDailyReminders(getDb(), token, type, force, chatId);
+    res.json({ ok: true, test: true, type, targetChatId: chatId || 'all', force, ...result });
+  } catch (err) {
+    console.error('test-reminder error:', err);
+    res.status(500).json({ error: err.message || 'Failed to send test reminder' });
   }
 });
 

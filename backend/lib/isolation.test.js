@@ -153,6 +153,19 @@ async function testRestApiIsolation() {
 
     console.log('    ✔ /api/cron/reminders GET auth & dispatch passed');
 
+    // Admin test reminder endpoint test
+    const rTestUnauth = await req(server, 'POST', '/api/admin/test-reminder');
+    assert.strictEqual(rTestUnauth.status, 403);
+
+    const rTestAuth = await req(server, 'POST', '/api/admin/test-reminder?type=evening', null, {
+      authorization: 'Bearer test-cron-secret-123'
+    });
+    assert.strictEqual(rTestAuth.status, 200);
+    assert.strictEqual(rTestAuth.body.ok, true);
+    assert.strictEqual(rTestAuth.body.test, true);
+    assert.strictEqual(rTestAuth.body.type, 'evening');
+    console.log('    ✔ /api/admin/test-reminder POST auth & test passed');
+
     // Admin sync commands endpoint test
     const rSyncUnauth = await req(server, 'POST', '/api/admin/sync-commands');
     assert.strictEqual(rSyncUnauth.status, 403);
