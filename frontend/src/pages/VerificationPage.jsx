@@ -374,34 +374,36 @@ const VerificationPage = () => {
 
   return (
     <div className={`auth-page ${isDark ? 'theme-dark' : ''}`}>
-      <div className="auth-mobile-bar">
-        {user ? (
-          <button type="button" className="mini-link auth-back-link" onClick={() => logout().then(() => navigate('/login'))}>
-            &larr; Keluar
-          </button>
-        ) : (
-          <Link to="/" className="mini-link auth-back-link">&larr; Back to Home</Link>
-        )}
-        <button type="button" className="theme-btn-topbar auth-theme-toggle" onClick={toggleTheme}>
-          {isDark ? <SunIcon size={18} /> : <MoonIcon size={18} />}
-        </button>
-      </div>
-
       <div className="auth-hero left">
         <SavingsMascot mode="hero" />
       </div>
 
       <div className="auth-panel card">
         <div className="auth-top-nav">
-          <div className="brand" onClick={() => (user ? null : navigate('/'))}>
-            <img src={pocketLogo} alt="Pocketplan logo" style={{ width: '32px', height: '26px' }} />
-            <span style={{ fontWeight: 800, fontSize: '18px', letterSpacing: '-0.02em', color: 'var(--text)' }}>Pocketplan</span>
-          </div>
           {user ? (
-            <button type="button" className="mini-link" onClick={() => logout().then(() => navigate('/login'))}>Keluar</button>
+            <button type="button" className="mini-link auth-back-link" onClick={() => logout().then(() => navigate('/login'))}>
+              &larr; Keluar
+            </button>
           ) : (
-            <Link to="/" className="mini-link">&larr; Back to Home</Link>
+            <Link to="/" className="mini-link auth-back-link">
+              &larr; Back to Home
+            </Link>
           )}
+          <div className="auth-top-actions">
+            <button
+              type="button"
+              className="theme-btn-topbar auth-theme-toggle"
+              onClick={toggleTheme}
+              aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+              title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+            >
+              {isDark ? <SunIcon size={18} /> : <MoonIcon size={18} />}
+            </button>
+            <div className="brand" onClick={() => (user ? null : navigate('/'))}>
+              <img src={pocketLogo} alt="Pocketplan logo" style={{ width: '32px', height: '26px' }} />
+              <span className="brand-name">Pocketplan</span>
+            </div>
+          </div>
         </div>
         {actionStatus !== 'idle' ? (
           <ActionCard

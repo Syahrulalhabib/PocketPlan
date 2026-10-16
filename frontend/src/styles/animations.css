@@ -221,6 +221,11 @@
 .auth-page.theme-dark .auth-header h1 {
   color: #fcd34d;
 }
+.auth-page.theme-dark .brand-name {
+  color: #f8fafc;
+}
+
+
 
 .auth-page.theme-dark .auth-header p,
 .auth-page.theme-dark .auth-footer,
