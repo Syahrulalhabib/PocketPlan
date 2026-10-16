@@ -18,7 +18,8 @@ import {
   deleteTelegramMessage,
   cancelLinkCode,
   syncBotCommands,
-  migrateTelegramDataToUser
+  migrateTelegramDataToUser,
+  completeTelegramLink
 } from './lib/telegramBotCore.js';
 import { scanReceiptWithGemini } from './lib/geminiReceiptScanner.js';
 import { updateStreak } from './lib/streak.js';
@@ -191,7 +192,18 @@ app.post('/api/telegram/link-code', requireAuth, async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('link-code error:', err);
-    res.status(500).json({ error: 'Gagal membuat kode link.' });
+    res.status(400).json({ error: err.message || 'Gagal membuat kode link.' });
+  }
+});
+
+app.post('/api/telegram/complete-link', requireAuth, async (req, res) => {
+  const uid = req.user?.uid || 'demo-user';
+  try {
+    const result = await completeTelegramLink(uid, getDb(), process.env.TELEGRAM_BOT_TOKEN);
+    res.json(result);
+  } catch (err) {
+    console.error('complete-link error:', err);
+    res.status(500).json({ error: 'Gagal menyelesaikan penghubungan akun.' });
   }
 });
 
@@ -273,19 +285,11 @@ app.post('/api/telegram/web-login', async (req, res) => {
       if (auth) customToken = await auth.createCustomToken(result.uid);
     }
 
-    // Bi-directional notification: alert user on Telegram that login succeeded
+    // Clean up temporary bot message with the code
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const targetChatId = result.telegramChatId || (result.uid?.startsWith('tg_') ? result.uid.replace('tg_', '') : null);
-    if (botToken && targetChatId) {
-      if (result.messageId) {
-        deleteTelegramMessage(botToken, targetChatId, result.messageId).catch(() => {});
-      }
-      sendTelegramMessage(
-        botToken,
-        targetChatId,
-        '🎉 *Website Pocketplan Berhasil Terhubung!*\n\n' +
-        'Akun Telegram Anda baru saja terhubung dan login ke website Pocketplan. Catatan keuangan dan target impian Anda kini tersinkron secara real-time! 🌐'
-      ).catch(() => {});
+    if (botToken && targetChatId && result.messageId) {
+      deleteTelegramMessage(botToken, targetChatId, result.messageId).catch(() => {});
     }
 
     res.json({ ok: true, user: result, ...(customToken && { customToken }) });

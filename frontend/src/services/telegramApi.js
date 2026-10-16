@@ -192,3 +192,19 @@ export async function telegramWebLogin(code) {
   return { ...data.user, customToken: data.customToken || null };
 }
 
+
+export async function completeTelegramLink() {
+  try {
+    const headers = await getHeaders();
+    const res = await fetch('/api/telegram/complete-link', {
+      method: 'POST',
+      headers
+    });
+    if (res.ok) return await res.json();
+    return { success: false };
+  } catch (err) {
+    console.warn('completeTelegramLink error:', err);
+    return { success: false };
+  }
+}
+

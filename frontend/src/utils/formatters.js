@@ -52,6 +52,7 @@ export const stripUndefined = (obj) => {
 export const isDummyEmail = (email) => {
   if (!email) return true;
   const lower = String(email).trim().toLowerCase();
+  if (!lower) return true;
   return lower.endsWith('@telegram.pocketplan') ||
          lower.endsWith('@pocketplan.app') ||
          lower.includes('telegram') ||

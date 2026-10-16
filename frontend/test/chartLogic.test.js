@@ -53,6 +53,10 @@ assert.strictEqual(cleaned.target, 5000000);
 assert.strictEqual(isDummyEmail('tg_12345@telegram.pocketplan'), true);
 assert.strictEqual(isDummyEmail('user@pocketplan.app'), true);
 assert.strictEqual(isDummyEmail(''), true);
+assert.strictEqual(isDummyEmail(null), true);
+assert.strictEqual(isDummyEmail(undefined), true);
+assert.strictEqual(isDummyEmail('   '), true);
+assert.strictEqual(isDummyEmail('abc@telegram.pocketplan.app'), true);
 assert.strictEqual(isDummyEmail('syahrul@gmail.com'), false);
 assert.strictEqual(isDummyEmail('budi.santoso@yahoo.co.id'), false);
 // 7. Verify T9-A: Newest sorting puts newly added bot transaction at index 0

@@ -16,9 +16,11 @@ import {
   updateUserPassword,
   reloadAuthUser,
   verifyActionCode,
-  inspectActionCode
+  inspectActionCode,
+  getAuthUser,
+  updateUserDoc
 } from '../services/firebase';
-import { telegramWebLogin } from '../services/telegramApi';
+import { telegramWebLogin, completeTelegramLink } from '../services/telegramApi';
 
 import { isDummyEmail } from '../utils/formatters.js';
 export { isDummyEmail };
@@ -232,18 +234,48 @@ export const AuthProvider = ({ children }) => {
   };
 
   const changeEmailAndSendVerification = async (newEmail) => {
-    if (!newEmail || !newEmail.includes('@')) throw new Error('Email tidak valid.');
+    const trimmed = (newEmail || '').trim();
+    if (!trimmed || !trimmed.includes('@') || isDummyEmail(trimmed)) {
+      throw new Error('Masukkan alamat email yang valid.');
+    }
     if (firebaseEnabled) {
-      try {
-        await updateUserEmail(newEmail);
-      } catch (e) {
-        console.warn('updateUserEmail notice:', e?.message);
+      const currentUser = getAuthUser();
+      if (!currentUser) {
+        throw new Error('Sesi login tidak ditemukan. Silakan masuk kembali.');
       }
-      await sendVerificationEmail();
+      try {
+        await updateUserEmail(trimmed);
+      } catch (e) {
+        console.error('updateUserEmail error:', e);
+        if (e?.code === 'auth/email-already-in-use') {
+          throw new Error('Email ini sudah terdaftar pada akun lain.');
+        } else if (e?.code === 'auth/invalid-email') {
+          throw new Error('Format email tidak valid.');
+        } else if (e?.code === 'auth/requires-recent-login') {
+          throw new Error('Sesi keamanan Anda telah berakhir. Silakan login ulang.');
+        }
+        throw new Error(e?.message ? `Gagal memperbarui email: ${e.message}` : 'Gagal memperbarui email. Silakan coba lagi.');
+      }
+
+      // Pastikan email benar-benar terupdate pada objek Firebase currentUser
+      const refreshedUser = getAuthUser();
+      if (!refreshedUser?.email || isDummyEmail(refreshedUser.email) || refreshedUser.email.toLowerCase() !== trimmed.toLowerCase()) {
+        throw new Error('Email belum berhasil diperbarui pada akun Anda. Silakan coba lagi.');
+      }
+
+      try {
+        await sendVerificationEmail(refreshedUser);
+      } catch (err) {
+        console.error('sendVerificationEmail error:', err);
+        if (err?.code === 'auth/missing-email') {
+          throw new Error('Email akun belum terisi. Silakan periksa kembali email Anda.');
+        }
+        throw new Error(err?.message ? `Gagal mengirim email verifikasi: ${err.message}` : 'Gagal mengirim email verifikasi.');
+      }
     }
     const updated = {
       ...user,
-      email: newEmail,
+      email: trimmed,
       emailVerified: false,
       needsVerification: true
     };
@@ -333,15 +365,35 @@ export const AuthProvider = ({ children }) => {
     if (firebaseEnabled) {
       await updateUserPassword(newPassword);
     }
+    const completedAt = new Date().toISOString();
     const updated = {
       ...user,
       emailVerified: true,
       webPasswordSet: true,
+      linkCompletedAt: completedAt,
       needsVerification: false
     };
     setUser(updated);
     if (user?.isTelegramUser) {
       localStorage.setItem('pocketplan_tg_user', JSON.stringify(updated));
+    }
+    if (firebaseEnabled && user?.id) {
+      try {
+        await updateUserDoc(user.id, {
+          emailVerified: true,
+          webPasswordSet: true,
+          linkCompletedAt: completedAt
+        });
+      } catch (err) {
+        console.warn('Failed to update user doc after password set:', err);
+      }
+    }
+    if (user?.isTelegramUser) {
+      try {
+        await completeTelegramLink();
+      } catch (err) {
+        console.warn('completeTelegramLink notice:', err);
+      }
     }
     return updated;
   };
@@ -368,13 +420,22 @@ export const AuthProvider = ({ children }) => {
   const resendVerification = async (email, password) => {
     if (firebaseEnabled) {
       if (user && !password) {
-        await sendVerificationEmail();
+        const currentUser = getAuthUser();
+        if (!currentUser?.email || isDummyEmail(currentUser.email)) {
+          throw new Error('Email akun belum terisi atau masih sementara. Silakan simpan email asli terlebih dahulu.');
+        }
+        await sendVerificationEmail(currentUser);
         return;
       }
       if (!email) throw new Error('Email diperlukan');
       if (password) {
         await signInEmail(email, password);
-        await sendVerificationEmail();
+        const currentUser = getAuthUser();
+        if (!currentUser?.email || isDummyEmail(currentUser.email)) {
+          await signOutUser();
+          throw new Error('Email akun belum terisi atau masih sementara. Silakan simpan email asli terlebih dahulu.');
+        }
+        await sendVerificationEmail(currentUser);
         await signOutUser();
         return;
       }

@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node index.js",
-    "test": "node lib/telegram.test.js && node lib/isolation.test.js && node lib/geminiReceiptScanner.test.js && node lib/report.test.js && node lib/achievement.test.js && node lib/email.test.js",
+    "test": "node lib/telegram.test.js && node lib/isolation.test.js && node lib/accountLinking.test.js && node lib/geminiReceiptScanner.test.js && node lib/report.test.js && node lib/achievement.test.js && node lib/email.test.js",
     "test:streak:dev": "node scripts/sendDevTest.js",
     "telegram:poll": "node scripts/pollTelegram.js"
   },

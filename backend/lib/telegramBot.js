@@ -13,12 +13,13 @@ import {
   migrateTelegramDataToUser,
   attachMessageToWebCode,
   deleteTelegramMessage,
-  cancelWebLoginCode
+  cancelWebLoginCode,
+  completeTelegramLink
 } from './telegramBotCore.js';
 import { scanReceiptWithGemini } from './geminiReceiptScanner.js';
 import { updateStreak } from './streak.js';
 
-export { generateLinkCode, getLinkStatus, unlinkAccount, sendTelegramPhoto };
+export { generateLinkCode, getLinkStatus, unlinkAccount, sendTelegramPhoto, completeTelegramLink };
 
 const KEYBOARD = {
   keyboard: [
@@ -920,6 +921,8 @@ export async function handleTelegramUpdate(update, db, botToken) {
 
       const res = await linkChatWithCode(chatId, parts[1], userFrom, db);
       if (res === 'EXPIRED') return sendTelegramMessage(botToken, chatId, '⏳ *Kode kedaluwarsa*\nBuat kode baru di website: *Profile → Telegram Bot*.');
+      if (res === 'ALREADY_LINKED_TG') return sendTelegramMessage(botToken, chatId, '⚠️ *Akun Telegram ini sudah terhubung ke akun web.*\nSatu akun Telegram hanya bisa terhubung ke satu akun web.');
+      if (res === 'ALREADY_LINKED_WEB') return sendTelegramMessage(botToken, chatId, '⚠️ *Akun web ini sudah terhubung ke akun Telegram lain.*');
       if (res) {
         if (msg?.message_id) deleteTelegramMessage(botToken, chatId, msg.message_id).catch(() => {});
         return sendTelegramMessage(
@@ -953,6 +956,8 @@ export async function handleTelegramUpdate(update, db, botToken) {
 
     const res = await linkChatWithCode(chatId, parts[1], userFrom, db);
     if (res === 'EXPIRED') return sendTelegramMessage(botToken, chatId, '⏳ *Kode kedaluwarsa*\nBuat kode baru di menu Profile website.');
+    if (res === 'ALREADY_LINKED_TG') return sendTelegramMessage(botToken, chatId, '⚠️ *Akun Telegram ini sudah terhubung ke akun web.*\nSatu akun Telegram hanya bisa terhubung ke satu akun web.');
+    if (res === 'ALREADY_LINKED_WEB') return sendTelegramMessage(botToken, chatId, '⚠️ *Akun web ini sudah terhubung ke akun Telegram lain.*');
     if (res) {
       if (msg?.message_id) deleteTelegramMessage(botToken, chatId, msg.message_id).catch(() => {});
       return sendTelegramMessage(

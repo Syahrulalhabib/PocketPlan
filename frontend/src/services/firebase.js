@@ -74,7 +74,11 @@ export const signInWithToken = (token) => firebaseSignInWithCustomToken(auth, to
 export const sendVerificationEmail = (user, actionCodeSettings) => {
   const target = user || auth?.currentUser;
   if (!target) {
-    return Promise.reject(new Error('No authenticated user available for verification email.'));
+    return Promise.reject(new Error('Sesi pengguna tidak ditemukan untuk verifikasi email.'));
+  }
+  const email = target.email;
+  if (!email || (typeof email === 'string' && email.includes('@telegram.pocketplan'))) {
+    return Promise.reject(new Error('Email pengguna belum terdaftar atau masih berupa akun sementara. Silakan simpan email asli terlebih dahulu.'));
   }
   const settings = actionCodeSettings || (typeof window !== 'undefined' ? {
     url: `${window.location.origin}/verification`,
@@ -95,7 +99,10 @@ export const watchAuth = (cb) => onAuthStateChanged(auth, cb);
 export const updateProfileName = (name) => (auth?.currentUser && name ? updateProfile(auth.currentUser, { displayName: name }) : undefined);
 export const updateProfileData = (data) => (auth?.currentUser ? updateProfile(auth.currentUser, data) : undefined);
 export const updateUserEmail = (newEmail) => {
-  if (!auth?.currentUser) return Promise.reject(new Error('No authenticated user'));
+  if (!auth?.currentUser) return Promise.reject(new Error('Sesi pengguna tidak ditemukan. Silakan login kembali.'));
+  if (!newEmail || typeof newEmail !== 'string' || !newEmail.includes('@') || newEmail.includes('@telegram.pocketplan')) {
+    return Promise.reject(new Error('Format email tidak valid. Masukkan email asli.'));
+  }
   return updateEmail(auth.currentUser, newEmail);
 };
 export const updateUserPassword = (newPassword) => {

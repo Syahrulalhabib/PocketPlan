@@ -3,7 +3,7 @@ import http from 'http';
 import {
   generateLinkCode, getLinkStatus, unlinkAccount,
   findLinkedUid, linkChatWithCode, ensureTelegramUser,
-  generateWebLoginCode, verifyWebLoginCode
+  generateWebLoginCode, verifyWebLoginCode, completeTelegramLink
 } from './telegramBotCore.js';
 
 global.fetch = async () => ({ json: async () => ({ ok: true }) });
@@ -53,8 +53,12 @@ async function testTelegramIsolation() {
   assert.strictEqual((await verifyWebLoginCode(cA, null)).uid, uidA);
   assert.strictEqual((await verifyWebLoginCode(cB, null)).uid, uidB);
   await unlinkAccount(uidA, null);
-  assert.strictEqual((await getLinkStatus(uidA, null)).linked, false);
-  assert.strictEqual((await getLinkStatus(uidB, null)).linked, true, 'B still linked after A unlinks');
+  assert.strictEqual((await getLinkStatus(uidA, null)).dataLinked, false);
+  assert.strictEqual((await getLinkStatus(uidB, null)).dataLinked, true, 'B still data-linked after A unlinks');
+  assert.strictEqual((await getLinkStatus(uidB, null)).fullyLinked, false, 'B not fully linked before password set');
+  await completeTelegramLink(uidB, null);
+  assert.strictEqual((await getLinkStatus(uidB, null)).fullyLinked, true, 'B fully linked after completing link');
+  assert.strictEqual((await getLinkStatus(uidB, null)).linked, true);
   console.log('    ✔ passed');
 }
 

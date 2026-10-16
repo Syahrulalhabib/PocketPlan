@@ -452,7 +452,19 @@ const VerificationPage = () => {
                     {loading ? 'Memeriksa...' : '✅ Saya Sudah Klik Verifikasi'}
                   </button>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <button type="button" className="pill btn-secondary" style={{ flex: 1 }} onClick={() => changeEmailAndSendVerification(user.email).then(() => setStatus('Link dikirim ulang.'))} disabled={loading}>
+                    <button
+                      type="button"
+                      className="pill btn-secondary"
+                      style={{ flex: 1 }}
+                      onClick={() => {
+                        setError('');
+                        setStatus('');
+                        changeEmailAndSendVerification(user.email)
+                          .then(() => setStatus('Link verifikasi berhasil dikirim ulang.'))
+                          .catch((err) => setError(err?.message || 'Gagal mengirim ulang verifikasi.'));
+                      }}
+                      disabled={loading}
+                    >
                       🔄 Kirim Ulang
                     </button>
                     <button type="button" className="pill btn-secondary" style={{ flex: 1 }} onClick={() => setEditEmail(true)}>
