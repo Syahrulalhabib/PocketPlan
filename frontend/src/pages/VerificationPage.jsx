@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, isDummyEmail } from '../providers/AuthProvider.jsx';
 import { useTheme } from '../providers/ThemeProvider.jsx';
 import { SunIcon, MoonIcon, EyeIcon } from '../components/Icons.jsx';
-import { PockySvg } from '../components/FloatingMascot.jsx';
+import SavingsMascot from '../components/SavingsMascot.jsx';
 import pocketLogo from '../assets/pocket-logo.svg';
 
 const ActionCard = ({
@@ -374,8 +374,8 @@ const VerificationPage = () => {
 
   return (
     <div className={`auth-page ${isDark ? 'theme-dark' : ''}`}>
-      <div className="auth-mascot">
-        <PockySvg width={80} height={85} />
+      <div className="auth-hero left">
+        <SavingsMascot mode="hero" />
       </div>
 
       <div className="auth-panel card">

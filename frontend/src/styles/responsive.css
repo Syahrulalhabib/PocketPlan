@@ -718,14 +718,12 @@
     gap: 8px;
   }
 
-  .auth-mascot {
-    display: flex;
-    order: 0;
-    margin: 4px auto 0;
-  }
-
   .auth-hero {
-    display: none !important;
+    order: 2 !important;
+    margin: 4px auto 10px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
   }
 
   .auth-page input,
