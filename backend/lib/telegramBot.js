@@ -32,6 +32,10 @@ const KEYBOARD = {
 
 // Pending challenge creation state per chatId (step-by-step via buttons)
 const pendingChallenge = new Map();
+// Pending budget creation state per chatId (step-by-step via buttons)
+const pendingBudget = new Map();
+// Pending riwayat search per chatId
+const pendingSearch = new Map();
 const PENDING_TIMEOUT_MS = 5 * 60 * 1000;
 function setPendingChallenge(chatId, data) {
   pendingChallenge.set(String(chatId), { ...data, ts: Date.now() });
@@ -43,6 +47,28 @@ function getPendingChallenge(chatId) {
   return p;
 }
 function clearPendingChallenge(chatId) { pendingChallenge.delete(String(chatId)); }
+
+function setPendingBudget(chatId, data) {
+  pendingBudget.set(String(chatId), { ...data, ts: Date.now() });
+}
+function getPendingBudget(chatId) {
+  const p = pendingBudget.get(String(chatId));
+  if (!p) return null;
+  if (Date.now() - p.ts > PENDING_TIMEOUT_MS) { pendingBudget.delete(String(chatId)); return null; }
+  return p;
+}
+function clearPendingBudget(chatId) { pendingBudget.delete(String(chatId)); }
+
+function setPendingSearch(chatId) {
+  pendingSearch.set(String(chatId), { ts: Date.now() });
+}
+function getPendingSearch(chatId) {
+  const p = pendingSearch.get(String(chatId));
+  if (!p) return null;
+  if (Date.now() - p.ts > PENDING_TIMEOUT_MS) { pendingSearch.delete(String(chatId)); return null; }
+  return p;
+}
+function clearPendingSearch(chatId) { pendingSearch.delete(String(chatId)); }
 
 function renderBar(cur, tgt) {
   const p = Math.max(0, Math.min(100, Math.round((cur / (tgt || 1)) * 100)));
@@ -295,11 +321,10 @@ function getTxMonth(t) {
   return '';
 }
 
-// Budget warning: check if expense category exceeds 80% or 100% of monthly budget
-async function checkBudgetWarnings(chatId, uid, db, botToken, category) {
-  if (!db || !uid || !category) return null;
+// Budget warning: check if expense matches any custom budget by keyword
+async function checkBudgetWarnings(chatId, uid, db, botToken, category, description) {
+  if (!db || !uid) return null;
   try {
-    const normTarget = normalizeBudgetCategory(category);
     const budgetDocs = [];
     const budgetSnap = await db.collection('users').doc(uid).collection('budgets').get();
     budgetDocs.push(...budgetSnap.docs);
@@ -312,22 +337,25 @@ async function checkBudgetWarnings(chatId, uid, db, botToken, category) {
     }
     if (budgetDocs.length === 0) return null;
 
-    const budgetDoc = budgetDocs.find(d => {
-      const c = d.data().category || '';
-      return normalizeBudgetCategory(c).toLowerCase() === normTarget.toLowerCase() ||
-             c.toLowerCase() === category.toLowerCase();
+    // Match expense to budgets by keyword
+    const expenseText = `${description || ''} ${category || ''}`.toLowerCase();
+    const matchedBudgets = budgetDocs.filter(d => {
+      const b = d.data();
+      const keywords = b.keywords || [];
+      // Also match by customLabel words as fallback
+      const label = (b.customLabel || b.rawCategory || b.category || '').toLowerCase();
+      const labelWords = label.split(/\s+/).filter(w => w.length >= 2);
+      const allKeywords = [...keywords.map(k => k.toLowerCase()), ...labelWords];
+      return allKeywords.some(kw => expenseText.includes(kw));
     });
-    if (!budgetDoc) return null;
 
-    const budget = budgetDoc.data();
-    const limit = Number(budget.monthlyLimit || budget.amount) || 0;
-    if (limit <= 0) return null;
+    if (matchedBudgets.length === 0) return null;
 
     const now = new Date();
     const nowJakarta = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(now);
-    const monthKey = nowJakarta.slice(0, 7); // 'YYYY-MM'
+    const monthKey = nowJakarta.slice(0, 7);
 
-    // Fetch user transactions (checking both uid and tg_<chatId>) with doc ID deduplication
+    // Fetch user transactions
     const seenTx = new Set();
     const txDocs = [];
     const txSnap = await db.collection('users').doc(uid).collection('transactions').get();
@@ -339,45 +367,55 @@ async function checkBudgetWarnings(chatId, uid, db, botToken, category) {
       });
     }
 
-    let total = 0;
-    txDocs.forEach(d => {
-      const t = d.data();
-      const isExpense = (t.type || '').toLowerCase() === 'expense';
-      if (isExpense && getTxMonth(t) === monthKey) {
-        if (normalizeBudgetCategory(t.category).toLowerCase() === normTarget.toLowerCase()) {
-          total += Number(t.amount) || 0;
+    let firstMatch = null;
+    for (const bDoc of matchedBudgets) {
+      const budget = bDoc.data();
+      const limit = Number(budget.monthlyLimit || budget.amount) || 0;
+      if (limit <= 0) continue;
+      const bKeywords = (budget.keywords || []).map(k => k.toLowerCase());
+      const bLabel = (budget.customLabel || budget.rawCategory || budget.category || '').toLowerCase();
+      const bLabelWords = bLabel.split(/\s+/).filter(w => w.length >= 2);
+      const allKw = [...bKeywords, ...bLabelWords];
+
+      let total = 0;
+      txDocs.forEach(d => {
+        const t = d.data();
+        const isExpense = (t.type || '').toLowerCase() === 'expense';
+        if (isExpense && getTxMonth(t) === monthKey) {
+          const txText = `${t.description || ''} ${t.category || ''}`.toLowerCase();
+          if (allKw.some(kw => txText.includes(kw))) {
+            total += Number(t.amount) || 0;
+          }
         }
+      });
+
+      const pct = Math.round((total / limit) * 100);
+      const warn80Key = `warn80_${monthKey}`;
+      const warn100Key = `warn100_${monthKey}`;
+      const catLabel = budget.customLabel || budget.rawCategory || budget.category || 'Budget';
+
+      if (pct >= 100 && !budget[warn100Key]) {
+        await bDoc.ref.set({ [warn100Key]: true, [warn80Key]: true }, { merge: true });
+        await sendTelegramMessage(botToken, chatId,
+          `🚨 *Budget ${escapeMarkdown(catLabel)} habis!*\n\n` +
+          `Bulan ini kamu sudah keluar *${formatRupiah(total)}* dari batas *${formatRupiah(limit)}* (${pct}%).\n` +
+          `Yuk tahan dulu pengeluaran ${escapeMarkdown(catLabel)} ya! 💪`
+        );
+      } else if (pct >= 80 && !budget[warn80Key]) {
+        await bDoc.ref.set({ [warn80Key]: true }, { merge: true });
+        await sendTelegramMessage(botToken, chatId,
+          `⚠️ *Budget ${escapeMarkdown(catLabel)} hampir habis!*\n\n` +
+          `Sudah terpakai *${formatRupiah(total)}* dari *${formatRupiah(limit)}* (${pct}%).\n` +
+          `Sisa budget: *${formatRupiah(Math.max(0, limit - total))}* — hati-hati ya!`
+        );
       }
-    });
 
-    const pct = Math.round((total / limit) * 100);
-    const warn80Key = `warn80_${monthKey}`;
-    const warn100Key = `warn100_${monthKey}`;
-    const catLabel = CATEGORY_LABELS[normTarget] || budget.rawCategory || normTarget;
-
-    if (pct >= 100 && !budget[warn100Key]) {
-      await budgetDoc.ref.set({ [warn100Key]: true, [warn80Key]: true }, { merge: true });
-      await sendTelegramMessage(botToken, chatId,
-        `🚨 *Budget ${escapeMarkdown(catLabel)} habis!*\n\n` +
-        `Bulan ini kamu sudah keluar *${formatRupiah(total)}* dari batas *${formatRupiah(limit)}* (${pct}%).\n` +
-        `Yuk tahan dulu pengeluaran ${escapeMarkdown(catLabel)} ya! 💪`
-      );
-    } else if (pct >= 80 && !budget[warn80Key]) {
-      await budgetDoc.ref.set({ [warn80Key]: true }, { merge: true });
-      await sendTelegramMessage(botToken, chatId,
-        `⚠️ *Budget ${escapeMarkdown(catLabel)} hampir habis!*\n\n` +
-        `Sudah terpakai *${formatRupiah(total)}* dari *${formatRupiah(limit)}* (${pct}%).\n` +
-        `Sisa budget: *${formatRupiah(Math.max(0, limit - total))}* — hati-hati ya!`
-      );
+      if (!firstMatch) {
+        firstMatch = { category: catLabel, label: catLabel, total, limit, pct };
+      }
     }
 
-    return {
-      category: normTarget,
-      label: catLabel,
-      total,
-      limit,
-      pct
-    };
+    return firstMatch;
   } catch (err) {
     console.error('budgetWarning error:', err?.message);
     return null;
@@ -571,6 +609,40 @@ export async function handleTelegramUpdate(update, db, botToken) {
       return handleTantanganCallback(data, botToken, chatId, messageId, uid, userFrom, db);
     }
 
+    // --- Budget inline menu callbacks (bdg:*) ---
+    if (data.startsWith('bdg:')) {
+      await answerTelegramCallback(botToken, cb.id);
+      const messageId = cb.message?.message_id;
+      return handleBudgetCallback(data, botToken, chatId, messageId, uid, db);
+    }
+
+    // --- Riwayat search callbacks (cr:*) ---
+    if (data.startsWith('cr:')) {
+      await answerTelegramCallback(botToken, cb.id);
+      if (data === 'cr:cari') {
+        setPendingSearch(chatId);
+        return sendTelegramMessage(botToken, chatId, '🔍 *Cari Transaksi*\n\nKetik kata kunci pencarian.\nContoh: `kopi`, `laptop`, `gaji`');
+      }
+      if (data === 'cr:kembali') {
+        // Re-send riwayat
+        const snap = await db.collection('users').doc(uid).collection('transactions').orderBy('date', 'desc').limit(5).get();
+        if (snap.empty) return sendTelegramMessage(botToken, chatId, '📜 *Belum ada transaksi.*\nMulai catat, misal: `25k makan siang`');
+        let out = '📜 *5 Transaksi Terakhir:*\n\n';
+        let i = 1;
+        snap.forEach((d) => {
+          const t = d.data();
+          const sign = t.type === 'Income' ? '🟢 +' : '🔴 -';
+          out += `${i}. ${sign}*${formatRupiah(t.amount)}*\n   ${escapeMarkdown(t.description || t.category)} • ${formatShortDate(t.date)}\n\n`;
+          i++;
+        });
+        out += '💡 _Salah catat? Ketik `/batal` untuk hapus yang terakhir._';
+        return sendTelegramMessage(botToken, chatId, out, {
+          reply_markup: { inline_keyboard: [[{ text: '🔍 Cari', callback_data: 'cr:cari' }]] }
+        });
+      }
+      return;
+    }
+
     await answerTelegramCallback(botToken, cb.id);
     return;
   }
@@ -652,7 +724,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
         const docRef = await db.collection('users').doc(uid).collection('transactions').add(tx);
         txId = docRef.id;
         await maybeSendLinkNudge(chatId, uid, db, botToken);
-        if (tx.type === 'Expense') budgetInfo = await checkBudgetWarnings(chatId, uid, db, botToken, tx.category);
+        if (tx.type === 'Expense') budgetInfo = await checkBudgetWarnings(chatId, uid, db, botToken, tx.category, tx.description);
         await handleStreakAfterTransaction(chatId, uid, db, botToken);
       }
 
@@ -905,6 +977,65 @@ export async function handleTelegramUpdate(update, db, botToken) {
     migrateTelegramDataToUser(chatId, uid, db).catch(() => {});
   }
 
+  // Intercept text input for pending budget creation
+  const pendingB = getPendingBudget(chatId);
+  if (pendingB && !text.startsWith('/')) {
+    if (pendingB.step === 'label') {
+      const label = text.slice(0, 60).trim();
+      if (!label) return sendTelegramMessage(botToken, chatId, '❌ Label tidak boleh kosong. Ketik ulang:');
+      setPendingBudget(chatId, { step: 'amount', label });
+      return sendTelegramMessage(botToken, chatId,
+        `💰 Budget: *${escapeMarkdown(label)}*\n\nLimitnya berapa? Ketik nominal.\nContoh: \`500k\`, \`1.5jt\`, \`200000\``,
+        { reply_markup: { inline_keyboard: [[{ text: '❌ Batal', callback_data: 'bdg:list' }]] } }
+      );
+    }
+    if (pendingB.step === 'amount') {
+      const limit = parseAmount(text);
+      if (!limit || limit <= 0) return sendTelegramMessage(botToken, chatId, '❌ Nominal tidak valid. Coba lagi.\nContoh: `500k`, `1.5jt`');
+      const label = pendingB.label;
+      const keywords = label.toLowerCase().split(/\s+/)
+        .map(w => w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')).filter(Boolean)
+        .filter(w => w.length >= 3 && !['beli', 'membeli', 'buat', 'untuk'].includes(w));
+      const guessedCat = guessBudgetCategory(label).category.toLowerCase();
+      if (guessedCat !== 'other' && !keywords.includes(guessedCat)) keywords.push(guessedCat);
+      if (db) {
+        await db.collection('users').doc(uid).collection('budgets').add({
+          customLabel: label, keywords, monthlyLimit: limit, amount: limit,
+          category: guessBudgetCategory(label).category, rawCategory: label,
+          createdAt: new Date().toISOString()
+        });
+      }
+      clearPendingBudget(chatId);
+      return sendTelegramMessage(botToken, chatId,
+        `✅ *Budget "${escapeMarkdown(label)}" dibuat!*\nBatas: *${formatRupiah(limit)}*\nKeyword: ${keywords.map(k => `\`${k}\``).join(', ') || '_—_'}`,
+        { reply_markup: { inline_keyboard: [[{ text: '⬅️ Daftar Budget', callback_data: 'bdg:list' }]] } }
+      );
+    }
+    if (pendingB.step === 'limit' && pendingB.budgetId) {
+      const limit = parseAmount(text);
+      if (!limit || limit <= 0) return sendTelegramMessage(botToken, chatId, '❌ Nominal tidak valid. Coba lagi.');
+      if (db) {
+        const bDocRef = db.collection('users').doc(uid).collection('budgets').doc(pendingB.budgetId);
+        await bDocRef.ref.set(
+          { monthlyLimit: limit, amount: limit, updatedAt: new Date().toISOString() }, { merge: true }
+        );
+      }
+      clearPendingBudget(chatId);
+      return sendTelegramMessage(botToken, chatId,
+        `✅ *Limit diubah menjadi ${formatRupiah(limit)}*`,
+        { reply_markup: { inline_keyboard: [[{ text: '⬅️ Daftar Budget', callback_data: 'bdg:list' }]] } }
+      );
+    }
+    clearPendingBudget(chatId);
+  }
+
+  // Intercept text input for riwayat search
+  const pendingS = getPendingSearch(chatId);
+  if (pendingS && !text.startsWith('/')) {
+    clearPendingSearch(chatId);
+    return handleRiwayatSearch(text.trim(), chatId, uid, db, botToken);
+  }
+
   if (text === '/unlink' || text === '/putus' || text.startsWith('/unlink@') || text.startsWith('/putus@')) {
     await unlinkAccount(uid, db);
     return sendTelegramMessage(botToken, chatId, '🔌 *Koneksi diputus*\nAkun Telegram tidak lagi terhubung ke website Pocketplan.');
@@ -1094,7 +1225,9 @@ export async function handleTelegramUpdate(update, db, botToken) {
         i++;
       });
       out += '💡 _Salah catat? Ketik `/batal` untuk hapus yang terakhir._';
-      return sendTelegramMessage(botToken, chatId, out);
+      return sendTelegramMessage(botToken, chatId, out, {
+        reply_markup: { inline_keyboard: [[{ text: '🔍 Cari', callback_data: 'cr:cari' }]] }
+      });
     }
     return sendTelegramMessage(botToken, chatId, 'Mode demo aktif.');
   }
@@ -1420,158 +1553,71 @@ export async function handleTelegramUpdate(update, db, botToken) {
     );
   }
 
-  // /budget command — list, set, or delete budget per category
+  // /budget command — custom label per item, inline menu
   if (cmdText === '/budget' || cmdText.startsWith('/budget ')) {
     const args = text.replace(/^\/budget(@\S+)?\s*/i, '').trim();
     if (!db) return sendTelegramMessage(botToken, chatId, 'Mode demo aktif.');
 
-    // /budget hapus <category>
+    // /budget hapus <label>
     const hapusMatch = args.match(/^hapus\s+(.+)/i);
     if (hapusMatch) {
-      const rawCat = hapusMatch[1].trim();
-      const normCat = normalizeBudgetCategory(rawCat);
+      const rawLabel = hapusMatch[1].trim().toLowerCase();
       const userRef = db.collection('users').doc(uid);
       let snap = await userRef.collection('budgets').get();
       if (snap.empty && uid !== `tg_${chatId}`) {
         snap = await db.collection('users').doc(`tg_${chatId}`).collection('budgets').get();
       }
       const targetDoc = snap.docs.find(d => {
-        const c = d.data().category || '';
-        return normalizeBudgetCategory(c).toLowerCase() === normCat.toLowerCase() ||
-               c.toLowerCase() === rawCat.toLowerCase();
+        const b = d.data();
+        const label = (b.customLabel || b.rawCategory || b.category || '').toLowerCase();
+        return label === rawLabel || label.includes(rawLabel);
       });
-      if (!targetDoc) return sendTelegramMessage(botToken, chatId, `🤷 Budget *${escapeMarkdown(rawCat)}* tidak ditemukan.`);
+      if (!targetDoc) return sendTelegramMessage(botToken, chatId, `🤷 Budget *${escapeMarkdown(hapusMatch[1].trim())}* tidak ditemukan.`);
+      const catLabel = targetDoc.data().customLabel || targetDoc.data().rawCategory || targetDoc.data().category || hapusMatch[1].trim();
       await targetDoc.ref.delete();
-      const catLabel = CATEGORY_LABELS[normCat] || targetDoc.data().category || rawCat;
       return sendTelegramMessage(botToken, chatId, `🗑️ Budget *${escapeMarkdown(catLabel)}* dihapus.`, { reply_markup: KEYBOARD });
     }
 
-    // /budget <category> <amount> — set budget
+    // /budget <label> <amount> — set budget with custom label
     const setMatch = args.match(/^(.+?)\s+([\d.,]+(?:k|rb|jt|juta|ribu)?(?:\d*)?)$/i);
     if (setMatch) {
-      const rawCat = setMatch[1].trim();
-      const guessed = guessBudgetCategory(rawCat);
-      const normCat = guessed.category;
+      const rawLabel = setMatch[1].trim();
       const limit = parseAmount(setMatch[2]);
       if (!limit || limit <= 0) return sendTelegramMessage(botToken, chatId, '❌ Nominal budget tidak valid.');
 
+      const keywords = rawLabel.toLowerCase().split(/\s+/)
+        .map(w => w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')).filter(Boolean)
+        .filter(w => w.length >= 3 && !['beli', 'membeli', 'buat', 'untuk'].includes(w));
+      // Also add guessed category as keyword for cross-language matching
+      const guessedCat = guessBudgetCategory(rawLabel).category.toLowerCase();
+      if (guessedCat !== 'other' && !keywords.includes(guessedCat)) keywords.push(guessedCat);
+
       const userRef = db.collection('users').doc(uid);
       const snap = await userRef.collection('budgets').get();
-      const existingDoc = snap.docs.find(d => {
-        const c = d.data().category || '';
-        return normalizeBudgetCategory(c).toLowerCase() === normCat.toLowerCase() ||
-               c.toLowerCase() === rawCat.toLowerCase();
-      });
+      const existingDoc = snap.docs.find(d => (d.data().customLabel || '').toLowerCase() === rawLabel.toLowerCase());
+
+      const budgetData = {
+        customLabel: rawLabel, keywords, monthlyLimit: limit, amount: limit,
+        category: guessBudgetCategory(rawLabel).category, rawCategory: rawLabel
+      };
 
       if (!existingDoc) {
-        await userRef.collection('budgets').add({
-          category: normCat,
-          rawCategory: rawCat,
-          monthlyLimit: limit,
-          amount: limit,
-          createdAt: new Date().toISOString()
-        });
+        await userRef.collection('budgets').add({ ...budgetData, createdAt: new Date().toISOString() });
       } else {
-        await existingDoc.ref.set({
-          category: normCat,
-          rawCategory: rawCat,
-          monthlyLimit: limit,
-          amount: limit,
-          updatedAt: new Date().toISOString()
-        }, { merge: true });
+        await existingDoc.ref.set({ ...budgetData, updatedAt: new Date().toISOString() }, { merge: true });
       }
 
-      const label = CATEGORY_LABELS[normCat] || normCat;
-      const icon = CATEGORY_ICONS[normCat] || '💰';
-      let confirmationPrefix = '';
-      if (guessed.isGuessed) {
-        confirmationPrefix = `Maksudmu kategori *${escapeMarkdown(normCat)}*? Budget dibuat untuk *${escapeMarkdown(normCat)}*.\n\n`;
-      }
       return sendTelegramMessage(botToken, chatId,
-        `${confirmationPrefix}${icon} *Budget ${escapeMarkdown(label)} diatur!*\n` +
-        `Batas bulanan: *${formatRupiah(limit)}*\n\n` +
+        `💰 *Budget "${escapeMarkdown(rawLabel)}" diatur!*\n` +
+        `Batas bulanan: *${formatRupiah(limit)}*\n` +
+        `Keyword: ${keywords.map(k => `\`${k}\``).join(', ') || '_—_'}\n\n` +
         `_Pocky akan kirim peringatan otomatis jika pengeluaran mencapai 80% dan 100%!_`,
         { reply_markup: KEYBOARD }
       );
     }
 
-    // /budget — list all budgets
-    try {
-      const budgetMap = new Map();
-      const budgetSnap = await db.collection('users').doc(uid).collection('budgets').get();
-      budgetSnap.docs.forEach(d => {
-        const norm = normalizeBudgetCategory(d.data().category);
-        budgetMap.set(norm, d.data());
-      });
-      if (uid !== `tg_${chatId}`) {
-        const altSnap = await db.collection('users').doc(`tg_${chatId}`).collection('budgets').get();
-        if (!altSnap.empty) {
-          migrateTelegramDataToUser(chatId, uid, db).catch(() => {});
-          altSnap.docs.forEach(d => {
-            const norm = normalizeBudgetCategory(d.data().category);
-            if (!budgetMap.has(norm)) {
-              budgetMap.set(norm, d.data());
-            }
-          });
-        }
-      }
-
-      if (budgetMap.size === 0) {
-        return sendTelegramMessage(botToken, chatId,
-          '💰 *Belum ada budget*\n\n' +
-          'Atur batas pengeluaran bulanan:\n' +
-          '• `/budget makan 200rb`\n' +
-          '• `/budget transport 500k`\n' +
-          '• `/budget belanja 1jt`\n\n' +
-          'Hapus budget:\n' +
-          '• `/budget hapus makan`'
-        );
-      }
-
-      const now = new Date();
-      const nowJakarta = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(now);
-      const currentMonthPrefix = nowJakarta.slice(0, 7);
-
-      // Fetch user transactions (checking both uid and tg_<chatId>) with doc ID deduplication
-      const seenTx = new Set();
-      const txDocs = [];
-      const txSnap = await db.collection('users').doc(uid).collection('transactions').get();
-      txSnap.docs.forEach(d => { seenTx.add(d.id); txDocs.push(d); });
-      if (uid !== `tg_${chatId}`) {
-        const altTxSnap = await db.collection('users').doc(`tg_${chatId}`).collection('transactions').get();
-        altTxSnap.docs.forEach(d => {
-          if (!seenTx.has(d.id)) { seenTx.add(d.id); txDocs.push(d); }
-        });
-      }
-
-      const spending = {};
-      txDocs.forEach(d => {
-        const t = d.data();
-        const isExpense = (t.type || '').toLowerCase() === 'expense';
-        if (isExpense && getTxMonth(t) === currentMonthPrefix) {
-          const norm = normalizeBudgetCategory(t.category);
-          spending[norm] = (spending[norm] || 0) + (Number(t.amount) || 0);
-        }
-      });
-
-      let out = `💰 *Budget Bulan Ini (${currentMonthPrefix})*\n\n`;
-      budgetMap.forEach((b, norm) => {
-        const spent = spending[norm] || 0;
-        const lim = Number(b.monthlyLimit || b.amount) || 0;
-        const pct = lim > 0 ? Math.round((spent / lim) * 100) : 0;
-        const statusIcon = pct >= 100 ? '🚨' : pct >= 80 ? '⚠️' : '✅';
-        const catIcon = CATEGORY_ICONS[norm] || '📁';
-        const catLabel = CATEGORY_LABELS[norm] || b.rawCategory || norm;
-        out += `${statusIcon} ${catIcon} *${escapeMarkdown(catLabel)}*\n`;
-        out += `   ${formatRupiah(spent)} / ${formatRupiah(lim)} (${pct}%)\n`;
-        out += `   ${renderBar(spent, lim)}\n\n`;
-      });
-      out += '_Atur: `/budget makan 200rb` • Hapus: `/budget hapus makan`_';
-      return sendTelegramMessage(botToken, chatId, out, { reply_markup: KEYBOARD });
-    } catch (err) {
-      console.error('budget list error:', err?.message);
-      return sendTelegramMessage(botToken, chatId, `⚠️ Gagal memuat budget: ${err?.message}`);
-    }
+    // /budget (no args) — show inline menu
+    return handleBudgetList(chatId, uid, db, botToken, null);
   }
 
   // Bare commands without arguments → friendly guidance
@@ -1605,7 +1651,7 @@ export async function handleTelegramUpdate(update, db, botToken) {
     if (db) await db.collection('users').doc(uid).collection('transactions').add(parsed);
     await maybeSendLinkNudge(chatId, uid, db, botToken);
     if (parsed.type === 'Expense') {
-      budgetInfo = await checkBudgetWarnings(chatId, uid, db, botToken, parsed.category);
+      budgetInfo = await checkBudgetWarnings(chatId, uid, db, botToken, parsed.category, parsed.description);
     }
     await handleStreakAfterTransaction(chatId, uid, db, botToken);
     if (parsed.type === 'Income') {
@@ -1885,6 +1931,151 @@ async function handleTngHapus(cId, botToken, chatId, messageId, db) {
       `🗑️ *Tantangan berhasil dibatalkan/dihapus:*\n📌 *${escapeMarkdown(cData.title)}*`,
       { reply_markup: { inline_keyboard: [[{ text: '⬅️ Menu Tantangan', callback_data: 'tng:menu' }]] } });
   } catch (err) { console.error('tng:hapus error:', err?.message); }
+}
+
+// --- Budget inline menu handler (bdg:*) ---
+async function handleBudgetList(chatId, uid, db, botToken, messageId) {
+  if (!db) return;
+  try {
+    const budgetDocs = [];
+    const budgetSnap = await db.collection('users').doc(uid).collection('budgets').get();
+    budgetDocs.push(...budgetSnap.docs);
+    if (uid !== `tg_${chatId}`) {
+      const altSnap = await db.collection('users').doc(`tg_${chatId}`).collection('budgets').get();
+      if (!altSnap.empty) {
+        migrateTelegramDataToUser(chatId, uid, db).catch(() => {});
+        altSnap.docs.forEach(d => { if (!budgetDocs.some(x => x.id === d.id)) budgetDocs.push(d); });
+      }
+    }
+    const menuKb = { inline_keyboard: [[{ text: '➕ Buat Budget Baru', callback_data: 'bdg:buat' }]] };
+    if (budgetDocs.length === 0) {
+      const txt = '💰 *BUDGET SAYA*\n\nBelum ada budget. Buat budget baru!';
+      if (messageId) return editTelegramMessage(botToken, chatId, messageId, txt, { reply_markup: menuKb });
+      return sendTelegramMessage(botToken, chatId, txt, { reply_markup: menuKb });
+    }
+    const now = new Date();
+    const monthKey = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(now).slice(0, 7);
+    const seenTx = new Set(); const txDocs = [];
+    const txSnap = await db.collection('users').doc(uid).collection('transactions').get();
+    txSnap.docs.forEach(d => { seenTx.add(d.id); txDocs.push(d); });
+    if (uid !== `tg_${chatId}`) {
+      const altTxSnap = await db.collection('users').doc(`tg_${chatId}`).collection('transactions').get();
+      altTxSnap.docs.forEach(d => { if (!seenTx.has(d.id)) { seenTx.add(d.id); txDocs.push(d); } });
+    }
+    let out = `💰 *Budget Bulan Ini (${monthKey})*\n\n`;
+    const buttons = [];
+    for (const bDoc of budgetDocs) {
+      const b = bDoc.data();
+      const lim = Number(b.monthlyLimit || b.amount) || 0;
+      const label = b.customLabel || b.rawCategory || b.category || 'Budget';
+      const allKw = [...(b.keywords || []).map(k => k.toLowerCase()), ...label.toLowerCase().split(/\s+/).filter(w => w.length >= 2)];
+      let spent = 0;
+      txDocs.forEach(d => {
+        const t = d.data();
+        if ((t.type || '').toLowerCase() === 'expense' && getTxMonth(t) === monthKey) {
+          const txText = `${t.description || ''} ${t.category || ''}`.toLowerCase();
+          if (allKw.some(kw => txText.includes(kw))) spent += Number(t.amount) || 0;
+        }
+      });
+      const pct = lim > 0 ? Math.round((spent / lim) * 100) : 0;
+      const si = pct >= 100 ? '🚨' : pct >= 80 ? '⚠️' : '✅';
+      out += `${si} *${escapeMarkdown(label)}*\n   ${formatRupiah(spent)} / ${formatRupiah(lim)} (${pct}%)\n   ${renderBar(spent, lim)}\n\n`;
+      buttons.push([{ text: `👁️ ${label.slice(0, 28)}`, callback_data: `bdg:detail:${bDoc.id}` }]);
+    }
+    buttons.push([{ text: '➕ Buat Budget Baru', callback_data: 'bdg:buat' }]);
+    if (messageId) return editTelegramMessage(botToken, chatId, messageId, out, { reply_markup: { inline_keyboard: buttons } });
+    return sendTelegramMessage(botToken, chatId, out, { reply_markup: { inline_keyboard: buttons } });
+  } catch (err) {
+    console.error('budget list error:', err?.message);
+    return sendTelegramMessage(botToken, chatId, `⚠️ Gagal memuat budget: ${err?.message}`);
+  }
+}
+
+async function handleBudgetCallback(data, botToken, chatId, messageId, uid, db) {
+  if (data === 'bdg:list' || data === 'bdg:kembali') {
+    clearPendingBudget(chatId);
+    return handleBudgetList(chatId, uid, db, botToken, messageId);
+  }
+  if (data === 'bdg:buat') {
+    setPendingBudget(chatId, { step: 'label' });
+    const txt = '💰 *Buat Budget Baru*\n\nMau budget untuk apa? Ketik labelnya.\nContoh: `beli laptop`, `makan luar`, `transport`';
+    if (messageId) return editTelegramMessage(botToken, chatId, messageId, txt, { reply_markup: { inline_keyboard: [[{ text: '❌ Batal', callback_data: 'bdg:list' }]] } });
+    return sendTelegramMessage(botToken, chatId, txt);
+  }
+  if (data.startsWith('bdg:detail:')) {
+    const bId = data.replace('bdg:detail:', '');
+    if (!db) return;
+    try {
+      const bDoc = db.collection('users').doc(uid).collection('budgets').doc(bId);
+      const b = bDoc.data();
+      if (!b || !b.customLabel) { if (messageId) return editTelegramMessage(botToken, chatId, messageId, '❌ Budget tidak ditemukan.'); return; }
+      const label = b.customLabel || b.rawCategory || b.category || 'Budget';
+      const lim = Number(b.monthlyLimit || b.amount) || 0;
+      const keywords = b.keywords || [];
+      const monthKey = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date()).slice(0, 7);
+      const txSnap = await db.collection('users').doc(uid).collection('transactions').get();
+      const allKw = [...keywords.map(k => k.toLowerCase()), ...label.toLowerCase().split(/\s+/).filter(w => w.length >= 2)];
+      let spent = 0;
+      txSnap.docs.forEach(d => {
+        const t = d.data();
+        if ((t.type || '').toLowerCase() === 'expense' && getTxMonth(t) === monthKey) {
+          const txText = `${t.description || ''} ${t.category || ''}`.toLowerCase();
+          if (allKw.some(kw => txText.includes(kw))) spent += Number(t.amount) || 0;
+        }
+      });
+      const pct = lim > 0 ? Math.round((spent / lim) * 100) : 0;
+      const si = pct >= 100 ? '🚨' : pct >= 80 ? '⚠️' : '✅';
+      const txt = `${si} *${escapeMarkdown(label)}*\nTerpakai: ${formatRupiah(spent)} / ${formatRupiah(lim)} (${pct}%)\nKeyword: ${keywords.map(k => `\`${k}\``).join(', ') || '_—_'}`;
+      const btns = [[{ text: '✏️ Ubah Limit', callback_data: `bdg:limit:${bId}` }, { text: '🗑️ Hapus', callback_data: `bdg:hapus:${bId}` }], [{ text: '⬅️ Kembali', callback_data: 'bdg:list' }]];
+      if (messageId) return editTelegramMessage(botToken, chatId, messageId, txt, { reply_markup: { inline_keyboard: btns } });
+    } catch (err) { console.error('bdg:detail error:', err?.message); }
+  }
+  if (data.startsWith('bdg:hapus:')) {
+    const bId = data.replace('bdg:hapus:', '');
+    if (!db) return;
+    try {
+      const bRef = db.collection('users').doc(uid).collection('budgets').doc(bId);
+      const label = bRef.data()?.customLabel || bRef.data()?.rawCategory || 'Budget';
+      await bRef.ref.delete();
+      if (messageId) return editTelegramMessage(botToken, chatId, messageId, `🗑️ Budget *${escapeMarkdown(label)}* dihapus.`, { reply_markup: { inline_keyboard: [[{ text: '⬅️ Kembali', callback_data: 'bdg:list' }]] } });
+    } catch (err) { console.error('bdg:hapus error:', err?.message); }
+  }
+  if (data.startsWith('bdg:limit:')) {
+    const bId = data.replace('bdg:limit:', '');
+    setPendingBudget(chatId, { step: 'limit', budgetId: bId });
+    const txt = '✏️ *Ubah Limit Budget*\n\nKetik nominal baru.\nContoh: `500k`, `1.5jt`';
+    if (messageId) return editTelegramMessage(botToken, chatId, messageId, txt, { reply_markup: { inline_keyboard: [[{ text: '❌ Batal', callback_data: `bdg:detail:${bId}` }]] } });
+  }
+}
+
+// --- Riwayat search handler (cr:*) ---
+async function handleRiwayatSearch(keyword, chatId, uid, db, botToken) {
+  if (!db || !uid) return;
+  const kw = keyword.toLowerCase();
+  const txSnap = await db.collection('users').doc(uid).collection('transactions').get();
+  const results = [];
+  txSnap.docs.forEach(d => {
+    const t = d.data();
+    const txText = `${t.description || ''} ${t.category || ''}`.toLowerCase();
+    if (txText.includes(kw)) results.push(t);
+  });
+  results.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const top = results.slice(0, 10);
+  if (top.length === 0) {
+    return sendTelegramMessage(botToken, chatId,
+      `🔍 Tidak ketemu transaksi dengan kata "${escapeMarkdown(keyword)}".\nCoba kata lain.`,
+      { reply_markup: { inline_keyboard: [[{ text: '⬅️ Kembali ke Riwayat', callback_data: 'cr:kembali' }]] } }
+    );
+  }
+  let out = `🔍 *Hasil pencarian "${escapeMarkdown(keyword)}":*\n\n`;
+  for (const t of top) {
+    const sign = t.type === 'Income' ? '🟢 +' : '🔴 -';
+    out += `📅 ${formatShortDate(t.date)} — ${sign}*${formatRupiah(t.amount)}*\n   ${escapeMarkdown(t.description || t.category)}\n\n`;
+  }
+  if (results.length > 10) out += `_...dan ${results.length - 10} lagi_\n`;
+  return sendTelegramMessage(botToken, chatId, out,
+    { reply_markup: { inline_keyboard: [[{ text: '⬅️ Kembali ke Riwayat', callback_data: 'cr:kembali' }]] } }
+  );
 }
 
 async function sendSaldo(chatId, uid, db, botToken) {

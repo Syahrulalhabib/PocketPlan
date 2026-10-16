@@ -891,6 +891,13 @@
   border-radius: 24px;
 }
 
+/* Pocky mascot above auth form — mobile only */
+.auth-mascot {
+  display: none;
+  justify-content: center;
+  align-items: center;
+}
+
 .auth-header {
   text-align: center;
 }

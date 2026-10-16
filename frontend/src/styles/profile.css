@@ -70,6 +70,15 @@
   padding: 6px 14px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.28);
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .profile-top-title {
+    font-size: 12px;
+    padding: 5px 10px;
+    gap: 5px;
+  }
 }
 
 .theme-dark .profile-top-title {

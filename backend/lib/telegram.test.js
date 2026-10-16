@@ -572,7 +572,7 @@ async function testBot() {
 
   replies = [];
   await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/budget', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
-  assert(replies.some(r => (r.text || '').includes('Transportasi')), 'Budget list shows Transportasi');
+  assert(replies.some(r => (r.text || '').includes('transport')), 'Budget list shows transport');
 
   replies = [];
   await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/catat 180k bensin', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
@@ -600,13 +600,13 @@ async function testBot() {
 
   // Point 11: Multi-category budget synchronization test across all 7 non-food categories
   const catTests = [
-    { name: 'Transport', set: '/budget transport 500k', catat: '/catat 50k bensin', expectedLabel: 'Transportasi', expectedSpent: '50.000' },
-    { name: 'Shopping', set: '/budget shopping 1jt', catat: '/catat 100k belanja baju', expectedLabel: 'Belanja', expectedSpent: '100.000' },
-    { name: 'Bills', set: '/budget bills 300k', catat: '/catat 150k tagihan listrik', expectedLabel: 'Tagihan', expectedSpent: '150.000' },
-    { name: 'Health', set: '/budget health 200k', catat: '/catat 50k obat apotek', expectedLabel: 'Kesehatan', expectedSpent: '50.000' },
-    { name: 'Entertainment', set: '/budget entertainment 400k', catat: '/catat 60k nonton bioskop', expectedLabel: 'Hiburan', expectedSpent: '60.000' },
-    { name: 'Education', set: '/budget education 500k', catat: '/catat 80k buku kuliah', expectedLabel: 'Pendidikan', expectedSpent: '80.000' },
-    { name: 'Charity', set: '/budget charity 100k', catat: '/catat 20k donasi infaq', expectedLabel: 'Amal', expectedSpent: '20.000' }
+    { name: 'Transport', set: '/budget transport 500k', catat: '/catat 50k bensin', expectedLabel: 'transport', expectedSpent: '50.000' },
+    { name: 'Shopping', set: '/budget shopping 1jt', catat: '/catat 100k belanja baju', expectedLabel: 'shopping', expectedSpent: '100.000' },
+    { name: 'Bills', set: '/budget bills 300k', catat: '/catat 150k tagihan listrik', expectedLabel: 'bills', expectedSpent: '150.000' },
+    { name: 'Health', set: '/budget health 200k', catat: '/catat 50k obat apotek', expectedLabel: 'health', expectedSpent: '50.000' },
+    { name: 'Entertainment', set: '/budget entertainment 400k', catat: '/catat 60k nonton bioskop', expectedLabel: 'entertainment', expectedSpent: '60.000' },
+    { name: 'Education', set: '/budget education 500k', catat: '/catat 80k buku kuliah', expectedLabel: 'education', expectedSpent: '80.000' },
+    { name: 'Charity', set: '/budget charity 100k', catat: '/catat 20k donasi infaq', expectedLabel: 'charity', expectedSpent: '20.000' }
   ];
 
   await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/masuk gaji 10jt', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
@@ -626,13 +626,13 @@ async function testBot() {
 
   // Antigravity Audit Poin 1: Natural syntax expense recording across all 7 non-food categories without /catat prefix
   const naturalCatTests = [
-    { name: 'Transport', set: '/budget transportasi 800k', catat: 'bensin 75rb', expectedLabel: 'Transportasi', expectedSpent: '75.000' },
-    { name: 'Shopping', set: '/budget belanja 1.5jt', catat: 'baju 120rb', expectedLabel: 'Belanja', expectedSpent: '120.000' },
-    { name: 'Bills', set: '/budget tagihan 600k', catat: 'token listrik 100rb', expectedLabel: 'Tagihan', expectedSpent: '100.000' },
-    { name: 'Health', set: '/budget kesehatan 400k', catat: 'obat 45rb', expectedLabel: 'Kesehatan', expectedSpent: '45.000' },
-    { name: 'Entertainment', set: '/budget hiburan 500k', catat: 'nonton 65rb', expectedLabel: 'Hiburan', expectedSpent: '65.000' },
-    { name: 'Education', set: '/budget pendidikan 700k', catat: 'buku 90rb', expectedLabel: 'Pendidikan', expectedSpent: '90.000' },
-    { name: 'Charity', set: '/budget amal 300k', catat: 'donasi 35rb', expectedLabel: 'Amal', expectedSpent: '35.000' }
+    { name: 'Transport', set: '/budget transportasi 800k', catat: 'bensin 75rb', expectedLabel: 'transportasi', expectedSpent: '75.000' },
+    { name: 'Shopping', set: '/budget belanja 1.5jt', catat: 'baju 120rb', expectedLabel: 'belanja', expectedSpent: '120.000' },
+    { name: 'Bills', set: '/budget tagihan 600k', catat: 'token listrik 100rb', expectedLabel: 'tagihan', expectedSpent: '100.000' },
+    { name: 'Health', set: '/budget kesehatan 400k', catat: 'obat 45rb', expectedLabel: 'kesehatan', expectedSpent: '45.000' },
+    { name: 'Entertainment', set: '/budget hiburan 500k', catat: 'nonton 65rb', expectedLabel: 'hiburan', expectedSpent: '65.000' },
+    { name: 'Education', set: '/budget pendidikan 700k', catat: 'buku 90rb', expectedLabel: 'pendidikan', expectedSpent: '90.000' },
+    { name: 'Charity', set: '/budget amal 300k', catat: 'donasi 35rb', expectedLabel: 'amal', expectedSpent: '35.000' }
   ];
 
   await handleTelegramUpdate({ message: { chat: { id: 6000 }, text: '/masuk gaji 10jt', from: { first_name: 'NaturalUser' } } }, mdb, 'token');
@@ -771,7 +771,7 @@ async function testBot() {
   assert(helpText.includes('Tantanganku'), '/help contains my challenges button');
   assert(helpText.includes('/ajak'), '/help contains referral /ajak explanation');
 
-  // Test /budget category guessing scenario: /budget beli laptop 10jt -> /catat beli laptop 9,5jt
+  // Test /budget custom label: /budget beli laptop 10jt -> /budget beli hp 10jt -> separate budgets
   invalidateUidCache();
   replies = [];
   await handleTelegramUpdate({ message: { chat: { id: 9000 }, text: '/masuk bonus 20jt', from: { first_name: 'LaptopUser' } } }, mdb, 'token');
@@ -779,17 +779,60 @@ async function testBot() {
 
   replies = [];
   await handleTelegramUpdate({ message: { chat: { id: 9000 }, text: '/budget beli laptop 10jt', from: { first_name: 'LaptopUser' } } }, mdb, 'token');
-  assert(replies.some(r => (r.text || '').includes('Maksudmu kategori *Shopping*? Budget dibuat untuk *Shopping*.')), '/budget guesses Shopping and confirms');
+  assert(replies.some(r => (r.text || '').includes('Budget') && (r.text || '').includes('beli laptop') && (r.text || '').includes('diatur')), '/budget creates custom label budget');
 
+  // Create second separate budget
   replies = [];
-  await handleTelegramUpdate({ message: { chat: { id: 9000 }, text: '/catat beli laptop 9,5jt', from: { first_name: 'LaptopUser' } } }, mdb, 'token');
-  assert(replies.some(r => (r.text || '').includes('Masuk budget *Shopping*') && (r.text || '').includes('95%')), 'Expense confirms budget progress 95%');
+  await handleTelegramUpdate({ message: { chat: { id: 9000 }, text: '/budget beli hp 10jt', from: { first_name: 'LaptopUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('beli hp') && (r.text || '').includes('diatur')), '/budget beli hp is separate');
+
+  // Expense matching by keyword
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 9000 }, text: '/catat beli laptop asus 9,5jt', from: { first_name: 'LaptopUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Masuk budget *beli laptop*') && (r.text || '').includes('95%')), 'Expense matches custom budget by keyword');
   assert(replies.some(r => (r.text || '').includes('hampir habis') && (r.text || '').includes('⚠️')), '9.5jt on 10jt budget triggers warning 80%');
 
   // Second expense exceeds 100%
   replies = [];
-  await handleTelegramUpdate({ message: { chat: { id: 9000 }, text: '/catat aksesoris hp 1jt', from: { first_name: 'LaptopUser' } } }, mdb, 'token');
+  await handleTelegramUpdate({ message: { chat: { id: 9000 }, text: '/catat aksesoris laptop 1jt', from: { first_name: 'LaptopUser' } } }, mdb, 'token');
   assert(replies.some(r => (r.text || '').includes('habis') && (r.text || '').includes('🚨')), 'Over limit triggers warning 100%');
+
+  // Budget list shows both separate budgets
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 9000 }, text: '/budget', from: { first_name: 'LaptopUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('beli laptop') && (r.text || '').includes('beli hp')), '/budget list shows both custom budgets separately');
+
+  // Budget inline callbacks
+  replies = [];
+  await handleTelegramUpdate({ callback_query: { id: 'bdg1', data: 'bdg:buat', message: { chat: { id: 9000 }, message_id: 200 }, from: { first_name: 'LaptopUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Buat Budget Baru')), 'bdg:buat shows create prompt');
+
+  // Cancel pending budget so it doesn't interfere with search test
+  replies = [];
+  await handleTelegramUpdate({ callback_query: { id: 'bdg2', data: 'bdg:list', message: { chat: { id: 9000 }, message_id: 200 }, from: { first_name: 'LaptopUser' } } }, mdb, 'token');
+
+  // Riwayat search test — mock orderBy returns empty, check 'Belum ada' or search button
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 9000 }, text: '/riwayat', from: { first_name: 'LaptopUser' } } }, mdb, 'token');
+  // Mock orderBy always returns empty; still confirm command handled
+  assert(replies.some(r => (r.text || '').includes('Belum ada') || r.reply_markup?.inline_keyboard), '/riwayat responds');
+
+  // cr:cari callback
+  replies = [];
+  await handleTelegramUpdate({ callback_query: { id: 'cr1', data: 'cr:cari', message: { chat: { id: 9000 }, message_id: 201 }, from: { first_name: 'LaptopUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Cari Transaksi')), 'cr:cari prompts for search keyword');
+
+  // Search with keyword (uses .get() not orderBy, so it works)
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 9000 }, text: 'laptop', from: { first_name: 'LaptopUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Hasil pencarian') && (r.text || '').includes('laptop')), 'Search finds laptop transactions');
+
+  // Search with no results
+  replies = [];
+  await handleTelegramUpdate({ callback_query: { id: 'cr2', data: 'cr:cari', message: { chat: { id: 9000 }, message_id: 202 }, from: { first_name: 'LaptopUser' } } }, mdb, 'token');
+  replies = [];
+  await handleTelegramUpdate({ message: { chat: { id: 9000 }, text: 'xyznonexistent', from: { first_name: 'LaptopUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Tidak ketemu')), 'Search with no results shows message');
 
   // Test /tantangan keluar & hapus
   const cId = Object.keys(nudgeStore.challenges)[0];

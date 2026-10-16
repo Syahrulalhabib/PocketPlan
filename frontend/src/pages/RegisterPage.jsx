@@ -3,7 +3,7 @@ import { useAuth } from '../providers/AuthProvider.jsx';
 import { useTheme } from '../providers/ThemeProvider.jsx';
 import { useState, useEffect } from 'react';
 import { EyeIcon, SunIcon, MoonIcon } from '../components/Icons.jsx';
-import SavingsMascot from '../components/SavingsMascot.jsx';
+import { PockySvg } from '../components/FloatingMascot.jsx';
 import pocketLogo from '../assets/pocket-logo.svg';
 
 const RegisterPage = () => {
@@ -92,8 +92,8 @@ const RegisterPage = () => {
 
   return (
     <div className={`auth-page ${isDark ? 'theme-dark' : ''}`}>
-      <div className="auth-hero left">
-        <SavingsMascot mode="hero" />
+      <div className="auth-mascot">
+        <PockySvg width={80} height={85} />
       </div>
       <div className="auth-panel card">
         <div className="auth-top-nav">

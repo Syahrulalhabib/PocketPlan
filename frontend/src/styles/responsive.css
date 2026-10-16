@@ -353,6 +353,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 10px;
   }
@@ -371,7 +372,7 @@
     padding: 8px 14px;
     font-size: 12.5px;
     border-radius: 999px;
-    flex-shrink: 0;
+    flex: 1;
     box-shadow: 0 3px 10px rgba(228, 81, 83, 0.3);
   }
   /* Koiny Banner on Mobile & Tablet */
@@ -711,16 +712,27 @@
     justify-content: flex-start;
     align-items: center;
     min-height: 100dvh;
+    min-height: 100vh; /* fallback */
     padding: 12px 14px 32px;
+    padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
     gap: 8px;
   }
 
-  .auth-hero {
-    order: 2 !important;
-    margin: 4px auto 10px;
-    width: 100%;
+  .auth-mascot {
     display: flex;
-    justify-content: center;
+    order: 0;
+    margin: 4px auto 0;
+  }
+
+  .auth-hero {
+    display: none !important;
+  }
+
+  .auth-page input,
+  .auth-page select,
+  .auth-page textarea {
+    font-size: 16px; /* iOS zoom prevention */
+    -webkit-appearance: none;
   }
 
   .savings-hero-stage {
@@ -1035,6 +1047,7 @@
   .page-header-row .btn-add {
     padding: 7px 12px;
     font-size: 12px;
+    flex: 1;
   }
   .koiny-goals-banner {
     padding: 14px 12px;

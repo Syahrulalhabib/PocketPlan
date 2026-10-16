@@ -1044,12 +1044,21 @@ html {
   }
   .hero-trust-strip {
     flex-direction: row;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     gap: 8px;
+  }
+  .hero-trust-strip::-webkit-scrollbar {
+    display: none;
   }
   .trust-item {
     font-size: 0.78rem;
     padding: 5px 12px;
+    flex-shrink: 0;
+    scroll-snap-align: start;
   }
   .landing-section {
     padding: 44px 14px;

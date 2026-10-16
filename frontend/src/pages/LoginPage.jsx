@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../providers/AuthProvider.jsx';
 import { useTheme } from '../providers/ThemeProvider.jsx';
 import { EyeIcon, SunIcon, MoonIcon } from '../components/Icons.jsx';
-import SavingsMascot from '../components/SavingsMascot.jsx';
+import { PockySvg } from '../components/FloatingMascot.jsx';
 import pocketLogo from '../assets/pocket-logo.svg';
 
 const LoginPage = () => {
@@ -136,6 +136,9 @@ const LoginPage = () => {
 
   return (
     <div className={`auth-page ${isDark ? 'theme-dark' : ''}`}>
+      <div className="auth-mascot">
+        <PockySvg width={80} height={85} />
+      </div>
       <div className="auth-panel card">
         <div className="auth-top-nav">
           <Link to="/" className="mini-link auth-back-link">
@@ -259,9 +262,6 @@ const LoginPage = () => {
             Coba tanpa daftar (Mode Demo)
           </Link>
         </div>
-      </div>
-      <div className="auth-hero">
-        <SavingsMascot mode="hero" />
       </div>
     </div>
   );
