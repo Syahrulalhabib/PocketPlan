@@ -25,6 +25,8 @@ import { updateStreak } from './lib/streak.js';
 import { buildMonthlyReport } from './lib/reportHelper.js';
 
 import { formatAchievementItem } from './lib/achievementHelper.js';
+import { getEmailTemplate } from './lib/emailTemplate.js';
+import { sendVerificationMail, sendTestEmail } from './lib/mailer.js';
 
 dotenv.config();
 initFirebaseAdmin();
@@ -290,6 +292,57 @@ app.post('/api/telegram/web-login', async (req, res) => {
   } catch (err) {
     console.error('web-login error:', err);
     res.status(500).json({ error: 'Gagal verifikasi kode login.' });
+  }
+});
+
+// Email verification endpoints
+app.get('/api/auth/email-preview', (req, res) => {
+  const name = req.query.name || 'Sobat Pocketplan';
+  const url = req.query.url || `${req.protocol}://${req.get('host')}/verification?mode=verifyEmail&oobCode=preview-demo-code-123`;
+  const { html } = getEmailTemplate({ name, verificationUrl: url });
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(html);
+});
+
+app.post('/api/auth/send-test-email', async (req, res) => {
+  const email = req.body?.email;
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ error: 'Parameter email tujuan diperlukan.' });
+  }
+  try {
+    const result = await sendTestEmail(email);
+    res.json({ ok: true, message: `Email uji coba dikirim ke ${email}`, ...result });
+  } catch (err) {
+    console.error('send-test-email error:', err);
+    res.status(500).json({ error: err?.message || 'Gagal mengirim email uji coba.' });
+  }
+});
+
+app.post('/api/auth/send-verification-email', async (req, res) => {
+  const { email, name, verificationUrl } = req.body || {};
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ error: 'Email tujuan valid diperlukan.' });
+  }
+  try {
+    let targetUrl = verificationUrl;
+    if (!targetUrl) {
+      const auth = getAdminAuth();
+      if (auth) {
+        const clientOrigin = process.env.FRONTEND_ORIGIN || `${req.protocol}://${req.get('host')}`;
+        targetUrl = await auth.generateEmailVerificationLink(email, {
+          url: `${clientOrigin}/verification?from=custom_email`,
+          handleCodeInApp: true
+        });
+      } else {
+        const clientOrigin = process.env.FRONTEND_ORIGIN || `${req.protocol}://${req.get('host')}`;
+        targetUrl = `${clientOrigin}/verification?mode=verifyEmail&oobCode=demo-code-${Date.now()}&email=${encodeURIComponent(email)}`;
+      }
+    }
+    const result = await sendVerificationMail({ to: email, name, verificationUrl: targetUrl });
+    res.json({ ok: true, message: `Email verifikasi berhasil dikirim ke ${email}`, ...result });
+  } catch (err) {
+    console.error('send-verification-email error:', err);
+    res.status(500).json({ error: err?.message || 'Gagal mengirim email verifikasi.' });
   }
 });
 

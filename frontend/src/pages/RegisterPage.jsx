@@ -1,16 +1,18 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../providers/AuthProvider.jsx';
 import { useTheme } from '../providers/ThemeProvider.jsx';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { EyeIcon, SunIcon, MoonIcon } from '../components/Icons.jsx';
 import SavingsMascot from '../components/SavingsMascot.jsx';
 import pocketLogo from '../assets/pocket-logo.svg';
 
 const RegisterPage = () => {
-  const { register } = useAuth();
+  const { register, logout, checkEmailVerified } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,6 +22,37 @@ const RegisterPage = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
+  const [waitingVerification, setWaitingVerification] = useState(false);
+  const [verified, setVerified] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // Check URL query param e.g. /registration?verified=true
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('verified') === 'true' || params.get('verified') === '1') {
+      setVerified(true);
+      setShowLoginModal(true);
+    }
+  }, [location.search]);
+
+  // Polling check while waiting for verification
+  useEffect(() => {
+    if (!waitingVerification || verified) return;
+    const interval = setInterval(async () => {
+      try {
+        const ok = await checkEmailVerified();
+        if (ok) {
+          setVerified(true);
+          setWaitingVerification(false);
+          setShowLoginModal(true);
+          setStatus('');
+        }
+      } catch {
+        // silent polling
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [waitingVerification, verified, checkEmailVerified]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,7 +70,8 @@ const RegisterPage = () => {
     try {
       const result = await register(name, email, password);
       if (result?.needsVerification) {
-        setStatus('Verification email sent. Please verify your inbox before signing in.');
+        setWaitingVerification(true);
+        setStatus(`Email verifikasi telah dikirim ke ${email}. Silakan buka inbox email Anda dan klik link verifikasi.`);
         return;
       }
       navigate('/dashboard');
@@ -137,13 +171,46 @@ const RegisterPage = () => {
           <button className="pill btn-primary auth-submit" disabled={loading}>
             {loading ? 'Signing up...' : 'Sign up'}
           </button>
+          {verified && (
+            <div className="form-status" style={{ background: '#ecfdf5', border: '1px solid #10b981', color: '#065f46', borderRadius: '10px', padding: '12px 14px', fontWeight: 600 }}>
+              Email telah diverifikasi ✓
+            </div>
+          )}
           {error && <div className="form-status">{error}</div>}
-          {!error && status && <div className="form-status">{status}</div>}
+          {!error && status && !verified && <div className="form-status">{status}</div>}
         </form>
         <div className="auth-footer">
           Already have an account? <Link to="/login" className="primary-link">Sign in</Link>
         </div>
       </div>
+
+      {showLoginModal && (
+        <div className="modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'grid', placeItems: 'center', zIndex: 9999, padding: '16px' }}>
+          <div className="card modal-content" style={{ maxWidth: '420px', width: '100%', padding: '32px 24px', textAlign: 'center', borderRadius: '20px', background: 'var(--card, #fff)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#ecfdf5', border: '2px solid #a7f3d0', color: '#10b981', display: 'grid', placeItems: 'center', margin: '0 auto 18px', fontSize: '32px', fontWeight: 800 }}>
+              ✓
+            </div>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '0 0 10px', color: 'var(--text, #0f172a)' }}>
+              Email telah diverifikasi ✓
+            </h2>
+            <p style={{ fontSize: '14px', color: 'var(--text-subtle, #64748b)', margin: '0 0 24px', lineHeight: 1.6 }}>
+              Selamat! Akun Pocketplan Anda telah aktif. Silakan masuk untuk mulai mengelola keuangan dan mewujudkan impian Anda.
+            </p>
+            <button
+              type="button"
+              className="pill btn-primary"
+              style={{ width: '100%', padding: '12px 20px', fontSize: '15px', fontWeight: 600 }}
+              onClick={async () => {
+                setShowLoginModal(false);
+                await logout();
+                navigate('/login');
+              }}
+            >
+              Masuk ke Akun
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

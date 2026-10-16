@@ -50,6 +50,8 @@ const App = () => {
       <Route path="/register" element={<RedirectWithSearch to="/registration" />} />
       <Route path="/registration" element={<RegisterPage />} />
       <Route path="/verification" element={<VerificationPage />} />
+      <Route path="/verify-email" element={<VerificationPage />} />
+      <Route path="/verify" element={<RedirectWithSearch to="/verification" />} />
       <Route path="/demo" element={<DemoPage />} />
       <Route
         path="/dashboard"

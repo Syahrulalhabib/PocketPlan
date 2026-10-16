@@ -14,7 +14,9 @@ import {
   sendVerificationEmail,
   updateUserEmail,
   updateUserPassword,
-  reloadAuthUser
+  reloadAuthUser,
+  verifyActionCode,
+  inspectActionCode
 } from '../services/firebase';
 import { telegramWebLogin } from '../services/telegramApi';
 
@@ -160,22 +162,37 @@ export const AuthProvider = ({ children }) => {
       const credentials = await signUpEmail(email, password);
       await updateProfileName(name);
       try {
-        await sendVerificationEmail(credentials.user);
+        await sendVerificationEmail(credentials.user, {
+          url: `${window.location.origin}/verification?source=register`,
+          handleCodeInApp: true
+        });
       } catch (err) {
-        await signOutUser();
-        setUser(null);
-        throw err;
+        console.warn('sendVerificationEmail notice:', err?.message);
       }
-      await signOutUser();
-      setUser(null);
-      return { needsVerification: true };
+      const resolvedUser = {
+        id: credentials.user.uid,
+        name,
+        email,
+        emailVerified: false,
+        webPasswordSet: true,
+        needsVerification: true,
+        isTelegramUser: false
+      };
+      setUser(resolvedUser);
+      return { needsVerification: true, user: resolvedUser };
     } else {
       await new Promise((resolve) => setTimeout(resolve, 300));
-      setUser({
+      const demoRegUser = {
         id: 'demo-user',
         name,
-        email
-      });
+        email,
+        emailVerified: false,
+        webPasswordSet: true,
+        needsVerification: true,
+        isTelegramUser: false
+      };
+      setUser(demoRegUser);
+      return { needsVerification: true, user: demoRegUser };
     }
   };
 
@@ -252,17 +269,74 @@ export const AuthProvider = ({ children }) => {
     if (firebaseEnabled) {
       const refreshed = await reloadAuthUser();
       if (refreshed?.emailVerified) {
-        const updated = { ...user, emailVerified: true };
+        const isTg = Boolean(user?.isTelegramUser);
+        const webPwd = Boolean(user?.webPasswordSet);
+        const updated = {
+          ...user,
+          emailVerified: true,
+          needsVerification: isTg && !webPwd
+        };
         setUser(updated);
-        if (user?.isTelegramUser) localStorage.setItem('pocketplan_tg_user', JSON.stringify(updated));
+        if (isTg) localStorage.setItem('pocketplan_tg_user', JSON.stringify(updated));
         return true;
       }
       return false;
     }
-    const updated = { ...user, emailVerified: true };
+    const isTg = Boolean(user?.isTelegramUser);
+    const webPwd = Boolean(user?.webPasswordSet);
+    const updated = {
+      ...user,
+      emailVerified: true,
+      needsVerification: isTg && !webPwd
+    };
     setUser(updated);
-    if (user?.isTelegramUser) localStorage.setItem('pocketplan_tg_user', JSON.stringify(updated));
+    if (isTg) localStorage.setItem('pocketplan_tg_user', JSON.stringify(updated));
     return true;
+  };
+
+  const verifyCode = async (oobCode) => {
+    if (!oobCode) throw new Error('Kode verifikasi tidak ditemukan.');
+    if (firebaseEnabled) {
+      await verifyActionCode(oobCode);
+      const refreshed = await reloadAuthUser();
+      if (user) {
+        const isTg = Boolean(user.isTelegramUser);
+        const webPwd = Boolean(user.webPasswordSet);
+        const updated = {
+          ...user,
+          emailVerified: true,
+          needsVerification: isTg && !webPwd
+        };
+        setUser(updated);
+        if (isTg) localStorage.setItem('pocketplan_tg_user', JSON.stringify(updated));
+        return { ok: true, user: updated, isTelegramUser: isTg, webPasswordSet: webPwd };
+      }
+      return { ok: true, refreshed };
+    } else {
+      if (oobCode === 'expired' || oobCode.includes('expired')) {
+        const err = new Error('Tautan verifikasi kedaluwarsa.');
+        err.code = 'auth/expired-action-code';
+        throw err;
+      }
+      if (oobCode === 'invalid' || oobCode.includes('invalid')) {
+        const err = new Error('Tautan verifikasi tidak valid.');
+        err.code = 'auth/invalid-action-code';
+        throw err;
+      }
+      await new Promise((r) => setTimeout(r, 300));
+      if (user) {
+        const isTg = Boolean(user.isTelegramUser);
+        const webPwd = Boolean(user.webPasswordSet);
+        const updated = {
+          ...user,
+          emailVerified: true,
+          needsVerification: isTg && !webPwd
+        };
+        setUser(updated);
+        return { ok: true, user: updated, isTelegramUser: isTg, webPasswordSet: webPwd };
+      }
+      return { ok: true };
+    }
   };
 
   const setupWebPassword = async (newPassword) => {
@@ -303,14 +377,27 @@ export const AuthProvider = ({ children }) => {
   };
 
   const resendVerification = async (email, password) => {
-    if (!email || !password) throw new Error('Email and password are required');
     if (firebaseEnabled) {
-      await signInEmail(email, password);
-      await sendVerificationEmail();
-      await signOutUser();
-      return;
+      if (user && !password) {
+        await sendVerificationEmail();
+        return;
+      }
+      if (!email) throw new Error('Email diperlukan');
+      if (password) {
+        await signInEmail(email, password);
+        await sendVerificationEmail();
+        await signOutUser();
+        return;
+      }
+      const res = await fetch('/api/auth/send-verification-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      }).catch(() => null);
+      if (res && res.ok) return;
+      throw new Error('Gagal mengirim ulang email verifikasi.');
     }
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 300));
   };
 
   const updateProfileInfo = useCallback(
@@ -352,6 +439,7 @@ export const AuthProvider = ({ children }) => {
       resendVerification,
       changeEmailAndSendVerification,
       checkEmailVerified,
+      verifyCode,
       setupWebPassword
     }),
     [user, loading, isDemo, startDemo, exitDemo, updateProfileInfo]

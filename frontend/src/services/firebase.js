@@ -14,7 +14,9 @@ import {
   updateProfile,
   updateEmail,
   updatePassword,
-  reload
+  reload,
+  applyActionCode,
+  checkActionCode
 } from 'firebase/auth';
 import {
   getFirestore,
@@ -69,14 +71,26 @@ export const signInWithGoogle = () => signInWithPopup(auth, googleProvider).catc
 });
 export const signOutUser = () => signOut(auth);
 export const signInWithToken = (token) => firebaseSignInWithCustomToken(auth, token);
-export const sendVerificationEmail = (user) => {
+export const sendVerificationEmail = (user, actionCodeSettings) => {
   const target = user || auth?.currentUser;
   if (!target) {
     return Promise.reject(new Error('No authenticated user available for verification email.'));
   }
-  return sendEmailVerification(target);
+  const settings = actionCodeSettings || (typeof window !== 'undefined' ? {
+    url: `${window.location.origin}/verification`,
+    handleCodeInApp: true
+  } : undefined);
+  return settings ? sendEmailVerification(target, settings) : sendEmailVerification(target);
 };
 export const resetPasswordEmail = (email) => sendPasswordResetEmail(auth, email);
+export const verifyActionCode = (code) => {
+  if (!auth) return Promise.resolve();
+  return applyActionCode(auth, code);
+};
+export const inspectActionCode = (code) => {
+  if (!auth) return Promise.resolve(null);
+  return checkActionCode(auth, code);
+};
 export const watchAuth = (cb) => onAuthStateChanged(auth, cb);
 export const updateProfileName = (name) => (auth?.currentUser && name ? updateProfile(auth.currentUser, { displayName: name }) : undefined);
 export const updateProfileData = (data) => (auth?.currentUser ? updateProfile(auth.currentUser, data) : undefined);
