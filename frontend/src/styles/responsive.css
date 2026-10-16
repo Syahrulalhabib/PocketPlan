@@ -719,7 +719,7 @@
   }
 
   .auth-hero {
-    order: 2 !important;
+    order: -1 !important;
     margin: 4px auto 10px;
     width: 100%;
     display: flex;
