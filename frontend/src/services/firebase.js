@@ -71,11 +71,30 @@ export const signInWithGoogle = () => signInWithPopup(auth, googleProvider).catc
 });
 export const signOutUser = () => signOut(auth);
 export const signInWithToken = (token) => firebaseSignInWithCustomToken(auth, token);
-export const sendVerificationEmail = (user, actionCodeSettings) => {
+export const sendVerificationEmail = async (user, actionCodeSettings) => {
   const target = user || auth?.currentUser;
   if (!target) {
     return Promise.reject(new Error('No authenticated user available for verification email.'));
   }
+
+  // Coba kirim via template branded custom di backend (jika SMTP aktif)
+  try {
+    const res = await fetch('/api/auth/send-verification-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: target.email,
+        name: target.displayName || target.email?.split('@')[0]
+      })
+    });
+    const data = await res.json().catch(() => null);
+    if (res.ok && data?.ok) {
+      return data;
+    }
+  } catch (err) {
+    // Backend offline / error, gunakan fallback Firebase Client SDK
+  }
+
   const settings = actionCodeSettings || (typeof window !== 'undefined' ? {
     url: `${window.location.origin}/verification`,
     handleCodeInApp: true

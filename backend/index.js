@@ -26,7 +26,7 @@ import { buildMonthlyReport } from './lib/reportHelper.js';
 
 import { formatAchievementItem } from './lib/achievementHelper.js';
 import { getEmailTemplate } from './lib/emailTemplate.js';
-import { sendVerificationMail, sendTestEmail } from './lib/mailer.js';
+import { sendVerificationMail, sendTestEmail, isSmtpConfigured } from './lib/mailer.js';
 
 dotenv.config();
 initFirebaseAdmin();
@@ -322,6 +322,12 @@ app.post('/api/auth/send-verification-email', async (req, res) => {
   const { email, name, verificationUrl } = req.body || {};
   if (!email || !email.includes('@')) {
     return res.status(400).json({ error: 'Email tujuan valid diperlukan.' });
+  }
+  if (!isSmtpConfigured()) {
+    return res.status(503).json({
+      error: 'SMTP belum dikonfigurasi di backend (.env).',
+      smtpConfigured: false
+    });
   }
   try {
     let targetUrl = verificationUrl;

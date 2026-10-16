@@ -1,6 +1,12 @@
 import nodemailer from 'nodemailer';
 import { getEmailTemplate } from './emailTemplate.js';
 
+export const isSmtpConfigured = () => {
+  const user = process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER;
+  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_PASS;
+  return Boolean(user && pass);
+};
+
 let transporter = null;
 
 export const getTransporter = async () => {
