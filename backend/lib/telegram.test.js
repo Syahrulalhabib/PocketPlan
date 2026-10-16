@@ -767,7 +767,7 @@ async function testBot() {
   assert(helpText.includes('TANTANGAN DISIPLIN (30 HARI)'), '/help contains tantangan disiplin');
   assert(helpText.includes('Cara ikut (3 langkah)'), '/help contains 3 steps to join');
   assert(helpText.includes('Cara BUAT tantangan baru'), '/help contains create guide');
-  assert(helpText.includes('Cara KELUAR & HAPUS'), '/help contains leave and delete commands');
+  assert(helpText.includes('Cara KELUAR &amp; HAPUS'), '/help contains leave and delete commands');
   assert(helpText.includes('/ajak'), '/help contains referral /ajak explanation');
 
   // Test /budget category guessing scenario: /budget beli laptop 10jt -> /catat beli laptop 9,5jt

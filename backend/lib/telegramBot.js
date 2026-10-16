@@ -1000,48 +1000,48 @@ export async function handleTelegramUpdate(update, db, botToken) {
     return sendTelegramMessage(
       botToken,
       chatId,
-      '📖 *PANDUAN LENGKAP POCKY*\n\n' +
-      '*🧾 SCAN STRUK BARENG POCKY*\n' +
+      '📖 <b>PANDUAN LENGKAP POCKY</b>\n\n' +
+      '<b>🧾 SCAN STRUK BARENG POCKY</b>\n' +
       '• Kirim foto struk belanja atau bukti transfer langsung ke chat ini!\n\n' +
-      '*📝 CATAT CEPAT*\n' +
-      '• `kopi susu 25k` atau `/catat bensin 50k` — catat pengeluaran\n' +
-      '• `/masuk gaji 2.5jt` — catat pemasukan\n' +
-      '• `/batal` — batalkan transaksi terakhir\n\n' +
-      '*💰 BUDGET BULANAN*\n' +
-      '• `/budget [kategori] [nominal]` — atur batas belanja bulanan\n' +
-      '• `/budget` — cek status sisa budget semua kategori\n' +
-      '• `/budget hapus [kategori]` — hapus budget\n\n' +
-      '*🎯 TARGET & KONSISTENSI*\n' +
-      '• `/goal [nama] [target]` — buat target tabungan impian\n' +
-      '• `/goals` — cek progres tabungan & beli target yang tercapai\n' +
-      '• `/streak` — pantau rekor hari konsisten mencatat keuangan\n' +
-      '• `/pencapaian` — lihat galeri lencana & milestone keuanganmu\n\n' +
-      '*🏆 TANTANGAN DISIPLIN (30 HARI)*\n' +
-      '• *Apa itu:* Ajang 30 hari melatih disiplin finansial (puasa belanja atau rajin catat) sendiri atau tanding bareng teman.\n' +
-      '• *Cara ikut (3 langkah):*\n' +
-      '   1️⃣ Ketik `/tantangan` untuk melihat daftar tantangan aktif, atau buka link undangan dari teman\n' +
-      '   2️⃣ Ketik `/tantangan gabung <id>` untuk masuk (atau otomatis gabung via link)\n' +
+      '<b>📝 CATAT CEPAT</b>\n' +
+      '• <code>kopi susu 25k</code> atau <code>/catat bensin 50k</code> — catat pengeluaran\n' +
+      '• <code>/masuk gaji 2.5jt</code> — catat pemasukan\n' +
+      '• <code>/batal</code> — batalkan transaksi terakhir\n\n' +
+      '<b>💰 BUDGET BULANAN</b>\n' +
+      '• <code>/budget [kategori] [nominal]</code> — atur batas belanja bulanan\n' +
+      '• <code>/budget</code> — cek status sisa budget semua kategori\n' +
+      '• <code>/budget hapus [kategori]</code> — hapus budget\n\n' +
+      '<b>🎯 TARGET &amp; KONSISTENSI</b>\n' +
+      '• <code>/goal [nama] [target]</code> — buat target tabungan impian\n' +
+      '• <code>/goals</code> — cek progres tabungan &amp; beli target yang tercapai\n' +
+      '• <code>/streak</code> — pantau rekor hari konsisten mencatat keuangan\n' +
+      '• <code>/pencapaian</code> — lihat galeri lencana &amp; milestone keuanganmu\n\n' +
+      '<b>🏆 TANTANGAN DISIPLIN (30 HARI)</b>\n' +
+      '• <b>Apa itu:</b> Ajang 30 hari melatih disiplin finansial (puasa belanja atau rajin catat) sendiri atau tanding bareng teman.\n' +
+      '• <b>Cara ikut (3 langkah):</b>\n' +
+      '   1️⃣ Ketik <code>/tantangan</code> untuk melihat daftar tantangan aktif, atau buka link undangan dari teman\n' +
+      '   2️⃣ Ketik <code>/tantangan gabung &lt;id&gt;</code> untuk masuk (atau otomatis gabung via link)\n' +
       '   3️⃣ Catat keuangan tiap hari agar streak harian hijau ✅ dan posisi leaderboard naik!\n' +
-      '• *Cara BUAT tantangan baru:*\n' +
-      '   • Puasa Belanja: `/tantangan buat no_spend <Kategori> <Judul>`\n' +
-      '     _Contoh: `/tantangan buat no_spend Kopi 30 Hari Tanpa Kopi`_\n' +
-      '   • Rajin Catat: `/tantangan buat daily_log <Kategori> <Judul>`\n' +
-      '     _Contoh: `/tantangan buat daily_log Nabung 30 Hari Rajin Catat`_\n' +
-      '• *Cara KELUAR & HAPUS:*\n' +
-      '   • Keluar tantangan: `/tantangan keluar <id>`\n' +
-      '   • Hapus/batalkan tantangan yang kamu buat: `/tantangan hapus <id>`\n' +
-      '• *Fitur di dalam:* Leaderboard progres harian (`/tantangan`) & link undangan instan untuk teman bertanding.\n' +
-      '• *Yang didapat:* Lencana prestasi (Juara 🏆 / Selesai 👏) dan poin konsistensi di `/pencapaian`!\n\n' +
-      '*📊 INFO & SINKRONISASI*\n' +
-      '• `/saldo` — cek sisa saldo aktif & ringkasan arus kas\n' +
-      '• `/riwayat` — lihat 5 transaksi terakhir\n' +
-      '• `/web` — dapatkan kode passcode instan untuk login website\n' +
-      '• `/link [kode]` — hubungkan akun website dengan Telegram ini\n' +
-      '• `/pengingat` — atur jadwal pengingat pagi & malam\n' +
-      '• `/ajak` — undang teman pakai Pocky via link referral khusus. Saat teman bergabung, kamu langsung dapat notifikasi, counter referral bertambah, dan membuka badge eksklusif di `/pencapaian`!\n' +
-      '• `/menu` — buka menu tombol cepat\n\n' +
-      '💡 _Format nominal fleksibel: 25k, 50rb, 50.000, 1.5jt, Rp50000_',
-      { reply_markup: KEYBOARD }
+      '• <b>Cara BUAT tantangan baru:</b>\n' +
+      '   • Puasa Belanja: <code>/tantangan buat no_spend &lt;Kategori&gt; &lt;Judul&gt;</code>\n' +
+      '     <i>Contoh:</i> <code>/tantangan buat no_spend Kopi 30 Hari Tanpa Kopi</code>\n' +
+      '   • Rajin Catat: <code>/tantangan buat daily_log &lt;Kategori&gt; &lt;Judul&gt;</code>\n' +
+      '     <i>Contoh:</i> <code>/tantangan buat daily_log Nabung 30 Hari Rajin Catat</code>\n' +
+      '• <b>Cara KELUAR &amp; HAPUS:</b>\n' +
+      '   • Keluar tantangan: <code>/tantangan keluar &lt;id&gt;</code>\n' +
+      '   • Hapus/batalkan tantangan yang kamu buat: <code>/tantangan hapus &lt;id&gt;</code>\n' +
+      '• <b>Fitur di dalam:</b> Leaderboard progres harian (<code>/tantangan</code>) &amp; link undangan instan untuk teman bertanding.\n' +
+      '• <b>Yang didapat:</b> Lencana prestasi (Juara 🏆 / Selesai 👏) dan poin konsistensi di <code>/pencapaian</code>!\n\n' +
+      '<b>📊 INFO &amp; SINKRONISASI</b>\n' +
+      '• <code>/saldo</code> — cek sisa saldo aktif &amp; ringkasan arus kas\n' +
+      '• <code>/riwayat</code> — lihat 5 transaksi terakhir\n' +
+      '• <code>/web</code> — dapatkan kode passcode instan untuk login website\n' +
+      '• <code>/link [kode]</code> — hubungkan akun website dengan Telegram ini\n' +
+      '• <code>/pengingat</code> — atur jadwal pengingat pagi &amp; malam\n' +
+      '• <code>/ajak</code> — undang teman pakai Pocky via link referral khusus. Saat teman bergabung, kamu langsung dapat notifikasi, counter referral bertambah, dan membuka badge eksklusif di <code>/pencapaian</code>!\n' +
+      '• <code>/menu</code> — buka menu tombol cepat\n\n' +
+      '💡 <i>Format nominal fleksibel: 25k, 50rb, 50.000, 1.5jt, Rp50000</i>',
+      { reply_markup: KEYBOARD, parse_mode: 'HTML' }
     );
   }
 
