@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { parseAmount, parseTransactionCommand, formatRupiah, normalizeBudgetCategory, guessBudgetCategory } from './telegramParser.js';
 import { generateLinkCode, getLinkStatus, unlinkAccount, linkChatWithCode, cancelLinkCode, DEFAULT_BOT_COMMANDS, invalidateUidCache } from './telegramBotCore.js';
-import { handleTelegramUpdate } from './telegramBot.js';
+import { handleTelegramUpdate, queueTempMessage, cleanExpiredTempMessages } from './telegramBot.js';
 
 console.log('Running Telegram integration tests...');
 
@@ -655,10 +655,10 @@ async function testBot() {
   await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/pencapaian', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
   assert(replies.some(r => (r.text || '').includes('Pencapaian')), '/pencapaian returns achievement gallery');
 
-  // Test DEFAULT_BOT_COMMANDS includes budget, ajak, tantangan
+  // Test DEFAULT_BOT_COMMANDS includes budget, ajak, streak (tantangan removed)
   assert(DEFAULT_BOT_COMMANDS.some(c => c.command === 'budget'), 'budget in bot commands');
   assert(DEFAULT_BOT_COMMANDS.some(c => c.command === 'ajak'), 'ajak in bot commands');
-  assert(DEFAULT_BOT_COMMANDS.some(c => c.command === 'tantangan'), 'tantangan in bot commands');
+  assert(!DEFAULT_BOT_COMMANDS.some(c => c.command === 'tantangan'), 'tantangan removed from bot commands');
   assert(DEFAULT_BOT_COMMANDS.some(c => c.command === 'streak'), 'streak in bot commands');
 
 
@@ -744,31 +744,17 @@ async function testBot() {
   const ms2 = generateMorningReminder('Budi', 500000, [], 1);
   assert(!ms2.includes('Streak'), 'No streak if <2');
 
-  // --- Fase 6: Challenge (basic) ---
-  nudgeStore.challenges = {};
+  // --- Verify challenge system removed & /help updated ---
   invalidateUidCache();
   replies = [];
   await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/tantangan', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
-  assert(replies.some(r => (r.text || '').includes('TANTANGAN')), '/tantangan shows inline menu');
-  assert(replies.some(r => r.reply_markup?.inline_keyboard), '/tantangan has inline keyboard');
+  assert(replies.some(r => (r.text || '').includes('Perintah tidak dikenali')), '/tantangan returns unrecognized command');
 
-  replies = [];
-  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/tantangan buat no_spend Kopi 30 Hari Tanpa Kopi', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
-  assert(replies.some(r => (r.text || '').includes('Tantangan Dibuat')), 'Challenge created');
-  assert(replies.some(r => (r.text || '').includes('join_')), 'Join link shown');
-  // No Rp amounts in challenge messages
-  for (const r of replies) {
-    if ((r.text || '').includes('Tantangan')) assert(!r.text.match(/Rp\s*[\d.,]+/), 'No Rp in challenge msg');
-  }
-
-  // Test /help includes new tantangan guide & referral
+  // Test /help does not contain tantangan, contains referral
   replies = [];
   await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/help', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
   const helpText = replies[0]?.text || '';
-  assert(helpText.includes('TANTANGAN DISIPLIN (30 HARI)'), '/help contains tantangan disiplin');
-  assert(helpText.includes('menu interaktif'), '/help contains interactive menu guide');
-  assert(helpText.includes('Tantangan Aktif'), '/help contains active challenges button');
-  assert(helpText.includes('Tantanganku'), '/help contains my challenges button');
+  assert(!helpText.includes('TANTANGAN DISIPLIN'), '/help does not contain tantangan disiplin');
   assert(helpText.includes('/ajak'), '/help contains referral /ajak explanation');
 
   // Test /budget custom label: /budget beli laptop 10jt -> /budget beli hp 10jt -> separate budgets
@@ -797,10 +783,95 @@ async function testBot() {
   await handleTelegramUpdate({ message: { chat: { id: 9000 }, text: '/catat aksesoris laptop 1jt', from: { first_name: 'LaptopUser' } } }, mdb, 'token');
   assert(replies.some(r => (r.text || '').includes('habis') && (r.text || '').includes('🚨')), 'Over limit triggers warning 100%');
 
-  // Budget list shows both separate budgets
+  // Budget list shows both separate budgets and period
   replies = [];
   await handleTelegramUpdate({ message: { chat: { id: 9000 }, text: '/budget', from: { first_name: 'LaptopUser' } } }, mdb, 'token');
   assert(replies.some(r => (r.text || '').includes('beli laptop') && (r.text || '').includes('beli hp')), '/budget list shows both custom budgets separately');
+  assert(replies.some(r => (r.text || '').includes('Berlaku:')), '/budget list shows validity period');
+  const listButtons = replies[0]?.reply_markup?.inline_keyboard || [];
+  assert(listButtons.some(row => row.some(b => b.text.includes('Hapus Budget'))), '/budget list includes [Hapus Budget] button per budget');
+
+  // Find beli laptop budget ID
+  const laptopBudgetEntry = Object.entries(nudgeStore.users['tg_9000']._sub.budgets).find(([, b]) => b.customLabel === 'beli laptop');
+  assert(laptopBudgetEntry, 'beli laptop budget exists in store');
+  const laptopBudgetId = laptopBudgetEntry[0];
+
+  // Test BAGIAN A: Budget detail (bdg:detail)
+  replies = [];
+  await handleTelegramUpdate({ callback_query: { id: 'bdg_det', data: `bdg:detail:${laptopBudgetId}`, message: { chat: { id: 9000 }, message_id: 200 }, from: { first_name: 'LaptopUser' } } }, mdb, 'token');
+  const detailMsg = replies.find(r => r.chat_id);
+  const detailText = detailMsg?.text || '';
+  assert(detailText.includes('BUDGET: beli laptop'), 'detail shows header with budget label');
+  assert(detailText.includes('Budget khusus untuk beli laptop.'), 'detail shows keterangan');
+  assert(detailText.includes('Dibuat:'), 'detail shows creation date');
+  assert(detailText.includes('Berlaku:'), 'detail shows validity period');
+  assert(detailText.includes('Terpakai:'), 'detail shows spent vs limit');
+  assert(detailText.includes('Sisa:'), 'detail shows remaining balance');
+  assert(detailText.includes('Keyword:'), 'detail shows keywords');
+  const detailButtons = detailMsg?.reply_markup?.inline_keyboard || [];
+  assert(detailButtons.some(row => row.some(b => b.text.includes('Ubah Limit'))), 'detail has [Ubah Limit] button');
+  assert(detailButtons.some(row => row.some(b => b.text.includes('Hapus Budget'))), 'detail has [Hapus Budget] button');
+  assert(detailButtons.some(row => row.some(b => b.text.includes('Kembali'))), 'detail has [Kembali] button');
+
+  // Test BAGIAN B: Confirmation on delete prompt (bdg:hapus_prompt)
+  replies = [];
+  await handleTelegramUpdate({ callback_query: { id: 'bdg_del_prompt', data: `bdg:hapus_prompt:${laptopBudgetId}`, message: { chat: { id: 9000 }, message_id: 200 }, from: { first_name: 'LaptopUser' } } }, mdb, 'token');
+  const confirmMsg = replies.find(r => r.chat_id);
+  const confirmPromptText = confirmMsg?.text || '';
+  assert(confirmPromptText.includes('Konfirmasi Hapus Budget'), 'shows confirmation title');
+  assert(confirmPromptText.includes("Yakin hapus budget *'beli laptop'*?"), 'shows confirmation message with budget name');
+  assert(confirmPromptText.includes('Transaksi yang sudah tercatat TIDAK ikut terhapus.'), 'reassures transactions are kept');
+  const confirmButtons = confirmMsg?.reply_markup?.inline_keyboard || [];
+  assert(confirmButtons.some(row => row.some(b => b.text.includes('Ya, hapus'))), 'has [Ya, hapus] button');
+  assert(confirmButtons.some(row => row.some(b => b.text.includes('Batal'))), 'has [Batal] button');
+
+  // Test BAGIAN B: Confirmed delete (bdg:hapus_confirm)
+  replies = [];
+  await handleTelegramUpdate({ callback_query: { id: 'bdg_del_confirm', data: `bdg:hapus_confirm:${laptopBudgetId}`, message: { chat: { id: 9000 }, message_id: 200 }, from: { first_name: 'LaptopUser' } } }, mdb, 'token');
+  const afterDeleteMsg = replies.find(r => r.chat_id);
+  const afterDeleteText = afterDeleteMsg?.text || '';
+  assert(afterDeleteText.includes('Budget *beli laptop* berhasil dihapus.'), 'shows deletion confirmation note');
+  assert(!nudgeStore.users['tg_9000']._sub.budgets[laptopBudgetId], 'budget document was deleted from store');
+
+  // Test BAGIAN C: Transaction backdate filter (only transactions >= createdAt are counted)
+  invalidateUidCache();
+  nudgeStore.users['tg_9100'] = { name: 'DateUser', isTelegramUser: true };
+  nudgeStore.telegram_links['9100'] = { uid: 'tg_9100' };
+  replies = [];
+  // Budget created with createdAt: 2026-10-17
+  const bRef = await mdb.collection('users').doc('tg_9100').collection('budgets').add({
+    customLabel: 'beli monitor',
+    keywords: ['monitor'],
+    monthlyLimit: 5000000,
+    amount: 5000000,
+    category: 'Shopping',
+    createdAt: '2026-10-17T08:00:00.000Z'
+  });
+  // Backdated transaction: 2026-10-16 (yesterday) -> should NOT be counted
+  await mdb.collection('users').doc('tg_9100').collection('transactions').add({
+    type: 'Expense',
+    amount: 2000000,
+    category: 'Shopping',
+    description: 'beli monitor kemarin',
+    date: '2026-10-16'
+  });
+  // Current transaction: 2026-10-17 (today) -> SHOULD be counted
+  await mdb.collection('users').doc('tg_9100').collection('transactions').add({
+    type: 'Expense',
+    amount: 1500000,
+    category: 'Shopping',
+    description: 'beli monitor hari ini',
+    date: '2026-10-17'
+  });
+
+  // Check detail of this budget: spent must be 1.500.000 (30%), NOT 3.500.000 (70%)
+  replies = [];
+  await handleTelegramUpdate({ callback_query: { id: 'bdg_date_test', data: `bdg:detail:${bRef.id}`, message: { chat: { id: 9100 }, message_id: 200 }, from: { first_name: 'DateUser' } } }, mdb, 'token');
+  const dateDetailMsg = replies.find(r => r.chat_id);
+  const dateDetailText = dateDetailMsg?.text || '';
+  assert(dateDetailText.includes('1.500.000 / Rp'), 'only today expense is counted in Terpakai (1.5jt)');
+  assert(!dateDetailText.includes('3.500.000 / Rp'), 'yesterday backdated expense (2jt) is not in Terpakai');
+  assert(dateDetailText.includes('30%'), 'spent percentage is 30% not 70%');
 
   // Budget inline callbacks
   replies = [];
@@ -834,59 +905,32 @@ async function testBot() {
   await handleTelegramUpdate({ message: { chat: { id: 9000 }, text: 'xyznonexistent', from: { first_name: 'LaptopUser' } } }, mdb, 'token');
   assert(replies.some(r => (r.text || '').includes('Tidak ketemu')), 'Search with no results shows message');
 
-  // Test /tantangan keluar & hapus
-  const cId = Object.keys(nudgeStore.challenges)[0];
-  if (cId) {
-    // Another user joins
-    await handleTelegramUpdate({ message: { chat: { id: 8000 }, text: `/tantangan gabung ${cId}`, from: { first_name: 'Joiner' } } }, mdb, 'token');
-    
-    // User 8000 leaves
-    replies = [];
-    await handleTelegramUpdate({ message: { chat: { id: 8000 }, text: `/tantangan keluar ${cId}`, from: { first_name: 'Joiner' } } }, mdb, 'token');
-    assert(replies.some(r => (r.text || '').includes('keluar dari tantangan')), 'User 8000 leaves challenge');
+  // Test ephemeral messages (queueTempMessage & cleanExpiredTempMessages)
+  await queueTempMessage(mdb, 5000, 9991, -1); // expired 1s ago
+  await queueTempMessage(mdb, 5000, 9992, 100); // active
+  assert(Object.keys(nudgeStore.temp_messages || {}).length >= 2, 'temp_messages queued');
+  const cleanedCount = await cleanExpiredTempMessages(mdb, 'token');
+  assert(cleanedCount >= 1, 'expired temp messages cleaned');
 
-    // Non-creator tries to delete
-    replies = [];
-    await handleTelegramUpdate({ message: { chat: { id: 8000 }, text: `/tantangan hapus ${cId}`, from: { first_name: 'Joiner' } } }, mdb, 'token');
-    assert(replies.some(r => (r.text || '').includes('Hanya pembuat')), 'Non-creator cannot delete challenge');
-
-    // Creator deletes challenge
-    replies = [];
-    await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: `/tantangan hapus ${cId}`, from: { first_name: 'NudgeUser' } } }, mdb, 'token');
-    assert(replies.some(r => (r.text || '').includes('berhasil dibatalkan/dihapus')), 'Creator deletes challenge');
-  }
-
-  // --- Tantangan inline menu callback tests ---
-  // First create a challenge via text command for callback testing
+  // Test riwayat search auto-deletion and navigation
   replies = [];
-  await handleTelegramUpdate({ message: { chat: { id: 5000 }, text: '/tantangan buat no_spend Kopi 30 Hari Tanpa Kopi Inline', from: { first_name: 'NudgeUser' } } }, mdb, 'token');
-  assert(replies.some(r => (r.text || '').includes('Tantangan Dibuat')), 'Challenge created for inline tests');
+  await handleTelegramUpdate({ callback_query: { id: 'cr_clean', data: 'cr:cari', message: { chat: { id: 9000 }, message_id: 301 }, from: { first_name: 'LaptopUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Cari Transaksi')), 'cr:cari prompts for search');
 
-  // tng:menu callback
   replies = [];
-  await handleTelegramUpdate({ callback_query: { id: 'cb1', data: 'tng:menu', message: { chat: { id: 5000 }, message_id: 100 }, from: { first_name: 'NudgeUser' } } }, mdb, 'token');
-  assert(replies.some(r => (r.text || '').includes('TANTANGAN')), 'tng:menu shows menu');
+  await handleTelegramUpdate({ message: { chat: { id: 9000 }, text: 'laptop', from: { first_name: 'LaptopUser' } } }, mdb, 'token');
+  assert(replies.length > 0, 'Search performed');
 
-  // tng:list callback
+  // Trigger cr:kembali to verify cleanup
   replies = [];
-  await handleTelegramUpdate({ callback_query: { id: 'cb2', data: 'tng:list', message: { chat: { id: 5000 }, message_id: 100 }, from: { first_name: 'NudgeUser' } } }, mdb, 'token');
-  assert(replies.some(r => (r.text || '').includes('Tantangan Aktif') || (r.text || '').includes('Belum ada')), 'tng:list shows list');
+  await handleTelegramUpdate({ callback_query: { id: 'cr_back', data: 'cr:kembali', message: { chat: { id: 9000 }, message_id: 302 }, from: { first_name: 'LaptopUser' } } }, mdb, 'token');
+  assert(replies.some(r => (r.text || '').includes('Transaksi Terakhir') || (r.text || '').includes('Belum ada')), 'cr:kembali returns to riwayat');
 
-  // tng:milik callback
-  replies = [];
-  await handleTelegramUpdate({ callback_query: { id: 'cb3', data: 'tng:milik', message: { chat: { id: 5000 }, message_id: 100 }, from: { first_name: 'NudgeUser' } } }, mdb, 'token');
-  assert(replies.some(r => (r.text || '').includes('Tantanganku') || (r.text || '').includes('belum ikut')), 'tng:milik shows my challenges');
-
-  // tng:buat callback
-  replies = [];
-  await handleTelegramUpdate({ callback_query: { id: 'cb4', data: 'tng:buat', message: { chat: { id: 5000 }, message_id: 100 }, from: { first_name: 'NudgeUser' } } }, mdb, 'token');
-  assert(replies.some(r => (r.text || '').includes('Buat Tantangan')), 'tng:buat shows type selection');
-
-  // /start join_idngawur → greeting
+  // /start random_code → invalid code greeting
   invalidateUidCache();
   replies = [];
-  await handleTelegramUpdate({ message: { chat: { id: 8000 }, text: '/start join_idngawur', from: { first_name: 'NewUser' } } }, mdb, 'token');
-  assert(replies.some(r => (r.text || '').includes('Pocky') || (r.text || '').includes('diajak')), 'Invalid join_ greeting');
+  await handleTelegramUpdate({ message: { chat: { id: 8000 }, text: '/start invalidcode', from: { first_name: 'NewUser' } } }, mdb, 'token');
+  assert(replies.length > 0, 'Invalid start payload handled');
   // --- Dev teststreak ---
 
   // /teststreak command handling (dev gate test)

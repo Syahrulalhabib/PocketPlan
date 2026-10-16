@@ -30,23 +30,13 @@ const KEYBOARD = {
   resize_keyboard: true
 };
 
-// Pending challenge creation state per chatId (step-by-step via buttons)
-const pendingChallenge = new Map();
 // Pending budget creation state per chatId (step-by-step via buttons)
 const pendingBudget = new Map();
 // Pending riwayat search per chatId
 const pendingSearch = new Map();
+// Last search message per chatId for auto-delete
+const lastSearchMsgMap = new Map();
 const PENDING_TIMEOUT_MS = 5 * 60 * 1000;
-function setPendingChallenge(chatId, data) {
-  pendingChallenge.set(String(chatId), { ...data, ts: Date.now() });
-}
-function getPendingChallenge(chatId) {
-  const p = pendingChallenge.get(String(chatId));
-  if (!p) return null;
-  if (Date.now() - p.ts > PENDING_TIMEOUT_MS) { pendingChallenge.delete(String(chatId)); return null; }
-  return p;
-}
-function clearPendingChallenge(chatId) { pendingChallenge.delete(String(chatId)); }
 
 function setPendingBudget(chatId, data) {
   pendingBudget.set(String(chatId), { ...data, ts: Date.now() });
@@ -59,8 +49,8 @@ function getPendingBudget(chatId) {
 }
 function clearPendingBudget(chatId) { pendingBudget.delete(String(chatId)); }
 
-function setPendingSearch(chatId) {
-  pendingSearch.set(String(chatId), { ts: Date.now() });
+function setPendingSearch(chatId, promptMsgId = null) {
+  pendingSearch.set(String(chatId), { ts: Date.now(), promptMsgId });
 }
 function getPendingSearch(chatId) {
   const p = pendingSearch.get(String(chatId));
@@ -69,6 +59,44 @@ function getPendingSearch(chatId) {
   return p;
 }
 function clearPendingSearch(chatId) { pendingSearch.delete(String(chatId)); }
+
+export async function queueTempMessage(db, chatId, messageId, ttlSeconds = 10) {
+  if (!db || !chatId || !messageId) return;
+  try {
+    const deleteAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
+    await db.collection('temp_messages').add({
+      chatId: String(chatId),
+      messageId,
+      deleteAt,
+      createdAt: new Date().toISOString()
+    });
+  } catch (e) {
+    console.error('queueTempMessage error:', e?.message);
+  }
+}
+
+export async function cleanExpiredTempMessages(db, botToken) {
+  if (!db || !botToken) return 0;
+  try {
+    const nowIso = new Date().toISOString();
+    const snap = await db.collection('temp_messages').get();
+    let cleaned = 0;
+    for (const doc of snap.docs) {
+      const d = doc.data();
+      if (d.deleteAt && d.deleteAt <= nowIso) {
+        if (d.chatId && d.messageId) {
+          await deleteTelegramMessage(botToken, d.chatId, d.messageId).catch(() => {});
+        }
+        await doc.ref.delete().catch(() => {});
+        cleaned++;
+      }
+    }
+    return cleaned;
+  } catch (e) {
+    console.error('cleanExpiredTempMessages error:', e?.message);
+    return 0;
+  }
+}
 
 function renderBar(cur, tgt) {
   const p = Math.max(0, Math.min(100, Math.round((cur / (tgt || 1)) * 100)));
@@ -80,6 +108,34 @@ function formatShortDate(dStr) {
   if (!dStr) return '';
   const parts = dStr.split('-');
   return parts.length === 3 ? `${parts[2]}/${parts[1]}` : dStr;
+}
+
+const INDO_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+function formatIndoDate(dStr) {
+  if (!dStr) return '';
+  const [y, m, d] = dStr.slice(0, 10).split('-').map(Number);
+  if (!y || !m || !d) return dStr;
+  return `${d} ${INDO_MONTHS[m - 1]} ${y}`;
+}
+
+function getJakartaDateStr(d) {
+  if (!d) return '';
+  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d.trim())) {
+    return d.trim();
+  }
+  const dateObj = typeof d === 'string' ? new Date(d) : d;
+  if (!dateObj || isNaN(dateObj?.getTime?.() ?? NaN)) return String(d).slice(0, 10);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(dateObj);
+}
+
+function getBudgetPeriod(createdAt, monthKey) {
+  const [y, m] = monthKey.split('-').map(Number);
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const endStr = `${monthKey}-${String(lastDay).padStart(2, '0')}`;
+  const cDate = getJakartaDateStr(createdAt);
+  const startStr = (cDate && cDate.slice(0, 7) === monthKey && cDate > `${monthKey}-01`) ? cDate : `${monthKey}-01`;
+  return { startStr, endStr, display: `${formatIndoDate(startStr)} — ${formatIndoDate(endStr)}`, createdDate: cDate || startStr };
 }
 
 function escapeMarkdown(text) {
@@ -377,11 +433,13 @@ async function checkBudgetWarnings(chatId, uid, db, botToken, category, descript
       const bLabelWords = bLabel.split(/\s+/).filter(w => w.length >= 2);
       const allKw = [...bKeywords, ...bLabelWords];
 
+      const bPeriod = getBudgetPeriod(budget.createdAt, monthKey);
       let total = 0;
       txDocs.forEach(d => {
         const t = d.data();
         const isExpense = (t.type || '').toLowerCase() === 'expense';
-        if (isExpense && getTxMonth(t) === monthKey) {
+        const txDate = (t.date || t.createdAt || '').slice(0, 10);
+        if (isExpense && getTxMonth(t) === monthKey && txDate >= bPeriod.startStr) {
           const txText = `${t.description || ''} ${t.category || ''}`.toLowerCase();
           if (allKw.some(kw => txText.includes(kw))) {
             total += Number(t.amount) || 0;
@@ -601,29 +659,31 @@ export async function handleTelegramUpdate(update, db, botToken) {
 
 
 
-    // --- Tantangan inline menu callbacks (tng:*) ---
-    if (data.startsWith('tng:')) {
-      await answerTelegramCallback(botToken, cb.id);
-      const messageId = cb.message?.message_id;
-      const userFrom = cb.from || {};
-      return handleTantanganCallback(data, botToken, chatId, messageId, uid, userFrom, db);
-    }
-
     // --- Budget inline menu callbacks (bdg:*) ---
     if (data.startsWith('bdg:')) {
       await answerTelegramCallback(botToken, cb.id);
       const messageId = cb.message?.message_id;
-      return handleBudgetCallback(data, botToken, chatId, messageId, uid, db);
+      const userUid = uid || (await ensureTelegramUser(chatId, cb.from, db));
+      return handleBudgetCallback(data, botToken, chatId, messageId, userUid, db);
     }
 
     // --- Riwayat search callbacks (cr:*) ---
     if (data.startsWith('cr:')) {
       await answerTelegramCallback(botToken, cb.id);
       if (data === 'cr:cari') {
-        setPendingSearch(chatId);
-        return sendTelegramMessage(botToken, chatId, '🔍 *Cari Transaksi*\n\nKetik kata kunci pencarian.\nContoh: `kopi`, `laptop`, `gaji`');
+        const askRes = await sendTelegramMessage(botToken, chatId, '🔍 *Cari Transaksi*\n\nKetik kata kunci pencarian.\nContoh: `kopi`, `laptop`, `gaji`');
+        setPendingSearch(chatId, askRes?.result?.message_id);
+        if (askRes?.result?.message_id) {
+          queueTempMessage(db, chatId, askRes.result.message_id, 120);
+        }
+        return;
       }
       if (data === 'cr:kembali') {
+        const prevSearchMsgId = lastSearchMsgMap.get(String(chatId));
+        if (prevSearchMsgId) {
+          deleteTelegramMessage(botToken, chatId, prevSearchMsgId).catch(() => {});
+          lastSearchMsgMap.delete(String(chatId));
+        }
         // Re-send riwayat
         const snap = await db.collection('users').doc(uid).collection('transactions').orderBy('date', 'desc').limit(5).get();
         if (snap.empty) return sendTelegramMessage(botToken, chatId, '📜 *Belum ada transaksi.*\nMulai catat, misal: `25k makan siang`');
@@ -808,75 +868,10 @@ export async function handleTelegramUpdate(update, db, botToken) {
   const text = msg.text.trim();
   const userName = escapeMarkdown(userFrom.first_name || 'Teman');
 
-  // Intercept judul input for pending challenge creation
-  const pendingC = getPendingChallenge(chatId);
-  if (pendingC && pendingC.step === 'judul' && !text.startsWith('/')) {
-    const title = text.slice(0, 60).trim();
-    if (!title) {
-      return sendTelegramMessage(botToken, chatId, '❌ Judul tidak boleh kosong. Ketik ulang judul tantangan:');
-    }
-    setPendingChallenge(chatId, { ...pendingC, step: 'confirm', title });
-    const typeLabel = pendingC.type === 'no_spend' ? `🚫 Puasa Belanja (${escapeMarkdown(pendingC.category || '')})` : '📝 Rajin Catat';
-    return sendTelegramMessage(botToken, chatId,
-      `🏆 *Konfirmasi Tantangan Baru:*\n\n📌 Judul: *${escapeMarkdown(title)}*\nTipe: ${typeLabel}\n📅 Durasi: 30 hari\n\nBuat tantangan ini?`,
-      { reply_markup: { inline_keyboard: [
-        [{ text: '✅ Buat!', callback_data: 'tng:confirm_buat:yes' }, { text: '❌ Batal', callback_data: 'tng:confirm_buat:no' }]
-      ] } }
-    );
-  }
-
   if (text.startsWith('/start')) {
     const parts = text.split(/\s+/);
     if (parts.length > 1) {
       const payload = parts[1];
-
-      // Fase 6: join_ deep link for challenges — handled before ref_ and link code
-      if (payload.startsWith('join_')) {
-        const challengeId = payload.replace('join_', '');
-        await ensureTelegramUser(chatId, userFrom, db);
-        const uid = await findLinkedUid(chatId, db);
-        if (db && challengeId) {
-          try {
-            const cRef = db.collection('challenges').doc(challengeId);
-            const cDoc = await cRef.get();
-            if (cDoc.exists) {
-              const cData = cDoc.data();
-              if (cData.status === 'active') {
-                const already = (cData.participants || []).some(p => String(p.chatId) === String(chatId));
-                if (already) {
-                  return sendTelegramMessage(botToken, chatId, '✅ Kamu sudah ikut tantangan ini!', { reply_markup: KEYBOARD });
-                }
-                const participants = [...(cData.participants || []), {
-                  chatId: String(chatId),
-                  uid: uid || `tg_${chatId}`,
-                  displayName: userFrom.first_name || 'Teman',
-                  joinedAt: new Date().toISOString()
-                }];
-                await cRef.set({ participants }, { merge: true });
-                // Notify creator
-                if (cData.creatorChatId && String(cData.creatorChatId) !== String(chatId)) {
-                  sendTelegramMessage(botToken, cData.creatorChatId,
-                    `🎉 *${escapeMarkdown(userFrom.first_name || 'Seseorang')}* bergabung ke tantangan *${escapeMarkdown(cData.title)}*! (${participants.length} peserta)`
-                  ).catch(() => {});
-                }
-                return sendTelegramMessage(botToken, chatId,
-                  `🎯 *Kamu ikut tantangan!*\n\n📌 *${escapeMarkdown(cData.title)}*\nTipe: ${cData.type === 'no_spend' ? '🚫 Tanpa belanja' : '📝 Catat tiap hari'}\nPeserta: ${participants.length} orang\n\nKetik /tantangan untuk cek progres!`,
-                  { reply_markup: KEYBOARD }
-                );
-              }
-            }
-          } catch (err) {
-            console.error('join_ deep link error:', err?.message);
-          }
-        }
-        // Invalid/expired join link → normal greeting
-        return sendTelegramMessage(
-          botToken,
-          chatId,
-          `*Hai ${userName}! Salam kenal, aku Pocky!*\n\n⚠️ Link tantangan tidak ditemukan atau sudah berakhir.\n\nAsisten keuangan pribadimu. Pocky bantu kamu:\n\n💸 Catat pemasukan & pengeluaran\n🧾 Scan foto struk otomatis\n🎯 Buat & pantau target tabungan\n📊 Cek saldo & riwayat kapan saja\n\nMulai: ketik \`kopi susu 25k\` atau kirim foto struk! 📖 /help`,
-          { reply_markup: KEYBOARD }
-        );
-      }
 
       // Fase 3: ref_ deep link for referrals
       if (payload.startsWith('ref_')) {
@@ -982,16 +977,33 @@ export async function handleTelegramUpdate(update, db, botToken) {
   if (pendingB && !text.startsWith('/')) {
     if (pendingB.step === 'label') {
       const label = text.slice(0, 60).trim();
-      if (!label) return sendTelegramMessage(botToken, chatId, '❌ Label tidak boleh kosong. Ketik ulang:');
-      setPendingBudget(chatId, { step: 'amount', label });
-      return sendTelegramMessage(botToken, chatId,
+      if (!label) {
+        if (pendingB.errorMsgId) deleteTelegramMessage(botToken, chatId, pendingB.errorMsgId).catch(() => {});
+        const errRes = await sendTelegramMessage(botToken, chatId, '❌ Label tidak boleh kosong. Ketik ulang:');
+        setPendingBudget(chatId, { ...pendingB, errorMsgId: errRes?.result?.message_id });
+        if (errRes?.result?.message_id) queueTempMessage(db, chatId, errRes.result.message_id, 60);
+        return;
+      }
+      if (pendingB.promptMsgId) deleteTelegramMessage(botToken, chatId, pendingB.promptMsgId).catch(() => {});
+      if (pendingB.errorMsgId) deleteTelegramMessage(botToken, chatId, pendingB.errorMsgId).catch(() => {});
+      const askRes = await sendTelegramMessage(botToken, chatId,
         `💰 Budget: *${escapeMarkdown(label)}*\n\nLimitnya berapa? Ketik nominal.\nContoh: \`500k\`, \`1.5jt\`, \`200000\``,
         { reply_markup: { inline_keyboard: [[{ text: '❌ Batal', callback_data: 'bdg:list' }]] } }
       );
+      setPendingBudget(chatId, { step: 'amount', label, promptMsgId: askRes?.result?.message_id });
+      return;
     }
     if (pendingB.step === 'amount') {
       const limit = parseAmount(text);
-      if (!limit || limit <= 0) return sendTelegramMessage(botToken, chatId, '❌ Nominal tidak valid. Coba lagi.\nContoh: `500k`, `1.5jt`');
+      if (!limit || limit <= 0) {
+        if (pendingB.errorMsgId) deleteTelegramMessage(botToken, chatId, pendingB.errorMsgId).catch(() => {});
+        const errRes = await sendTelegramMessage(botToken, chatId, '❌ Nominal tidak valid. Coba lagi.\nContoh: `500k`, `1.5jt`');
+        setPendingBudget(chatId, { ...pendingB, errorMsgId: errRes?.result?.message_id });
+        if (errRes?.result?.message_id) queueTempMessage(db, chatId, errRes.result.message_id, 60);
+        return;
+      }
+      if (pendingB.promptMsgId) deleteTelegramMessage(botToken, chatId, pendingB.promptMsgId).catch(() => {});
+      if (pendingB.errorMsgId) deleteTelegramMessage(botToken, chatId, pendingB.errorMsgId).catch(() => {});
       const label = pendingB.label;
       const keywords = label.toLowerCase().split(/\s+/)
         .map(w => w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')).filter(Boolean)
@@ -1013,7 +1025,15 @@ export async function handleTelegramUpdate(update, db, botToken) {
     }
     if (pendingB.step === 'limit' && pendingB.budgetId) {
       const limit = parseAmount(text);
-      if (!limit || limit <= 0) return sendTelegramMessage(botToken, chatId, '❌ Nominal tidak valid. Coba lagi.');
+      if (!limit || limit <= 0) {
+        if (pendingB.errorMsgId) deleteTelegramMessage(botToken, chatId, pendingB.errorMsgId).catch(() => {});
+        const errRes = await sendTelegramMessage(botToken, chatId, '❌ Nominal tidak valid. Coba lagi.');
+        setPendingBudget(chatId, { ...pendingB, errorMsgId: errRes?.result?.message_id });
+        if (errRes?.result?.message_id) queueTempMessage(db, chatId, errRes.result.message_id, 60);
+        return;
+      }
+      if (pendingB.promptMsgId) deleteTelegramMessage(botToken, chatId, pendingB.promptMsgId).catch(() => {});
+      if (pendingB.errorMsgId) deleteTelegramMessage(botToken, chatId, pendingB.errorMsgId).catch(() => {});
       if (db) {
         const bDocRef = db.collection('users').doc(uid).collection('budgets').doc(pendingB.budgetId);
         await bDocRef.ref.set(
@@ -1033,6 +1053,9 @@ export async function handleTelegramUpdate(update, db, botToken) {
   const pendingS = getPendingSearch(chatId);
   if (pendingS && !text.startsWith('/')) {
     clearPendingSearch(chatId);
+    if (pendingS.promptMsgId) {
+      deleteTelegramMessage(botToken, chatId, pendingS.promptMsgId).catch(() => {});
+    }
     return handleRiwayatSearch(text.trim(), chatId, uid, db, botToken);
   }
 
@@ -1126,13 +1149,19 @@ export async function handleTelegramUpdate(update, db, botToken) {
   }
 
   if (text === '/goal' || /^\/goal@\S+$/i.test(text)) {
-    return sendTelegramMessage(botToken, chatId, '🎯 *Format Buat Target:*\nKetik: `/goal [nama] [nominal]` atau `/goal [nominal] [nama]`\nContoh: `/goal Motor Matic 15jt`',
+    const res = await sendTelegramMessage(botToken, chatId, '🎯 *Format Buat Target:*\nKetik: `/goal [nama] [nominal]` atau `/goal [nominal] [nama]`\nContoh: `/goal Motor Matic 15jt`',
       { reply_markup: KEYBOARD });
+    if (res?.result?.message_id) queueTempMessage(db, chatId, res.result.message_id, 60);
+    return res;
   }
 
   if (/^\/goal(@\S+)?\s+/i.test(text)) {
     const raw = text.replace(/^\/goal(@\S+)?\s+/i, '').trim();
-    if (!raw) return sendTelegramMessage(botToken, chatId, '🎯 *Format Buat Target:*\nKetik: `/goal [nama] [nominal]` atau `/goal [nominal] [nama]`\nContoh: `/goal Motor Matic 15jt`');
+    if (!raw) {
+      const res = await sendTelegramMessage(botToken, chatId, '🎯 *Format Buat Target:*\nKetik: `/goal [nama] [nominal]` atau `/goal [nominal] [nama]`\nContoh: `/goal Motor Matic 15jt`');
+      if (res?.result?.message_id) queueTempMessage(db, chatId, res.result.message_id, 60);
+      return res;
+    }
     const rawWords = raw.split(/\s+/);
     let amt = 0;
     let name = '';
@@ -1150,7 +1179,11 @@ export async function handleTelegramUpdate(update, db, botToken) {
     }
 
     if (!name) name = 'Tabungan Impian';
-    if (!amt) return sendTelegramMessage(botToken, chatId, '⚠️ Nominal belum benar.\nContoh:\n👉 `/goal Laptop Baru 10jt`\n👉 `/goal 10jt Laptop Baru`');
+    if (!amt) {
+      const res = await sendTelegramMessage(botToken, chatId, '⚠️ Nominal belum benar.\nContoh:\n👉 `/goal Laptop Baru 10jt`\n👉 `/goal 10jt Laptop Baru`');
+      if (res?.result?.message_id) queueTempMessage(db, chatId, res.result.message_id, 60);
+      return res;
+    }
     if (db) {
       await db.collection('users').doc(uid).collection('goals').add({
         name,
@@ -1186,15 +1219,6 @@ export async function handleTelegramUpdate(update, db, botToken) {
       '• <code>/goals</code> — cek progres &amp; beli target tercapai\n' +
       '• <code>/streak</code> — pantau rekor hari konsisten catat keuangan\n' +
       '• <code>/pencapaian</code> — galeri lencana &amp; milestone\n\n' +
-      '<b>🏆 TANTANGAN DISIPLIN (30 HARI)</b>\n' +
-      '• Ajang 30 hari melatih disiplin finansial bareng teman.\n' +
-      '• Ketik <code>/tantangan</code> — buka menu interaktif:\n' +
-      '   ➕ <b>Buat</b> — pilih tipe, kategori, ketik judul, selesai!\n' +
-      '   📋 <b>Tantangan Aktif</b> — lihat &amp; gabung tantangan\n' +
-      '   👤 <b>Tantanganku</b> — cek progres &amp; streak harian\n' +
-      '• Tap detail tantangan untuk gabung, keluar, atau hapus.\n' +
-      '• Catat keuangan tiap hari → streak hijau ✅ → leaderboard naik!\n' +
-      '• Raih lencana Juara 🏆 / Selesai 👏 di <code>/pencapaian</code>.\n\n' +
       '<b>📊 INFO &amp; SINKRONISASI</b>\n' +
       '• <code>/saldo</code> — sisa saldo &amp; ringkasan arus kas\n' +
       '• <code>/riwayat</code> — 5 transaksi terakhir\n' +
@@ -1424,135 +1448,6 @@ export async function handleTelegramUpdate(update, db, botToken) {
     return sendTelegramMessage(botToken, chatId, 'Kategori diperbarui.');
   }
 
-  // /tantangan command — challenge system (Fase 6)
-  if (cmdText === '/tantangan' || cmdText.startsWith('/tantangan ')) {
-    const args = text.replace(/^\/tantangan(@\S+)?\s*/i, '').trim();
-    if (!db) return sendTelegramMessage(botToken, chatId, 'Mode demo aktif.');
-
-    // /tantangan buat ...
-    const buatMatch = args.match(/^buat\s+(no_spend|daily_log)\s+(\S+)\s+"(.+)"/i) || args.match(/^buat\s+(no_spend|daily_log)\s+(\S+)\s+(.+)/i);
-    if (args.startsWith('buat') && buatMatch) {
-      const type = buatMatch[1].toLowerCase();
-      const category = buatMatch[2];
-      const title = buatMatch[3];
-      const startDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
-      const endD = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
-      endD.setDate(endD.getDate() + 30);
-      const endDate = `${endD.getFullYear()}-${String(endD.getMonth() + 1).padStart(2, '0')}-${String(endD.getDate()).padStart(2, '0')}`;
-      const cDoc = await db.collection('challenges').add({
-        title, type, category: type === 'no_spend' ? category : null,
-        days: 30, startDate, endDate,
-        creatorChatId: String(chatId),
-        participants: [{ chatId: String(chatId), uid, displayName: userFrom.first_name || 'Teman', joinedAt: new Date().toISOString() }],
-        status: 'active', createdAt: new Date().toISOString()
-      });
-      const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'PocketPlanBot';
-      const joinLink = `https://t.me/${botUsername}?start=join_${cDoc.id}`;
-      return sendTelegramMessage(botToken, chatId,
-        `🏆 *Tantangan Dibuat!*\n\n📌 *${escapeMarkdown(title)}*\nTipe: ${type === 'no_spend' ? `🚫 Tanpa belanja ${escapeMarkdown(category)}` : '📝 Catat tiap hari'}\n📅 ${startDate} — ${endDate} (30 hari)\n\nAjak teman join:\n\`${joinLink}\``,
-        { reply_markup: KEYBOARD }
-      );
-    }
-    if (args.startsWith('buat')) {
-      return sendTelegramMessage(botToken, chatId,
-        '🏆 *Cara Buat Tantangan Bareng Teman (30 Hari):*\n\n' +
-        '*1. Puasa Belanja (`no_spend`)*:\n' +
-        'Tahan diri tidak beli barang tertentu (kopi, boba, jajan, rokok, dll).\n' +
-        'Format: `/tantangan buat no_spend <Kategori> <Judul>`\n' +
-        'Contoh: `/tantangan buat no_spend Kopi 30 Hari Tanpa Kopi`\n\n' +
-        '*2. Rajin Catat (`daily_log`)*:\n' +
-        'Disiplin catat keuangan minimal 1x setiap hari bareng teman tanpa bolong.\n' +
-        'Format: `/tantangan buat daily_log <Kategori> <Judul>`\n' +
-        'Contoh: `/tantangan buat daily_log Nabung 30 Hari Rajin Catat`\n\n' +
-        '💡 _Setelah dibuat, Pocky beri link khusus untuk dibagikan ke teman!_',
-        { reply_markup: KEYBOARD }
-      );
-    }
-
-    // /tantangan gabung <id>
-    const gabungMatch = args.match(/^gabung\s+(\S+)/i);
-    if (gabungMatch) {
-      const challengeId = gabungMatch[1];
-      try {
-        const cRef = db.collection('challenges').doc(challengeId);
-        const cDoc = await cRef.get();
-        if (!cDoc.exists) return sendTelegramMessage(botToken, chatId, '❌ Tantangan tidak ditemukan.');
-        const cData = cDoc.data();
-        if (cData.status !== 'active') return sendTelegramMessage(botToken, chatId, '⏰ Tantangan sudah selesai.');
-        const already = (cData.participants || []).some(p => String(p.chatId) === String(chatId));
-        if (already) return sendTelegramMessage(botToken, chatId, '✅ Kamu sudah ikut tantangan ini!');
-        const participants = [...(cData.participants || []), {
-          chatId: String(chatId), uid, displayName: userFrom.first_name || 'Teman', joinedAt: new Date().toISOString()
-        }];
-        await cRef.set({ participants }, { merge: true });
-        return sendTelegramMessage(botToken, chatId,
-          `🎯 *Kamu ikut tantangan!*\n\n📌 *${escapeMarkdown(cData.title)}*\nPeserta: ${participants.length} orang`,
-          { reply_markup: KEYBOARD }
-        );
-      } catch (err) {
-        console.error('tantangan gabung error:', err?.message);
-        return sendTelegramMessage(botToken, chatId, '❌ Gagal join tantangan.');
-      }
-    }
-
-    // /tantangan keluar <id>
-    const keluarMatch = args.match(/^keluar\s+(\S+)/i);
-    if (keluarMatch) {
-      const challengeId = keluarMatch[1];
-      try {
-        const cRef = db.collection('challenges').doc(challengeId);
-        const cDoc = await cRef.get();
-        if (!cDoc.exists) return sendTelegramMessage(botToken, chatId, '❌ Tantangan tidak ditemukan.');
-        const cData = cDoc.data();
-        const existing = (cData.participants || []).filter(p => String(p.chatId) !== String(chatId));
-        if (existing.length === (cData.participants || []).length) {
-          return sendTelegramMessage(botToken, chatId, 'ℹ️ Kamu belum bergabung di tantangan ini.');
-        }
-        await cRef.set({ participants: existing }, { merge: true });
-        return sendTelegramMessage(botToken, chatId,
-          `🚪 *Kamu telah keluar dari tantangan:*\n📌 *${escapeMarkdown(cData.title)}*`,
-          { reply_markup: KEYBOARD }
-        );
-      } catch (err) {
-        console.error('tantangan keluar error:', err?.message);
-        return sendTelegramMessage(botToken, chatId, '❌ Gagal keluar dari tantangan.');
-      }
-    }
-
-    // /tantangan hapus <id>
-    const hapusTantanganMatch = args.match(/^hapus\s+(\S+)/i);
-    if (hapusTantanganMatch) {
-      const challengeId = hapusTantanganMatch[1];
-      try {
-        const cRef = db.collection('challenges').doc(challengeId);
-        const cDoc = await cRef.get();
-        if (!cDoc.exists) return sendTelegramMessage(botToken, chatId, '❌ Tantangan tidak ditemukan.');
-        const cData = cDoc.data();
-        if (String(cData.creatorChatId) !== String(chatId)) {
-          return sendTelegramMessage(botToken, chatId, `❌ Hanya pembuat tantangan yang dapat menghapus tantangan ini.\nUntuk keluar, ketik: \`/tantangan keluar ${challengeId}\``);
-        }
-        await cRef.set({ status: 'cancelled' }, { merge: true });
-        return sendTelegramMessage(botToken, chatId,
-          `🗑️ *Tantangan berhasil dibatalkan/dihapus:*\n📌 *${escapeMarkdown(cData.title)}*`,
-          { reply_markup: KEYBOARD }
-        );
-      } catch (err) {
-        console.error('tantangan hapus error:', err?.message);
-        return sendTelegramMessage(botToken, chatId, '❌ Gagal menghapus tantangan.');
-      }
-    }
-
-    // /tantangan (no args) → show inline menu
-    return sendTelegramMessage(botToken, chatId,
-      '🏆 *TANTANGAN*\nMenantang dirimu & teman selama 30 hari!',
-      { reply_markup: { inline_keyboard: [
-        [{ text: '➕ Buat Tantangan Baru', callback_data: 'tng:buat' }],
-        [{ text: '📋 Tantangan Aktif', callback_data: 'tng:list' }],
-        [{ text: '👤 Tantanganku', callback_data: 'tng:milik' }]
-      ] } }
-    );
-  }
-
   // /budget command — custom label per item, inline menu
   if (cmdText === '/budget' || cmdText.startsWith('/budget ')) {
     const args = text.replace(/^\/budget(@\S+)?\s*/i, '').trim();
@@ -1622,14 +1517,18 @@ export async function handleTelegramUpdate(update, db, botToken) {
 
   // Bare commands without arguments → friendly guidance
   if (['/catat', '/keluar', '/expense'].includes(cmdText)) {
-    return sendTelegramMessage(botToken, chatId,
+    const res = await sendTelegramMessage(botToken, chatId,
       `📝 *Cara catat pengeluaran:*\n\n\`/catat 25k kopi susu\`\n\`/catat makan siang 35rb\`\n\`kopi 15k\` _(tanpa command juga bisa!)_\n\nFormat: \`/catat [nominal] [keterangan]\` atau sebaliknya`,
       { reply_markup: KEYBOARD });
+    if (res?.result?.message_id) queueTempMessage(db, chatId, res.result.message_id, 60);
+    return res;
   }
   if (['/masuk', '/income'].includes(cmdText)) {
-    return sendTelegramMessage(botToken, chatId,
+    const res = await sendTelegramMessage(botToken, chatId,
       `💰 *Cara catat pemasukan:*\n\n\`/masuk 2.5jt gaji bulanan\`\n\`/masuk freelance 500k\`\n\nFormat: \`/masuk [nominal] [keterangan]\` atau sebaliknya`,
       { reply_markup: KEYBOARD });
+    if (res?.result?.message_id) queueTempMessage(db, chatId, res.result.message_id, 60);
+    return res;
   }
 
   const parsed = parseTransactionCommand(text);
@@ -1672,269 +1571,18 @@ export async function handleTelegramUpdate(update, db, botToken) {
     );
   }
 
-  return sendTelegramMessage(
+  const unkRes = await sendTelegramMessage(
     botToken,
     chatId,
     `❓ *Perintah tidak dikenali*\n\nBerikut contoh yang bisa kamu ketik:\n📝 \`kopi susu 25k\` — catat pengeluaran\n💰 \`/masuk gaji 2jt\` — catat pemasukan\n🎯 \`/goal Laptop 10jt\` — buat target\n\nKetik /help untuk panduan lengkap 📖`,
     { reply_markup: KEYBOARD }
   );
-}
-
-// --- Tantangan inline menu handler ---
-async function handleTantanganCallback(data, botToken, chatId, messageId, uid, userFrom, db) {
-  const menuKb = { inline_keyboard: [
-    [{ text: '➕ Buat Tantangan Baru', callback_data: 'tng:buat' }],
-    [{ text: '📋 Tantangan Aktif', callback_data: 'tng:list' }],
-    [{ text: '👤 Tantanganku', callback_data: 'tng:milik' }]
-  ] };
-  const menuTxt = '🏆 *TANTANGAN*\nMenantang dirimu & teman selama 30 hari!';
-
-  if (data === 'tng:menu') {
-    if (messageId) return editTelegramMessage(botToken, chatId, messageId, menuTxt, { reply_markup: menuKb });
-    return sendTelegramMessage(botToken, chatId, menuTxt, { reply_markup: menuKb });
-  }
-
-  if (data === 'tng:buat') {
-    if (messageId) return editTelegramMessage(botToken, chatId, messageId,
-      '🏆 *Buat Tantangan Baru*\n\nPilih tipe tantangan:',
-      { reply_markup: { inline_keyboard: [
-        [{ text: '🚫 Puasa Belanja', callback_data: 'tng:tipe:no_spend' }, { text: '📝 Rajin Catat', callback_data: 'tng:tipe:daily_log' }],
-        [{ text: '⬅️ Kembali', callback_data: 'tng:menu' }]
-      ] } });
-    return;
-  }
-
-  if (data === 'tng:tipe:no_spend' || data === 'tng:tipe:daily_log') {
-    const type = data === 'tng:tipe:no_spend' ? 'no_spend' : 'daily_log';
-    const cats = [['🍜 Makanan','Food'],['🛍️ Belanja','Shopping'],['🚗 Transport','Transport'],['💡 Bills','Bills'],['💊 Kesehatan','Health'],['🎮 Hiburan','Entertainment'],['📚 Edukasi','Education'],['🎁 Lainnya','Other']];
-    const rows = [];
-    for (let i = 0; i < cats.length; i += 2) {
-      const row = [{ text: cats[i][0], callback_data: `tng:kat:${type}:${cats[i][1]}` }];
-      if (cats[i+1]) row.push({ text: cats[i+1][0], callback_data: `tng:kat:${type}:${cats[i+1][1]}` });
-      rows.push(row);
-    }
-    if (type === 'daily_log') rows.push([{ text: '⏭️ Lewati', callback_data: `tng:kat:${type}:_skip` }]);
-    rows.push([{ text: '⬅️ Kembali', callback_data: 'tng:buat' }]);
-    if (messageId) return editTelegramMessage(botToken, chatId, messageId,
-      `🏆 *Buat: ${type === 'no_spend' ? '🚫 Puasa Belanja' : '📝 Rajin Catat'}*\n\nPilih kategori:`,
-      { reply_markup: { inline_keyboard: rows } });
-    return;
-  }
-
-  if (data.startsWith('tng:kat:')) {
-    const parts = data.replace('tng:kat:', '').split(':');
-    const type = parts[0], category = parts[1];
-    setPendingChallenge(chatId, { step: 'judul', type, category: category === '_skip' ? null : category });
-    if (messageId) return editTelegramMessage(botToken, chatId, messageId,
-      `🏆 *Buat Tantangan*\n` +
-      (category !== '_skip' ? `📁 Kategori: *${escapeMarkdown(category)}*\n\n` : '\n') +
-      '✏️ Ketik *judul tantangan* kamu:\n_(contoh: 30 Hari Tanpa Kopi)_',
-      { reply_markup: { inline_keyboard: [[{ text: '❌ Batal', callback_data: 'tng:menu' }]] } });
-    return;
-  }
-
-  if (data.startsWith('tng:confirm_buat:')) {
-    if (data.endsWith(':yes')) {
-      const p = getPendingChallenge(chatId);
-      if (!p || !p.title || !db) {
-        if (messageId) return editTelegramMessage(botToken, chatId, messageId, '❌ Sesi kedaluwarsa. Ketik /tantangan untuk mulai lagi.');
-        return;
-      }
-      const startDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
-      const endD = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
-      endD.setDate(endD.getDate() + 30);
-      const endDate = `${endD.getFullYear()}-${String(endD.getMonth() + 1).padStart(2, '0')}-${String(endD.getDate()).padStart(2, '0')}`;
-      const cDoc = await db.collection('challenges').add({
-        title: p.title, type: p.type, category: p.type === 'no_spend' ? p.category : null,
-        days: 30, startDate, endDate,
-        creatorChatId: String(chatId),
-        participants: [{ chatId: String(chatId), uid: uid || `tg_${chatId}`, displayName: userFrom.first_name || 'Teman', joinedAt: new Date().toISOString() }],
-        status: 'active', createdAt: new Date().toISOString()
-      });
-      clearPendingChallenge(chatId);
-      const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'PocketPlanBot';
-      const joinLink = `https://t.me/${botUsername}?start=join_${cDoc.id}`;
-      if (messageId) return editTelegramMessage(botToken, chatId, messageId,
-        `🏆 *Tantangan Dibuat!*\n\n📌 *${escapeMarkdown(p.title)}*\nTipe: ${p.type === 'no_spend' ? `🚫 Tanpa belanja ${escapeMarkdown(p.category || '')}` : '📝 Catat tiap hari'}\n📅 ${startDate} — ${endDate} (30 hari)\n\nAjak teman join:\n\`${joinLink}\``,
-        { reply_markup: { inline_keyboard: [[{ text: '🔗 Bagikan', url: joinLink }], [{ text: '⬅️ Menu Tantangan', callback_data: 'tng:menu' }]] } });
-      return;
-    }
-    clearPendingChallenge(chatId);
-    if (messageId) return editTelegramMessage(botToken, chatId, messageId, menuTxt, { reply_markup: menuKb });
-    return;
-  }
-
-  if (data === 'tng:list') return handleTngList(botToken, chatId, messageId, db);
-  if (data === 'tng:milik') return handleTngMilik(botToken, chatId, messageId, db);
-  if (data.startsWith('tng:detail:')) return handleTngDetail(data.replace('tng:detail:', ''), botToken, chatId, messageId, uid, userFrom, db);
-  if (data.startsWith('tng:gabung:')) return handleTngGabung(data.replace('tng:gabung:', ''), botToken, chatId, messageId, uid, userFrom, db);
-  if (data.startsWith('tng:keluar:')) return handleTngKeluar(data.replace('tng:keluar:', ''), botToken, chatId, messageId, db);
-  if (data.startsWith('tng:hapus:')) return handleTngHapus(data.replace('tng:hapus:', ''), botToken, chatId, messageId, db);
-}
-
-async function handleTngList(botToken, chatId, messageId, db) {
-  if (!db) return;
-  try {
-    const cSnap = await db.collection('challenges').where('status', '==', 'active').get();
-    const all = [];
-    cSnap.forEach(d => all.push({ id: d.id, ...d.data() }));
-    if (all.length === 0) {
-      const txt = '🏆 *Belum ada tantangan aktif*\n\nBuat tantangan baru untuk mulai!';
-      const kb = { inline_keyboard: [[{ text: '➕ Buat Tantangan Baru', callback_data: 'tng:buat' }], [{ text: '⬅️ Kembali', callback_data: 'tng:menu' }]] };
-      if (messageId) return editTelegramMessage(botToken, chatId, messageId, txt, { reply_markup: kb });
-      return sendTelegramMessage(botToken, chatId, txt, { reply_markup: kb });
-    }
-    let out = '📋 *Tantangan Aktif:*\n\n';
-    const buttons = [];
-    for (const c of all) {
-      const pCount = (c.participants || []).length;
-      const typeIcon = c.type === 'no_spend' ? '🚫' : '📝';
-      out += `${typeIcon} *${escapeMarkdown(c.title)}* (${pCount} peserta)\n`;
-      buttons.push([{ text: `👁️ ${c.title.slice(0, 30)}`, callback_data: `tng:detail:${c.id}` }]);
-    }
-    buttons.push([{ text: '⬅️ Kembali', callback_data: 'tng:menu' }]);
-    if (messageId) return editTelegramMessage(botToken, chatId, messageId, out, { reply_markup: { inline_keyboard: buttons } });
-    return sendTelegramMessage(botToken, chatId, out, { reply_markup: { inline_keyboard: buttons } });
-  } catch (err) {
-    console.error('tng:list error:', err?.message);
-  }
-}
-
-async function handleTngMilik(botToken, chatId, messageId, db) {
-  if (!db) return;
-  try {
-    const cSnap = await db.collection('challenges').where('status', '==', 'active').get();
-    const mine = [];
-    cSnap.forEach(d => {
-      const c = d.data();
-      if ((c.participants || []).some(p => String(p.chatId) === String(chatId))) mine.push({ id: d.id, ...c });
-    });
-    if (mine.length === 0) {
-      const txt = '👤 *Kamu belum ikut tantangan*\n\nGabung atau buat tantangan baru!';
-      const kb = { inline_keyboard: [[{ text: '📋 Tantangan Aktif', callback_data: 'tng:list' }], [{ text: '➕ Buat Baru', callback_data: 'tng:buat' }], [{ text: '⬅️ Kembali', callback_data: 'tng:menu' }]] };
-      if (messageId) return editTelegramMessage(botToken, chatId, messageId, txt, { reply_markup: kb });
-      return sendTelegramMessage(botToken, chatId, txt, { reply_markup: kb });
-    }
-    let out = '👤 *Tantanganku:*\n\n';
-    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
-    const buttons = [];
-    for (const c of mine) {
-      const totalDays = c.days || 30;
-      const daysPassed = Math.max(0, Math.min(totalDays, Math.round((new Date(todayStr + 'T00:00:00') - new Date(c.startDate + 'T00:00:00')) / 86400000)));
-      const me = (c.participants || []).find(p => String(p.chatId) === String(chatId));
-      const passedDays = Object.values(me?.progress || {}).filter(v => v === true).length;
-      const pct = daysPassed > 0 ? Math.round((passedDays / daysPassed) * 100) : 0;
-      out += `${c.type === 'no_spend' ? '🚫' : '📝'} *${escapeMarkdown(c.title)}*\n📅 Hari ${daysPassed}/${totalDays} • ${pct}% ✅\n\n`;
-      buttons.push([{ text: `👁️ ${c.title.slice(0, 30)}`, callback_data: `tng:detail:${c.id}` }]);
-    }
-    buttons.push([{ text: '⬅️ Kembali', callback_data: 'tng:menu' }]);
-    if (messageId) return editTelegramMessage(botToken, chatId, messageId, out, { reply_markup: { inline_keyboard: buttons } });
-    return sendTelegramMessage(botToken, chatId, out, { reply_markup: { inline_keyboard: buttons } });
-  } catch (err) {
-    console.error('tng:milik error:', err?.message);
-  }
-}
-
-async function handleTngDetail(cId, botToken, chatId, messageId, uid, userFrom, db) {
-  if (!db) return;
-  try {
-    const cRef = db.collection('challenges').doc(cId);
-    const cDoc = await cRef.get();
-    if (!cDoc.exists) { if (messageId) return editTelegramMessage(botToken, chatId, messageId, '❌ Tantangan tidak ditemukan.'); return; }
-    const c = cDoc.data();
-    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
-    const totalDays = c.days || 30;
-    const todayD = new Date(todayStr + 'T00:00:00');
-    const daysPassed = Math.max(0, Math.min(totalDays, Math.round((todayD - new Date(c.startDate + 'T00:00:00')) / 86400000)));
-    let out = `📌 *${escapeMarkdown(c.title)}*\n${c.type === 'no_spend' ? `🚫 Tanpa belanja ${escapeMarkdown(c.category || '')}` : '📝 Catat tiap hari'}\n📅 Hari ${daysPassed}/${totalDays}\n\n*Peserta:*\n`;
-    for (const p of (c.participants || [])) {
-      const progress = p.progress || {};
-      const passedCnt = Object.values(progress).filter(v => v === true).length;
-      const pct = daysPassed > 0 ? Math.round((passedCnt / daysPassed) * 100) : 0;
-      let streak7 = '';
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(todayD); d.setDate(d.getDate() - i);
-        const ds = d.toISOString().split('T')[0];
-        if (ds < c.startDate) { streak7 += '⬜'; continue; }
-        streak7 += progress[ds] === true ? '✅' : progress[ds] === false ? '❌' : '⬜';
-      }
-      out += `  ${escapeMarkdown(p.displayName)} ${pct}% ${streak7}\n`;
-    }
-    const isParticipant = (c.participants || []).some(p => String(p.chatId) === String(chatId));
-    const isCreator = String(c.creatorChatId) === String(chatId);
-    const btns = [];
-    if (!isParticipant) btns.push([{ text: '➕ Gabung', callback_data: `tng:gabung:${cId}` }]);
-    if (isParticipant && !isCreator) btns.push([{ text: '🚪 Keluar', callback_data: `tng:keluar:${cId}` }]);
-    if (isCreator) btns.push([{ text: '🗑️ Hapus', callback_data: `tng:hapus:${cId}` }]);
-    const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'PocketPlanBot';
-    btns.push([{ text: '🔗 Undang Teman', url: `https://t.me/${botUsername}?start=join_${cId}` }]);
-    btns.push([{ text: '⬅️ Kembali', callback_data: 'tng:milik' }]);
-    if (messageId) return editTelegramMessage(botToken, chatId, messageId, out, { reply_markup: { inline_keyboard: btns } });
-    return sendTelegramMessage(botToken, chatId, out, { reply_markup: { inline_keyboard: btns } });
-  } catch (err) { console.error('tng:detail error:', err?.message); }
-}
-
-async function handleTngGabung(cId, botToken, chatId, messageId, uid, userFrom, db) {
-  if (!db) return;
-  try {
-    const cRef = db.collection('challenges').doc(cId);
-    const cDoc = await cRef.get();
-    if (!cDoc.exists) { if (messageId) return editTelegramMessage(botToken, chatId, messageId, '❌ Tantangan tidak ditemukan.'); return; }
-    const cData = cDoc.data();
-    if ((cData.participants || []).some(p => String(p.chatId) === String(chatId))) {
-      if (messageId) return editTelegramMessage(botToken, chatId, messageId, '✅ Kamu sudah ikut tantangan ini!', { reply_markup: { inline_keyboard: [[{ text: '👁️ Detail', callback_data: `tng:detail:${cId}` }]] } });
-      return;
-    }
-    const participants = [...(cData.participants || []), { chatId: String(chatId), uid: uid || `tg_${chatId}`, displayName: userFrom.first_name || 'Teman', joinedAt: new Date().toISOString() }];
-    await cRef.set({ participants }, { merge: true });
-    if (cData.creatorChatId && String(cData.creatorChatId) !== String(chatId)) {
-      sendTelegramMessage(botToken, cData.creatorChatId, `🎉 *${escapeMarkdown(userFrom.first_name || 'Seseorang')}* bergabung ke tantangan *${escapeMarkdown(cData.title)}*! (${participants.length} peserta)`).catch(() => {});
-    }
-    if (messageId) return editTelegramMessage(botToken, chatId, messageId,
-      `🎯 *Kamu ikut tantangan!*\n\n📌 *${escapeMarkdown(cData.title)}*\nPeserta: ${participants.length} orang`,
-      { reply_markup: { inline_keyboard: [[{ text: '👁️ Lihat Detail', callback_data: `tng:detail:${cId}` }], [{ text: '⬅️ Menu Tantangan', callback_data: 'tng:menu' }]] } });
-  } catch (err) { console.error('tng:gabung error:', err?.message); }
-}
-
-async function handleTngKeluar(cId, botToken, chatId, messageId, db) {
-  if (!db) return;
-  try {
-    const cRef = db.collection('challenges').doc(cId);
-    const cDoc = await cRef.get();
-    if (!cDoc.exists) { if (messageId) return editTelegramMessage(botToken, chatId, messageId, '❌ Tantangan tidak ditemukan.'); return; }
-    const cData = cDoc.data();
-    const remaining = (cData.participants || []).filter(p => String(p.chatId) !== String(chatId));
-    if (remaining.length === (cData.participants || []).length) {
-      if (messageId) return editTelegramMessage(botToken, chatId, messageId, 'ℹ️ Kamu belum bergabung di tantangan ini.');
-      return;
-    }
-    await cRef.set({ participants: remaining }, { merge: true });
-    if (messageId) return editTelegramMessage(botToken, chatId, messageId,
-      `🚪 *Kamu telah keluar dari tantangan:*\n📌 *${escapeMarkdown(cData.title)}*`,
-      { reply_markup: { inline_keyboard: [[{ text: '⬅️ Menu Tantangan', callback_data: 'tng:menu' }]] } });
-  } catch (err) { console.error('tng:keluar error:', err?.message); }
-}
-
-async function handleTngHapus(cId, botToken, chatId, messageId, db) {
-  if (!db) return;
-  try {
-    const cRef = db.collection('challenges').doc(cId);
-    const cDoc = await cRef.get();
-    if (!cDoc.exists) { if (messageId) return editTelegramMessage(botToken, chatId, messageId, '❌ Tantangan tidak ditemukan.'); return; }
-    const cData = cDoc.data();
-    if (String(cData.creatorChatId) !== String(chatId)) {
-      if (messageId) return editTelegramMessage(botToken, chatId, messageId, '❌ Hanya pembuat tantangan yang dapat menghapus.');
-      return;
-    }
-    await cRef.set({ status: 'cancelled' }, { merge: true });
-    if (messageId) return editTelegramMessage(botToken, chatId, messageId,
-      `🗑️ *Tantangan berhasil dibatalkan/dihapus:*\n📌 *${escapeMarkdown(cData.title)}*`,
-      { reply_markup: { inline_keyboard: [[{ text: '⬅️ Menu Tantangan', callback_data: 'tng:menu' }]] } });
-  } catch (err) { console.error('tng:hapus error:', err?.message); }
+  if (unkRes?.result?.message_id) queueTempMessage(db, chatId, unkRes.result.message_id, 60);
+  return unkRes;
 }
 
 // --- Budget inline menu handler (bdg:*) ---
-async function handleBudgetList(chatId, uid, db, botToken, messageId) {
+async function handleBudgetList(chatId, uid, db, botToken, messageId, headerNote = '') {
   if (!db) return;
   try {
     const budgetDocs = [];
@@ -1949,7 +1597,7 @@ async function handleBudgetList(chatId, uid, db, botToken, messageId) {
     }
     const menuKb = { inline_keyboard: [[{ text: '➕ Buat Budget Baru', callback_data: 'bdg:buat' }]] };
     if (budgetDocs.length === 0) {
-      const txt = '💰 *BUDGET SAYA*\n\nBelum ada budget. Buat budget baru!';
+      const txt = headerNote + '💰 *BUDGET SAYA*\n\nBelum ada budget. Buat budget baru!';
       if (messageId) return editTelegramMessage(botToken, chatId, messageId, txt, { reply_markup: menuKb });
       return sendTelegramMessage(botToken, chatId, txt, { reply_markup: menuKb });
     }
@@ -1962,25 +1610,30 @@ async function handleBudgetList(chatId, uid, db, botToken, messageId) {
       const altTxSnap = await db.collection('users').doc(`tg_${chatId}`).collection('transactions').get();
       altTxSnap.docs.forEach(d => { if (!seenTx.has(d.id)) { seenTx.add(d.id); txDocs.push(d); } });
     }
-    let out = `💰 *Budget Bulan Ini (${monthKey})*\n\n`;
+    let out = headerNote + `💰 *Budget Bulan Ini (${monthKey})*\n\n`;
     const buttons = [];
     for (const bDoc of budgetDocs) {
       const b = bDoc.data();
       const lim = Number(b.monthlyLimit || b.amount) || 0;
       const label = b.customLabel || b.rawCategory || b.category || 'Budget';
+      const bPeriod = getBudgetPeriod(b.createdAt, monthKey);
       const allKw = [...(b.keywords || []).map(k => k.toLowerCase()), ...label.toLowerCase().split(/\s+/).filter(w => w.length >= 2)];
       let spent = 0;
       txDocs.forEach(d => {
         const t = d.data();
-        if ((t.type || '').toLowerCase() === 'expense' && getTxMonth(t) === monthKey) {
+        const txDate = (t.date || t.createdAt || '').slice(0, 10);
+        if ((t.type || '').toLowerCase() === 'expense' && getTxMonth(t) === monthKey && txDate >= bPeriod.startStr) {
           const txText = `${t.description || ''} ${t.category || ''}`.toLowerCase();
           if (allKw.some(kw => txText.includes(kw))) spent += Number(t.amount) || 0;
         }
       });
       const pct = lim > 0 ? Math.round((spent / lim) * 100) : 0;
       const si = pct >= 100 ? '🚨' : pct >= 80 ? '⚠️' : '✅';
-      out += `${si} *${escapeMarkdown(label)}*\n   ${formatRupiah(spent)} / ${formatRupiah(lim)} (${pct}%)\n   ${renderBar(spent, lim)}\n\n`;
-      buttons.push([{ text: `👁️ ${label.slice(0, 28)}`, callback_data: `bdg:detail:${bDoc.id}` }]);
+      out += `${si} *${escapeMarkdown(label)}*\n   ${formatRupiah(spent)} / ${formatRupiah(lim)} (${pct}%)\n   📅 Berlaku: ${bPeriod.display}\n   ${renderBar(spent, lim)}\n\n`;
+      buttons.push([
+        { text: `👁️ ${label.slice(0, 18)}`, callback_data: `bdg:detail:${bDoc.id}` },
+        { text: '🗑️ Hapus Budget', callback_data: `bdg:hapus_prompt:${bDoc.id}` }
+      ]);
     }
     buttons.push([{ text: '➕ Buat Budget Baru', callback_data: 'bdg:buat' }]);
     if (messageId) return editTelegramMessage(botToken, chatId, messageId, out, { reply_markup: { inline_keyboard: buttons } });
@@ -1997,54 +1650,118 @@ async function handleBudgetCallback(data, botToken, chatId, messageId, uid, db) 
     return handleBudgetList(chatId, uid, db, botToken, messageId);
   }
   if (data === 'bdg:buat') {
-    setPendingBudget(chatId, { step: 'label' });
     const txt = '💰 *Buat Budget Baru*\n\nMau budget untuk apa? Ketik labelnya.\nContoh: `beli laptop`, `makan luar`, `transport`';
-    if (messageId) return editTelegramMessage(botToken, chatId, messageId, txt, { reply_markup: { inline_keyboard: [[{ text: '❌ Batal', callback_data: 'bdg:list' }]] } });
-    return sendTelegramMessage(botToken, chatId, txt);
+    if (messageId) {
+      setPendingBudget(chatId, { step: 'label', promptMsgId: messageId });
+      return editTelegramMessage(botToken, chatId, messageId, txt, { reply_markup: { inline_keyboard: [[{ text: '❌ Batal', callback_data: 'bdg:list' }]] } });
+    }
+    const sent = await sendTelegramMessage(botToken, chatId, txt, { reply_markup: { inline_keyboard: [[{ text: '❌ Batal', callback_data: 'bdg:list' }]] } });
+    if (sent?.result?.message_id) setPendingBudget(chatId, { step: 'label', promptMsgId: sent.result.message_id });
+    return sent;
   }
   if (data.startsWith('bdg:detail:')) {
     const bId = data.replace('bdg:detail:', '');
     if (!db) return;
     try {
-      const bDoc = db.collection('users').doc(uid).collection('budgets').doc(bId);
-      const b = bDoc.data();
-      if (!b || !b.customLabel) { if (messageId) return editTelegramMessage(botToken, chatId, messageId, '❌ Budget tidak ditemukan.'); return; }
+      const bDocRef = db.collection('users').doc(uid).collection('budgets').doc(bId);
+      const bSnap = typeof bDocRef.get === 'function' ? await bDocRef.get() : bDocRef;
+      const b = typeof bSnap.data === 'function' ? bSnap.data() : (typeof bDocRef.data === 'function' ? bDocRef.data() : null);
+      if (!b || (!b.customLabel && !b.rawCategory && !b.category)) {
+        if (messageId) return editTelegramMessage(botToken, chatId, messageId, '❌ Budget tidak ditemukan.', { reply_markup: { inline_keyboard: [[{ text: '⬅️ Kembali', callback_data: 'bdg:list' }]] } });
+        return;
+      }
       const label = b.customLabel || b.rawCategory || b.category || 'Budget';
       const lim = Number(b.monthlyLimit || b.amount) || 0;
       const keywords = b.keywords || [];
       const monthKey = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date()).slice(0, 7);
+      const bPeriod = getBudgetPeriod(b.createdAt, monthKey);
+
+      const txDocs = [];
+      const seenTx = new Set();
       const txSnap = await db.collection('users').doc(uid).collection('transactions').get();
+      txSnap.docs.forEach(d => { seenTx.add(d.id); txDocs.push(d); });
+      if (uid !== `tg_${chatId}`) {
+        const altTxSnap = await db.collection('users').doc(`tg_${chatId}`).collection('transactions').get();
+        altTxSnap.docs.forEach(d => { if (!seenTx.has(d.id)) { seenTx.add(d.id); txDocs.push(d); } });
+      }
+
       const allKw = [...keywords.map(k => k.toLowerCase()), ...label.toLowerCase().split(/\s+/).filter(w => w.length >= 2)];
       let spent = 0;
-      txSnap.docs.forEach(d => {
+      txDocs.forEach(d => {
         const t = d.data();
-        if ((t.type || '').toLowerCase() === 'expense' && getTxMonth(t) === monthKey) {
+        const txDate = (t.date || t.createdAt || '').slice(0, 10);
+        if ((t.type || '').toLowerCase() === 'expense' && getTxMonth(t) === monthKey && txDate >= bPeriod.startStr) {
           const txText = `${t.description || ''} ${t.category || ''}`.toLowerCase();
           if (allKw.some(kw => txText.includes(kw))) spent += Number(t.amount) || 0;
         }
       });
       const pct = lim > 0 ? Math.round((spent / lim) * 100) : 0;
       const si = pct >= 100 ? '🚨' : pct >= 80 ? '⚠️' : '✅';
-      const txt = `${si} *${escapeMarkdown(label)}*\nTerpakai: ${formatRupiah(spent)} / ${formatRupiah(lim)} (${pct}%)\nKeyword: ${keywords.map(k => `\`${k}\``).join(', ') || '_—_'}`;
-      const btns = [[{ text: '✏️ Ubah Limit', callback_data: `bdg:limit:${bId}` }, { text: '🗑️ Hapus', callback_data: `bdg:hapus:${bId}` }], [{ text: '⬅️ Kembali', callback_data: 'bdg:list' }]];
+      const sisa = Math.max(0, lim - spent);
+
+      const txt = `💻 *BUDGET: ${escapeMarkdown(label)}*\n\n` +
+        `📝 *Keterangan:* ${escapeMarkdown(b.description || `Budget khusus untuk ${label}.`)}\n` +
+        `   *Dibuat:* ${formatIndoDate(bPeriod.createdDate)}\n` +
+        `   *Berlaku:* ${bPeriod.display}\n\n` +
+        `💰 *Terpakai:* ${formatRupiah(spent)} / ${formatRupiah(lim)} (${pct}%) ${si}\n` +
+        `💵 *Sisa:* ${formatRupiah(sisa)}\n` +
+        `🔑 *Keyword:* ${keywords.map(k => `\`${k}\``).join(', ') || '_—_'}`;
+
+      const btns = [
+        [
+          { text: '✏️ Ubah Limit', callback_data: `bdg:limit:${bId}` },
+          { text: '🗑️ Hapus Budget', callback_data: `bdg:hapus_prompt:${bId}` }
+        ],
+        [{ text: '⬅️ Kembali', callback_data: 'bdg:list' }]
+      ];
       if (messageId) return editTelegramMessage(botToken, chatId, messageId, txt, { reply_markup: { inline_keyboard: btns } });
+      return sendTelegramMessage(botToken, chatId, txt, { reply_markup: { inline_keyboard: btns } });
     } catch (err) { console.error('bdg:detail error:', err?.message); }
   }
-  if (data.startsWith('bdg:hapus:')) {
-    const bId = data.replace('bdg:hapus:', '');
+  if (data.startsWith('bdg:hapus_prompt:') || (data.startsWith('bdg:hapus:') && !data.startsWith('bdg:hapus_confirm:'))) {
+    const bId = data.replace(/^bdg:(hapus_prompt|hapus):/, '');
     if (!db) return;
     try {
-      const bRef = db.collection('users').doc(uid).collection('budgets').doc(bId);
-      const label = bRef.data()?.customLabel || bRef.data()?.rawCategory || 'Budget';
-      await bRef.ref.delete();
-      if (messageId) return editTelegramMessage(botToken, chatId, messageId, `🗑️ Budget *${escapeMarkdown(label)}* dihapus.`, { reply_markup: { inline_keyboard: [[{ text: '⬅️ Kembali', callback_data: 'bdg:list' }]] } });
-    } catch (err) { console.error('bdg:hapus error:', err?.message); }
+      const bDocRef = db.collection('users').doc(uid).collection('budgets').doc(bId);
+      const bSnap = typeof bDocRef.get === 'function' ? await bDocRef.get() : bDocRef;
+      const b = typeof bSnap.data === 'function' ? bSnap.data() : (typeof bDocRef.data === 'function' ? bDocRef.data() : null);
+      const label = b?.customLabel || b?.rawCategory || b?.category || 'Budget';
+      const txt = `⚠️ *Konfirmasi Hapus Budget*\n\nYakin hapus budget *'${escapeMarkdown(label)}'*?\nTransaksi yang sudah tercatat TIDAK ikut terhapus.`;
+      const kb = {
+        inline_keyboard: [
+          [
+            { text: '✅ Ya, hapus', callback_data: `bdg:hapus_confirm:${bId}` },
+            { text: '❌ Batal', callback_data: `bdg:detail:${bId}` }
+          ]
+        ]
+      };
+      if (messageId) return editTelegramMessage(botToken, chatId, messageId, txt, { reply_markup: kb });
+      return sendTelegramMessage(botToken, chatId, txt, { reply_markup: kb });
+    } catch (err) { console.error('bdg:hapus_prompt error:', err?.message); }
+  }
+  if (data.startsWith('bdg:hapus_confirm:')) {
+    const bId = data.replace('bdg:hapus_confirm:', '');
+    if (!db) return;
+    try {
+      const bDocRef = db.collection('users').doc(uid).collection('budgets').doc(bId);
+      const bSnap = typeof bDocRef.get === 'function' ? await bDocRef.get() : bDocRef;
+      const bData = typeof bSnap.data === 'function' ? bSnap.data() : (typeof bDocRef.data === 'function' ? bDocRef.data() : null);
+      const label = bData?.customLabel || bData?.rawCategory || bData?.category || 'Budget';
+      const deleteRef = bDocRef.ref || bDocRef;
+      if (typeof deleteRef.delete === 'function') {
+        await deleteRef.delete();
+      }
+      return handleBudgetList(chatId, uid, db, botToken, messageId, `🗑️ Budget *${escapeMarkdown(label)}* berhasil dihapus.\nTransaksi yang sudah tercatat TIDAK ikut terhapus.\n\n`);
+    } catch (err) { console.error('bdg:hapus_confirm error:', err?.message); }
   }
   if (data.startsWith('bdg:limit:')) {
     const bId = data.replace('bdg:limit:', '');
-    setPendingBudget(chatId, { step: 'limit', budgetId: bId });
+    setPendingBudget(chatId, { step: 'limit', budgetId: bId, promptMsgId: messageId });
     const txt = '✏️ *Ubah Limit Budget*\n\nKetik nominal baru.\nContoh: `500k`, `1.5jt`';
     if (messageId) return editTelegramMessage(botToken, chatId, messageId, txt, { reply_markup: { inline_keyboard: [[{ text: '❌ Batal', callback_data: `bdg:detail:${bId}` }]] } });
+    const sent = await sendTelegramMessage(botToken, chatId, txt, { reply_markup: { inline_keyboard: [[{ text: '❌ Batal', callback_data: `bdg:detail:${bId}` }]] } });
+    if (sent?.result?.message_id) setPendingBudget(chatId, { step: 'limit', budgetId: bId, promptMsgId: sent.result.message_id });
+    return sent;
   }
 }
 
@@ -2061,11 +1778,23 @@ async function handleRiwayatSearch(keyword, chatId, uid, db, botToken) {
   });
   results.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   const top = results.slice(0, 10);
+
+  const prevSearchMsgId = lastSearchMsgMap.get(String(chatId));
+  if (prevSearchMsgId) {
+    deleteTelegramMessage(botToken, chatId, prevSearchMsgId).catch(() => {});
+    lastSearchMsgMap.delete(String(chatId));
+  }
+
   if (top.length === 0) {
-    return sendTelegramMessage(botToken, chatId,
+    const res = await sendTelegramMessage(botToken, chatId,
       `🔍 Tidak ketemu transaksi dengan kata "${escapeMarkdown(keyword)}".\nCoba kata lain.`,
       { reply_markup: { inline_keyboard: [[{ text: '⬅️ Kembali ke Riwayat', callback_data: 'cr:kembali' }]] } }
     );
+    if (res?.result?.message_id) {
+      lastSearchMsgMap.set(String(chatId), res.result.message_id);
+      queueTempMessage(db, chatId, res.result.message_id, 60);
+    }
+    return res;
   }
   let out = `🔍 *Hasil pencarian "${escapeMarkdown(keyword)}":*\n\n`;
   for (const t of top) {
@@ -2073,9 +1802,13 @@ async function handleRiwayatSearch(keyword, chatId, uid, db, botToken) {
     out += `📅 ${formatShortDate(t.date)} — ${sign}*${formatRupiah(t.amount)}*\n   ${escapeMarkdown(t.description || t.category)}\n\n`;
   }
   if (results.length > 10) out += `_...dan ${results.length - 10} lagi_\n`;
-  return sendTelegramMessage(botToken, chatId, out,
+  const res = await sendTelegramMessage(botToken, chatId, out,
     { reply_markup: { inline_keyboard: [[{ text: '⬅️ Kembali ke Riwayat', callback_data: 'cr:kembali' }]] } }
   );
+  if (res?.result?.message_id) {
+    lastSearchMsgMap.set(String(chatId), res.result.message_id);
+  }
+  return res;
 }
 
 async function sendSaldo(chatId, uid, db, botToken) {
@@ -2137,6 +1870,7 @@ async function sendWebAccess(chatId, uid, db, botToken) {
   });
   if (sent?.result?.message_id) {
     await attachMessageToWebCode(code, sent.result.message_id, chatId, db);
+    queueTempMessage(db, chatId, sent.result.message_id, 300);
   }
   return sent;
 }
@@ -2385,83 +2119,5 @@ export async function dispatchWeeklyRecap(db, botToken) {
   }
 
   return { sent, skipped };
-}
-
-// Fase 6: Daily challenge evaluation — evaluate yesterday's status for each participant
-export async function dispatchChallengeEvaluation(db, botToken) {
-  if (!db) return;
-  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
-  const yesterday = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
-
-  try {
-    const cSnap = await db.collection('challenges').where('status', '==', 'active').get();
-    for (const cDoc of cSnap.docs) {
-      const c = cDoc.data();
-      // Check if challenge ended
-      if (todayStr > c.endDate) {
-        let bestPct = -1, winners = [];
-        const totalDays = c.days || 30;
-        for (const p of (c.participants || [])) {
-          const progress = p.progress || {};
-          const passed = Object.values(progress).filter(v => v === true).length;
-          const pct = Math.round((passed / totalDays) * 100);
-          if (pct > bestPct) { bestPct = pct; winners = [p]; }
-          else if (pct === bestPct) winners.push(p);
-        }
-        await cDoc.ref.set({ status: 'finished' }, { merge: true });
-        for (const p of (c.participants || [])) {
-          const isWinner = winners.some(w => String(w.chatId) === String(p.chatId));
-          const badge = isWinner ? `challenge_win_${cDoc.id}` : `challenge_done_${cDoc.id}`;
-          if (p.uid) {
-            try {
-              const uRef = db.collection('users').doc(p.uid);
-              const uDoc = await uRef.get();
-              const seen = (uDoc.data() || {}).achievementsSeen || [];
-              const seenAt = (uDoc.data() || {}).achievementsSeenAt || {};
-              if (!seen.includes(badge)) {
-                seen.push(badge);
-                seenAt[badge] = new Date().toISOString();
-                await uRef.set({ achievementsSeen: seen, achievementsSeenAt: seenAt }, { merge: true });
-              }
-            } catch {}
-          }
-          const winText = isWinner ? '🏆 *Kamu pemenangnya!*' : '👏 *Tantangan selesai!*';
-          sendTelegramMessage(botToken, p.chatId,
-            `${winText}\n\n📌 *${escapeMarkdown(c.title)}* telah berakhir.\nSkor tertinggi: ${bestPct}%`
-          ).catch(() => {});
-        }
-        continue;
-      }
-      // Evaluate yesterday
-      if (yStr < c.startDate) continue;
-      const updatedParticipants = [];
-      for (const p of (c.participants || [])) {
-        const progress = { ...(p.progress || {}) };
-        if (progress[yStr] !== undefined) { updatedParticipants.push({ ...p, progress }); continue; }
-        const pUid = p.uid || `tg_${p.chatId}`;
-        let passed = false;
-        try {
-          if (c.type === 'daily_log') {
-            const txSnap = await db.collection('users').doc(pUid).collection('transactions')
-              .where('date', '==', yStr).limit(1).get();
-            passed = !txSnap.empty;
-          } else if (c.type === 'no_spend') {
-            const txSnap = await db.collection('users').doc(pUid).collection('transactions')
-              .where('type', '==', 'Expense')
-              .where('category', '==', c.category)
-              .where('date', '==', yStr).limit(1).get();
-            passed = txSnap.empty;
-          }
-        } catch {}
-        progress[yStr] = passed;
-        updatedParticipants.push({ ...p, progress });
-      }
-      await cDoc.ref.set({ participants: updatedParticipants }, { merge: true });
-    }
-  } catch (err) {
-    console.error('challenge evaluation error:', err?.message);
-  }
 }
 

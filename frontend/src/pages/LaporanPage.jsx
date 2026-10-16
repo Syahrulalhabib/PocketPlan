@@ -182,8 +182,7 @@ export function computeLocalReport(monthStr, transactions = [], goals = [], user
     { type: 'streak', icon: '🔥', text: `${streak} days`, sub: 'logging streak' },
     { type: 'tx', icon: '📊', text: `${jumlahTransaksi}`, sub: 'transactions' },
     { type: 'budget', icon: '💰', text: '3/5', sub: 'budgets on track' },
-    { type: 'goal', icon: '🎯', text: `${goalsList.filter((g) => g.persen >= 100).length || 1}`, sub: 'goals reached' },
-    { type: 'challenge', icon: '🎖️', text: '2', sub: 'challenges completed' }
+    { type: 'goal', icon: '🎯', text: `${goalsList.filter((g) => g.persen >= 100).length || 1}`, sub: 'goals reached' }
   ];
 
   return {

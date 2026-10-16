@@ -10,7 +10,7 @@ import {
   unlinkAccount,
   dispatchDailyReminders,
   dispatchWeeklyRecap,
-  dispatchChallengeEvaluation
+  cleanExpiredTempMessages
 } from './lib/telegramBot.js';
 import {
   verifyWebLoginCode,
@@ -221,8 +221,8 @@ app.all('/api/cron/reminders', async (req, res) => {
   const force = req.query?.force === 'true' || req.query?.force === '1';
   try {
     const result = await dispatchDailyReminders(getDb(), token, type, force);
+    cleanExpiredTempMessages(getDb(), token).catch((e) => console.error('Temp messages cleanup error:', e));
     if (type === 'morning') {
-      dispatchChallengeEvaluation(getDb(), token).catch((e) => console.error('Challenge eval error:', e));
       const now = new Date();
       const dayOfWeek = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', weekday: 'short' }).format(now);
       if (dayOfWeek === 'Mon') {

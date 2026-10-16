@@ -452,7 +452,6 @@ export const DEFAULT_BOT_COMMANDS = [
   { command: 'koreksi', description: 'Koreksi nominal struk/catatan ✏️' },
   { command: 'budget', description: 'Atur batas budget per kategori 💰' },
   { command: 'ajak', description: 'Ajak teman pakai Pocky 🎉' },
-  { command: 'tantangan', description: 'Tantangan nabung bareng teman 🏆' },
   { command: 'batal', description: 'Batalkan transaksi terakhir 🗑️' },
   { command: 'help', description: 'Panduan lengkap Pocky 📖' },
   { command: 'web', description: 'Dapatkan kode login website 🔗' }

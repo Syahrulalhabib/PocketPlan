@@ -113,7 +113,7 @@ const TransactionsPage = () => {
           <h1 className="section-title">Transactions</h1>
           <div className="subtitle">Manage your transactions</div>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div className="page-header-actions">
           <button type="button" className="pill btn-secondary btn-add shadowed" onClick={() => setScanModal(true)}
             title="Scan receipts or payment slips with Pocky AI">
             <ScanIcon size={16} />

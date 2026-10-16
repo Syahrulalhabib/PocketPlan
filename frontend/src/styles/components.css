@@ -627,6 +627,12 @@
   margin-bottom: 8px;
 }
 
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .page-header-row .section-title {
   margin: 0 0 4px;
 }

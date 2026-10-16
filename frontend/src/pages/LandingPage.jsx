@@ -80,9 +80,9 @@ const botCommands = [
     reply: 'Active Streak: 7 consecutive days. Best record: 14 days.'
   },
   {
-    cmd: '/tantangan',
+    cmd: '/goal',
     example: '',
-    reply: 'Challenge: "7 Days Coffee-Free" — Day 4 of 7. Stay disciplined!'
+    reply: 'Target "Dana Darurat": Rp 5.000.000 / Rp 10.000.000 (50% tercapai)'
   }
 ];
 

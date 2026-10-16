@@ -32,28 +32,6 @@ export function formatAchievementItem(key, seenAtMap = {}, goalsMap = new Map())
     };
   }
 
-  if (key.startsWith('challenge_win_')) {
-    return {
-      key,
-      type: 'challenge',
-      title: 'Pemenang Tantangan',
-      subtitle: 'Selamat, kamu menjuarai tantangan finansial!',
-      icon: '🏆',
-      unlockedAt
-    };
-  }
-
-  if (key.startsWith('challenge_done_')) {
-    return {
-      key,
-      type: 'challenge',
-      title: 'Tantangan Selesai',
-      subtitle: 'Berhasil menyelesaikan tantangan finansial!',
-      icon: '👏',
-      unlockedAt
-    };
-  }
-
   return {
     key,
     type: 'badge',

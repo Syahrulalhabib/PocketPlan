@@ -142,8 +142,7 @@ export function buildMonthlyReport({ month, transactions = [], goals = [], budge
     { type: 'streak', icon: '🔥', text: `${streak} hari`, sub: 'streak catat' },
     { type: 'tx', icon: '📊', text: `${jumlahTransaksi}`, sub: 'transaksi' },
     { type: 'budget', icon: '💰', text: `${budgetTerjaga}/${budgetList.length || 0}`, sub: 'budget terjaga' },
-    { type: 'goal', icon: '🎯', text: `${goalsList.filter((g) => g.persen >= 100).length}`, sub: 'target tercapai' },
-    { type: 'challenge', icon: '🎖️', text: `${userDocData.challengeCompleted || 0}`, sub: 'tantangan selesai' }
+    { type: 'goal', icon: '🎯', text: `${goalsList.filter((g) => g.persen >= 100).length}`, sub: 'target tercapai' }
   ];
 
   return {

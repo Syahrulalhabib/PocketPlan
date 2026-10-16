@@ -16,17 +16,12 @@ assert.strictEqual(g.title, 'Dana Darurat — 50%');
 assert.strictEqual(g.percent, 50);
 assert.strictEqual(g.unlockedAt, null);
 
-// 3. Challenge items
-const cw = formatAchievementItem('challenge_win_123');
-assert.strictEqual(cw.title, 'Pemenang Tantangan');
-assert.strictEqual(cw.icon, '🏆');
-
-// 4. Unknown item
+// 3. Unknown item
 const unk = formatAchievementItem('custom_badge_xyz');
 assert.strictEqual(unk.title, 'Pencapaian');
 
-// 5. PRIVACY TEST: Ensure absolutely NO rupiah, currency symbols, or balances exist in output
-const allItems = [s, g, cw, unk];
+// 4. PRIVACY TEST: Ensure absolutely NO rupiah, currency symbols, or balances exist in output
+const allItems = [s, g, unk];
 const rawString = JSON.stringify(allItems);
 assert.ok(!rawString.includes('Rp'), 'Must not contain Rp');
 assert.ok(!rawString.includes('balance'), 'Must not contain balance');
