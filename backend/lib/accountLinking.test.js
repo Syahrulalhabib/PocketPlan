@@ -10,7 +10,8 @@ import {
   generateWebLoginCode,
   verifyWebLoginCode,
   linkTelegramAccount,
-  findLinkedUid
+  findLinkedUid,
+  fixStaleTelegramLinks
 } from './telegramBotCore.js';
 import { handleTelegramUpdate } from './telegramBot.js';
 
@@ -176,9 +177,29 @@ async function runAccountLinkingTests() {
   };
 
   const mdb = {
+    batch: () => ({
+      set: () => {},
+      delete: () => {},
+      commit: async () => {}
+    }),
     collection: (colName) => ({
+      get: async () => {
+        const col = store[colName] || {};
+        const docs = Object.entries(col).map(([id, item]) => ({
+          id,
+          data: () => item
+        }));
+        return {
+          size: docs.length,
+          empty: docs.length === 0,
+          docs
+        };
+      },
       doc: (docId) => {
         const docRef = {
+          collection: () => ({
+            get: async () => ({ empty: true, docs: [] })
+          }),
           delete: async () => {
             if (store[colName]) delete store[colName][docId];
           },
@@ -280,6 +301,131 @@ async function runAccountLinkingTests() {
   // Verify self-healing updated telegramUsers and telegram_links
   assert.strictEqual(store.telegramUsers['6666']?.uid, 'web-user-legacy-66', 'Self-healing populated telegramUsers');
   assert.strictEqual(store.telegram_links['6666']?.uid, 'web-user-legacy-66', 'Self-healing populated telegram_links');
+
+  // ========================================================
+  // BAGIAN 5: Fix Telegram /web Login Minting New Account
+  // ========================================================
+
+  // Test 5A (Kriteria 1): migrateTelegramDataToUser updates telegram_links to targetUid
+  store.users['web-user-batre'] = {
+    name: 'Batre Web',
+    email: 'batreboros12@gmail.com',
+    isTelegramUser: false
+  };
+  store.users['tg_12345'] = {
+    name: 'Batre Telegram',
+    telegramChatId: '12345',
+    isTelegramUser: true
+  };
+  store.telegram_links['12345'] = {
+    uid: 'tg_12345',
+    linkedAt: new Date().toISOString()
+  };
+
+  await migrateTelegramDataToUser(12345, 'web-user-batre', mdb);
+
+  assert.strictEqual(
+    store.telegram_links['12345']?.uid,
+    'web-user-batre',
+    'Kriteria 1: migrateTelegramDataToUser must update telegram_links doc to targetUid'
+  );
+  assert.strictEqual(
+    store.telegram_links['12345']?.previousUid,
+    'tg_12345',
+    'Kriteria 1: migrateTelegramDataToUser sets previousUid on telegram_links'
+  );
+  assert.ok(
+    store.telegram_links['12345']?.migratedAt,
+    'Kriteria 1: migrateTelegramDataToUser sets migratedAt on telegram_links'
+  );
+  console.log('  ✔ Kriteria 1: migrateTelegramDataToUser updates telegram_links to web UID');
+
+  // Test 5B (Kriteria 2): fixStaleTelegramLinks fixes existing stale records in telegram_links
+  store.telegram_links['stale_chat_1'] = { uid: 'tg_stale_1' };
+  store.users['tg_stale_1'] = { migratedTo: 'web-user-stale-1' };
+
+  store.telegram_links['stale_chat_2'] = { uid: 'tg_stale_2' };
+  store.users['tg_stale_2'] = { linkedWebUid: 'web-user-stale-2' };
+
+  store.telegram_links['fresh_chat_3'] = { uid: 'tg_fresh_3' };
+  store.users['tg_fresh_3'] = { isTelegramUser: true };
+
+  const fixReport = await fixStaleTelegramLinks(mdb);
+  assert.strictEqual(fixReport.fixedCount, 2, 'Kriteria 2: fixStaleTelegramLinks must fix exactly 2 stale links');
+  assert.strictEqual(store.telegram_links['stale_chat_1']?.uid, 'web-user-stale-1');
+  assert.strictEqual(store.telegram_links['stale_chat_2']?.uid, 'web-user-stale-2');
+  assert.strictEqual(store.telegram_links['fresh_chat_3']?.uid, 'tg_fresh_3', 'Kriteria 2: unmigrated links remain untouched');
+  console.log(`  ✔ Kriteria 2: fixStaleTelegramLinks scanned & repaired stale links (fixed: ${fixReport.fixedCount})`);
+
+  // Test 5C (Kriteria 3): verifyWebLoginCode uses effectiveUid when data is stale
+  store.users['tg_stale_code_user'] = {
+    name: 'Stale Bot User',
+    migratedTo: 'web-user-actual-target',
+    telegramChatId: '554433'
+  };
+  store.users['web-user-actual-target'] = {
+    name: 'Target Web User',
+    email: 'target@example.com',
+    telegramChatId: '554433',
+    isTelegramUser: false
+  };
+
+  const { code: staleWebCode } = await generateWebLoginCode('tg_stale_code_user', mdb);
+  const verifiedStale = await verifyWebLoginCode(staleWebCode, mdb);
+  assert.strictEqual(
+    verifiedStale.uid,
+    'web-user-actual-target',
+    'Kriteria 3: verifyWebLoginCode must resolve effectiveUid from migratedTo'
+  );
+  assert.strictEqual(verifiedStale.email, 'target@example.com');
+  assert.strictEqual(verifiedStale.isTelegramUser, false);
+  console.log('  ✔ Kriteria 3: verifyWebLoginCode uses effectiveUid even with stale code data');
+
+  // Test 5D (Kriteria 4): Simulation: connected user -> /web -> code -> web login -> logs into web user, NOT new tg_ account
+  const connectedChatId = '12345';
+  const botResolvedUid = await ensureTelegramUser(connectedChatId, { first_name: 'Batre' }, mdb);
+  assert.strictEqual(
+    botResolvedUid,
+    'web-user-batre',
+    'findLinkedUid/ensureTelegramUser on linked user resolves to web account'
+  );
+
+  const { code: botLoginPasscode } = await generateWebLoginCode(botResolvedUid, mdb);
+  const verifiedBotLogin = await verifyWebLoginCode(botLoginPasscode, mdb);
+  assert.strictEqual(
+    verifiedBotLogin.uid,
+    'web-user-batre',
+    'Kriteria 4: Web login verifies web user UID'
+  );
+  assert.strictEqual(verifiedBotLogin.isTelegramUser, false);
+  assert.strictEqual(verifiedBotLogin.email, 'batreboros12@gmail.com');
+
+  const customTokenForWeb = await mockAuth.createCustomToken(verifiedBotLogin.uid);
+  assert.strictEqual(
+    customTokenForWeb,
+    'custom-jwt-token-for-web-user-batre',
+    'Kriteria 4: Token minted for web user, NOT new tg_12345 account'
+  );
+  console.log('  ✔ Kriteria 4: Simulation connected user -> /web -> logs into existing web user, NO new account minted');
+
+  // Test 5E (Kriteria 5): User belum terhubung -> /web -> tetap berfungsi normal
+  const unlinkedChatId = '98765';
+  store.users['tg_98765'] = {
+    name: 'Native Unlinked Guy',
+    telegramChatId: '98765',
+    isTelegramUser: true
+  };
+  const unlinkedBotUid = await ensureTelegramUser(unlinkedChatId, { first_name: 'Native Guy' }, mdb);
+  assert.strictEqual(unlinkedBotUid, 'tg_98765', 'Kriteria 5: Unlinked user resolves to tg_98765');
+
+  const { code: unlinkedCode } = await generateWebLoginCode(unlinkedBotUid, mdb);
+  const verifiedUnlinked = await verifyWebLoginCode(unlinkedCode, mdb);
+  assert.strictEqual(verifiedUnlinked.uid, 'tg_98765', 'Kriteria 5: Unlinked login code verifies to tg_98765');
+  assert.strictEqual(verifiedUnlinked.isTelegramUser, true, 'Kriteria 5: Unlinked account is marked as Telegram user');
+
+  const unlinkedToken = await mockAuth.createCustomToken(verifiedUnlinked.uid);
+  assert.strictEqual(unlinkedToken, 'custom-jwt-token-for-tg_98765');
+  console.log('  ✔ Kriteria 5: Unlinked user /web flow remains fully functional');
 
   console.log('  ✔ Telegram /web login resolves webUid from telegramUsers for custom token passed');
   console.log('  ✔ Legacy web user telegramChatId query resolution and self-healing passed');

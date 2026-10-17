@@ -180,8 +180,19 @@ export async function migrateTelegramDataToUser(chatId, targetUid, db) {
           linkedWebUid: targetUid,
           migratedTo: targetUid,
           migratedAt: new Date().toISOString()
+        }, { merge: true }),
+        db.collection('telegram_links').doc(String(chatId)).set({
+          uid: targetUid,
+          migratedAt: new Date().toISOString(),
+          previousUid: sourceUid
+        }, { merge: true }),
+        db.collection('telegramUsers').doc(String(chatId)).set({
+          uid: targetUid,
+          webUid: targetUid,
+          migratedAt: new Date().toISOString()
         }, { merge: true })
       ]);
+      _uidCache.delete(String(chatId));
     } catch (err) {
       if (err?.message?.includes('terhubung') || err?.message?.includes('migrate')) throw err;
       console.error('Failed to migrate Telegram data to linked user:', err);
@@ -199,11 +210,89 @@ export async function migrateTelegramDataToUser(chatId, targetUid, db) {
     demoMigrated.set(sourceUid, targetUid);
     const existing = demoLinks.get(String(chatId));
     if (existing) {
+      existing.uid = targetUid;
       existing.linkedWebUid = targetUid;
       existing.migratedTo = targetUid;
+      existing.previousUid = sourceUid;
     }
+    const existingTgUser = demoTelegramUsers.get(String(chatId));
+    if (existingTgUser) {
+      existingTgUser.uid = targetUid;
+      existingTgUser.webUid = targetUid;
+    }
+    _uidCache.delete(String(chatId));
   }
 }
+
+export async function fixStaleTelegramLinks(db) {
+  let fixedCount = 0;
+  let totalChecked = 0;
+
+  if (db) {
+    try {
+      const snap = await db.collection('telegram_links').get();
+      const docs = snap.docs || [];
+      totalChecked = docs.length;
+      for (const d of docs) {
+        const chatId = d.id;
+        const linkData = d.data() || {};
+        const uid = String(linkData.uid || '');
+        if (uid.startsWith('tg_')) {
+          try {
+            const userSnap = await db.collection('users').doc(uid).get();
+            if (userSnap && userSnap.exists) {
+              const uData = userSnap.data() || {};
+              const targetUid = uData.migratedTo || uData.linkedWebUid;
+              if (targetUid && !String(targetUid).startsWith('tg_')) {
+                await Promise.all([
+                  db.collection('telegram_links').doc(chatId).set({
+                    uid: targetUid,
+                    migratedAt: new Date().toISOString(),
+                    previousUid: uid
+                  }, { merge: true }),
+                  db.collection('telegramUsers').doc(chatId).set({
+                    uid: targetUid,
+                    webUid: targetUid,
+                    migratedAt: new Date().toISOString()
+                  }, { merge: true })
+                ]);
+                _uidCache.delete(String(chatId));
+                fixedCount++;
+              }
+            }
+          } catch (e) {
+            console.error(`[fixStaleTelegramLinks] Error updating chatId ${chatId}:`, e);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[fixStaleTelegramLinks] Error fetching telegram_links:', err);
+    }
+  } else {
+    // Demo in-memory mode
+    totalChecked = demoLinks.size;
+    for (const [chatId, link] of demoLinks.entries()) {
+      if (link && link.uid && link.uid.startsWith('tg_')) {
+        const targetUid = link.migratedTo || link.linkedWebUid || demoMigrated.get(link.uid);
+        if (targetUid && !String(targetUid).startsWith('tg_')) {
+          link.uid = targetUid;
+          link.previousUid = link.uid;
+          link.migratedAt = new Date().toISOString();
+          if (demoTelegramUsers.has(chatId)) {
+            const tu = demoTelegramUsers.get(chatId);
+            tu.uid = targetUid;
+            tu.webUid = targetUid;
+          }
+          _uidCache.delete(String(chatId));
+          fixedCount++;
+        }
+      }
+    }
+  }
+
+  return { fixedCount, totalChecked };
+}
+
 
 export async function getLinkStatus(uid, db) {
   if (db) {
@@ -445,19 +534,29 @@ export async function findLinkedUid(chatId, db) {
           const lData = snap.data() || {};
           if (lData.uid && !String(lData.uid).startsWith('tg_')) {
             resolvedUid = lData.uid;
+          } else if (lData.uid && String(lData.uid).startsWith('tg_')) {
+            const srcSnap = await db.collection('users').doc(lData.uid).get();
+            if (srcSnap && srcSnap.exists) {
+              const srcData = srcSnap.data() || {};
+              const target = srcData.migratedTo || srcData.linkedWebUid;
+              if (target && !String(target).startsWith('tg_')) {
+                resolvedUid = target;
+              }
+            }
           }
         }
       } catch (_) {}
     }
 
-    // 3. Check users/tg_{chatId} for linkedWebUid
+    // 3. Check users/tg_{chatId} for migratedTo or linkedWebUid
     if (!resolvedUid) {
       try {
         const tgUserSnap = await db.collection('users').doc(`tg_${strId}`).get();
         if (tgUserSnap && tgUserSnap.exists) {
           const tgUserData = tgUserSnap.data() || {};
-          if (tgUserData.linkedWebUid && !String(tgUserData.linkedWebUid).startsWith('tg_')) {
-            resolvedUid = tgUserData.linkedWebUid;
+          const target = tgUserData.migratedTo || tgUserData.linkedWebUid;
+          if (target && !String(target).startsWith('tg_')) {
+            resolvedUid = target;
           }
         }
       } catch (_) {}
@@ -506,7 +605,17 @@ export async function findLinkedUid(chatId, db) {
     if (!resolvedUid) {
       try {
         const snap = await db.collection('telegram_links').doc(strId).get();
-        resolvedUid = snap && snap.exists ? snap.data().uid : null;
+        if (snap && snap.exists) {
+          const lUid = snap.data()?.uid;
+          if (lUid && lUid.startsWith('tg_')) {
+            const srcSnap = await db.collection('users').doc(lUid).get();
+            const srcData = srcSnap?.exists ? srcSnap.data() : {};
+            const target = srcData?.migratedTo || srcData?.linkedWebUid;
+            resolvedUid = (target && !String(target).startsWith('tg_')) ? target : lUid;
+          } else {
+            resolvedUid = lUid || null;
+          }
+        }
       } catch (_) {}
     }
   } else {
@@ -518,7 +627,14 @@ export async function findLinkedUid(chatId, db) {
     }
     if (!resolvedUid && demoLinks.has(strId)) {
       const found = demoLinks.get(strId);
-      resolvedUid = found ? found.uid : null;
+      if (found) {
+        const target = found.migratedTo || found.linkedWebUid || (found.uid && demoMigrated.get(found.uid));
+        if (target && !String(target).startsWith('tg_')) {
+          resolvedUid = target;
+        } else {
+          resolvedUid = found.uid;
+        }
+      }
     }
   }
 
@@ -897,6 +1013,15 @@ export async function verifyWebLoginCode(code, db) {
       uData = (userDoc && userDoc.exists) ? (userDoc.data() || {}) : {};
     }
 
+    // Defence in depth: check if UID was migrated to a web account
+    const effectiveUid = uData.migratedTo || uData.linkedWebUid || resolvedUid;
+    if (effectiveUid !== resolvedUid && !String(effectiveUid).startsWith('tg_')) {
+      resolvedUid = effectiveUid;
+      isLinkedWeb = true;
+      userDoc = await db.collection('users').doc(resolvedUid).get();
+      uData = (userDoc && userDoc.exists) ? (userDoc.data() || {}) : {};
+    }
+
     const chatId = uData.telegramChatId || data.chatId || telegramUserId || (rawUid.startsWith('tg_') ? rawUid.slice(3) : null);
     const isTg = !isLinkedWeb && Boolean(uData.isTelegramUser || String(resolvedUid).startsWith('tg_'));
     const isFullyLinked = isTg
@@ -956,10 +1081,18 @@ export async function verifyWebLoginCode(code, db) {
         if (link.uid && !String(link.uid).startsWith('tg_')) {
           resolvedUid = link.uid;
           isLinkedWeb = true;
+        } else if (link.migratedTo || link.linkedWebUid) {
+          resolvedUid = link.migratedTo || link.linkedWebUid;
+          isLinkedWeb = true;
         }
         break;
       }
     }
+  }
+
+  if (!isLinkedWeb && demoMigrated.has(rawUid)) {
+    resolvedUid = demoMigrated.get(rawUid);
+    isLinkedWeb = true;
   }
 
   const isTg = !isLinkedWeb && Boolean(rawUid.startsWith('tg_') || demoLink?.isTelegramUser);

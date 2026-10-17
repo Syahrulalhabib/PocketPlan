@@ -178,6 +178,18 @@ async function testRestApiIsolation() {
     assert.strictEqual(typeof rSyncAuth.body.commandsCount, 'number');
     assert(rSyncAuth.body.commandsCount > 0);
     console.log('    ✔ /api/admin/sync-commands POST auth & sync passed');
+    // Admin fix-stale-links endpoint test
+    const rFixUnauth = await req(server, 'POST', '/api/admin/fix-stale-links');
+    assert.strictEqual(rFixUnauth.status, 403);
+
+    const rFixAuth = await req(server, 'POST', '/api/admin/fix-stale-links', null, {
+      authorization: 'Bearer test-cron-secret-123'
+    });
+    assert.strictEqual(rFixAuth.status, 200);
+    assert.strictEqual(rFixAuth.body.ok, true);
+    assert.strictEqual(typeof rFixAuth.body.fixedCount, 'number');
+    console.log('    ✔ /api/admin/fix-stale-links POST auth & fix passed');
+
 
     // Per-uid Map isolation (unit level, same pattern as getDemoTransactions)
     const mapA = new Map(), mapB = new Map();

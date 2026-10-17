@@ -20,7 +20,8 @@ import {
   syncBotCommands,
   DEFAULT_BOT_COMMANDS,
   migrateTelegramDataToUser,
-  completeTelegramLink
+  completeTelegramLink,
+  fixStaleTelegramLinks
 } from './lib/telegramBotCore.js';
 import { scanReceiptWithGemini } from './lib/geminiReceiptScanner.js';
 import { updateStreak } from './lib/streak.js';
@@ -38,6 +39,16 @@ if (process.env.NODE_ENV === 'production' && !getDb()) {
   console.error('FATAL: NODE_ENV=production but Firestore is not configured. Refusing to start in demo mode.');
   process.exit(1);
 }
+if (getDb()) {
+  fixStaleTelegramLinks(getDb()).then((res) => {
+    if (res?.fixedCount > 0) {
+      console.log(`[migration] Fixed ${res.fixedCount} stale telegram links out of ${res.totalChecked} checked`);
+    }
+  }).catch((err) => {
+    console.error('[migration] Error running fixStaleTelegramLinks:', err);
+  });
+}
+
 
 const app = express();
 
@@ -310,6 +321,24 @@ app.post('/api/admin/sync-commands', async (req, res) => {
     res.status(500).json({ error: err.message || 'Failed to sync commands' });
   }
 });
+app.post('/api/admin/fix-stale-links', async (req, res) => {
+  const secret = (process.env.ADMIN_SECRET || process.env.CRON_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
+  if (!secret) {
+    return res.status(401).json({ error: 'ADMIN_SECRET or CRON_SECRET must be configured' });
+  }
+  const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() || req.query?.secret || req.body?.secret;
+  if (!incoming || incoming !== secret) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  try {
+    const result = await fixStaleTelegramLinks(getDb());
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('fix-stale-links error:', err);
+    res.status(500).json({ error: err.message || 'Failed to fix stale links' });
+  }
+});
+
 
 app.get('/api/telegram/status', requireAuth, async (req, res) => {
   const uid = req.user?.uid || 'demo-user';
