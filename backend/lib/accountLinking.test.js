@@ -130,7 +130,24 @@ async function runAccountLinkingTests() {
   assert.ok(sentMessages[0].text.includes('Akun berhasil terhubung'), 'Notification text matches');
   assert.strictEqual(sentMessages[0].chat_id, '5001');
 
+  // Kriteria 4: Re-login via /web tidak meminta verifikasi ulang
+  const { code: reloginCode } = await generateWebLoginCode('tg_5001', null);
+  const verifiedRelogin = await verifyWebLoginCode(reloginCode, null);
+  assert.strictEqual(verifiedRelogin.isTelegramUser, true);
+  assert.strictEqual(verifiedRelogin.isFullyLinked, true, 'Charlie should be isFullyLinked on relogin');
+  assert.strictEqual(verifiedRelogin.emailVerified, true, 'Charlie emailVerified should be true on relogin');
+  assert.strictEqual(verifiedRelogin.webPasswordSet, true, 'Charlie webPasswordSet should be true on relogin');
+
+  // Kriteria 5: Web user yang ditautkan Telegram login via /web tidak dianggap unverified Telegram user
+  const { code: webCodeAlice } = await generateWebLoginCode('web-user-x', null);
+  const verifiedAlice = await verifyWebLoginCode(webCodeAlice, null);
+  assert.strictEqual(verifiedAlice.isTelegramUser, false, 'Alice is a web user');
+  assert.strictEqual(verifiedAlice.isFullyLinked, true, 'Alice is already fully linked');
+  assert.strictEqual(verifiedAlice.emailVerified, true, 'Alice email is verified');
+  assert.strictEqual(verifiedAlice.webPasswordSet, true, 'Alice web password is set');
+
   console.log('  ✔ Bot-to-web linking lifecycle & delayed notification passed');
+  console.log('  ✔ Passwordless SSO re-login retains verified status passed');
   console.log('All Account Linking unit tests passed! ✅');
 }
 

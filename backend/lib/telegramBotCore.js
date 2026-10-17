@@ -664,13 +664,22 @@ export async function verifyWebLoginCode(code, db) {
     const userDoc = await db.collection('users').doc(data.uid).get();
     const uData = userDoc.data() || {};
     const chatId = uData.telegramChatId || data.chatId || (data.uid.startsWith('tg_') ? data.uid.replace('tg_', '') : null);
+    const isTg = Boolean(uData.isTelegramUser || data.uid.startsWith('tg_'));
+    const isFullyLinked = isTg
+      ? Boolean(uData.linkCompletedAt || (uData.emailVerified && uData.webPasswordSet))
+      : true;
     return {
       uid: data.uid,
       name: uData.name || 'Telegram User',
-      email: uData.email || `${data.uid}@telegram.pocketplan`,
+      email: uData.email || (isTg ? `${data.uid}@telegram.pocketplan` : 'user@pocketplan.app'),
       telegramChatId: chatId,
       telegramUsername: uData.telegramUsername || null,
-      messageId: data.messageId || null
+      messageId: data.messageId || null,
+      isTelegramUser: isTg,
+      emailVerified: isTg ? Boolean(uData.emailVerified) : true,
+      webPasswordSet: isTg ? Boolean(uData.webPasswordSet) : true,
+      linkCompletedAt: uData.linkCompletedAt || null,
+      isFullyLinked
     };
   }
 
@@ -683,20 +692,31 @@ export async function verifyWebLoginCode(code, db) {
   demoWebCodes.delete(cleanCode);
   let demoChatId = entry.uid.startsWith('tg_') ? entry.uid.replace('tg_', '') : null;
   let demoUsername = null;
+  let demoLink = null;
   for (const [cId, link] of demoLinks.entries()) {
     if (link.uid === entry.uid) {
       demoChatId = cId;
       demoUsername = link.username || null;
+      demoLink = link;
       break;
     }
   }
+  const isTg = Boolean(entry.uid.startsWith('tg_') || demoLink?.isTelegramUser);
+  const isFullyLinked = isTg
+    ? Boolean(demoLink?.linkCompletedAt || (demoLink?.emailVerified && demoLink?.webPasswordSet))
+    : true;
   return {
     uid: entry.uid,
-    name: demoUsername ? `@${demoUsername}` : 'Telegram User',
-    email: `${entry.uid}@telegram.pocketplan`,
+    name: demoUsername ? `@${demoUsername}` : (isTg ? 'Telegram User' : 'User'),
+    email: demoLink?.email || (isTg ? `${entry.uid}@telegram.pocketplan` : 'user@pocketplan.app'),
     telegramChatId: demoChatId || entry.chatId || null,
     telegramUsername: demoUsername,
-    messageId: entry.messageId || null
+    messageId: entry.messageId || null,
+    isTelegramUser: isTg,
+    emailVerified: isTg ? Boolean(demoLink?.emailVerified) : true,
+    webPasswordSet: isTg ? Boolean(demoLink?.webPasswordSet) : true,
+    linkCompletedAt: demoLink?.linkCompletedAt || null,
+    isFullyLinked
   };
 }
 

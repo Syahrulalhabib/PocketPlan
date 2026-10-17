@@ -92,9 +92,10 @@ export const AuthProvider = ({ children }) => {
         }
         const isTg = Boolean(extraTg?.isTelegramUser || fbUser.uid.startsWith('tg_'));
         const resolvedEmail = fbUser.email || extraTg?.email || (isTg ? `${fbUser.uid}@telegram.pocketplan` : 'user@pocketplan.app');
-        const emailVerified = Boolean(fbUser.emailVerified || extraTg?.emailVerified);
-        const webPasswordSet = Boolean(extraTg?.webPasswordSet);
-        const needsVerification = isTg ? (isDummyEmail(resolvedEmail) || !emailVerified || !webPasswordSet) : false;
+        const isFullyLinked = Boolean(extraTg?.linkCompletedAt || (extraTg?.emailVerified && extraTg?.webPasswordSet));
+        const emailVerified = isTg ? Boolean(isFullyLinked || fbUser.emailVerified || extraTg?.emailVerified) : true;
+        const webPasswordSet = isTg ? Boolean(isFullyLinked || extraTg?.webPasswordSet) : true;
+        const needsVerification = isTg ? (!isFullyLinked && (isDummyEmail(resolvedEmail) || !emailVerified || !webPasswordSet)) : false;
         const resolved = {
           id: fbUser.uid,
           name: fbUser.displayName || extraTg?.name || fbUser.email || (isTg ? 'Telegram User' : 'User'),
@@ -105,11 +106,14 @@ export const AuthProvider = ({ children }) => {
           telegramUsername: extraTg?.telegramUsername || undefined,
           emailVerified,
           webPasswordSet,
+          linkCompletedAt: extraTg?.linkCompletedAt || undefined,
           needsVerification
         };
         setUser(resolved);
         if (isTg) {
           localStorage.setItem('pocketplan_tg_user', JSON.stringify(resolved));
+        } else {
+          localStorage.removeItem('pocketplan_tg_user');
         }
       } else {
         const savedTg = localStorage.getItem('pocketplan_tg_user');
@@ -211,25 +215,32 @@ export const AuthProvider = ({ children }) => {
     if (tgUser.customToken && firebaseEnabled) {
       await signInWithToken(tgUser.customToken);
     }
-    const chatId = tgUser.telegramChatId || (tgUser.uid?.startsWith('tg_') ? tgUser.uid.replace('tg_', '') : undefined);
-    const resolvedEmail = tgUser.email || `${tgUser.uid || 'user'}@telegram.pocketplan`;
-    const emailVerified = Boolean(tgUser.emailVerified);
-    const webPasswordSet = Boolean(tgUser.webPasswordSet);
-    const needsVerification = isDummyEmail(resolvedEmail) || !emailVerified || !webPasswordSet;
+    const isTg = Boolean(tgUser.isTelegramUser || tgUser.uid?.startsWith('tg_'));
+    const chatId = tgUser.telegramChatId || (isTg ? tgUser.uid.replace('tg_', '') : undefined);
+    const resolvedEmail = tgUser.email || (isTg ? `${tgUser.uid || 'user'}@telegram.pocketplan` : 'user@pocketplan.app');
+    const isFullyLinked = Boolean(tgUser.linkCompletedAt || tgUser.isFullyLinked || (tgUser.emailVerified && tgUser.webPasswordSet));
+    const emailVerified = isTg ? Boolean(isFullyLinked || tgUser.emailVerified) : true;
+    const webPasswordSet = isTg ? Boolean(isFullyLinked || tgUser.webPasswordSet) : true;
+    const needsVerification = isTg && (!isFullyLinked && (isDummyEmail(resolvedEmail) || !emailVerified || !webPasswordSet));
     const resolvedUser = {
       id: tgUser.uid || tgUser.id,
-      name: tgUser.name || 'Telegram User',
+      name: tgUser.name || (isTg ? 'Telegram User' : 'User'),
       email: resolvedEmail,
       photoURL: tgUser.photoURL || undefined,
       telegramChatId: chatId,
       telegramUsername: tgUser.telegramUsername || undefined,
-      isTelegramUser: true,
+      isTelegramUser: isTg,
       emailVerified,
       webPasswordSet,
+      linkCompletedAt: tgUser.linkCompletedAt || undefined,
       needsVerification
     };
     setUser(resolvedUser);
-    localStorage.setItem('pocketplan_tg_user', JSON.stringify(resolvedUser));
+    if (isTg) {
+      localStorage.setItem('pocketplan_tg_user', JSON.stringify(resolvedUser));
+    } else {
+      localStorage.removeItem('pocketplan_tg_user');
+    }
     return resolvedUser;
   };
 
