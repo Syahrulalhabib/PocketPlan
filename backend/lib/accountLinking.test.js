@@ -8,7 +8,8 @@ import {
   completeTelegramLink,
   ensureTelegramUser,
   generateWebLoginCode,
-  verifyWebLoginCode
+  verifyWebLoginCode,
+  linkTelegramAccount
 } from './telegramBotCore.js';
 import { handleTelegramUpdate } from './telegramBot.js';
 
@@ -146,6 +147,103 @@ async function runAccountLinkingTests() {
   assert.strictEqual(verifiedAlice.emailVerified, true, 'Alice email is verified');
   assert.strictEqual(verifiedAlice.webPasswordSet, true, 'Alice web password is set');
 
+  // ========================================================
+  // BAGIAN 4: Telegram /web Login Custom Token uses webUid from telegramUsers
+  // ========================================================
+
+  // Test 4A: Firestore mock with telegramUsers collection mapping
+  const store = {
+    users: {
+      'web-user-linked-77': {
+        name: 'Linked Alice',
+        email: 'alice@example.com',
+        isTelegramUser: false
+      },
+      'tg_7777': {
+        name: 'Alice Tg',
+        telegramChatId: '7777',
+        isTelegramUser: true
+      }
+    },
+    telegramUsers: {
+      '7777': {
+        uid: 'web-user-linked-77',
+        username: 'alice_tg'
+      }
+    },
+    telegram_web_codes: {}
+  };
+
+  const mdb = {
+    collection: (colName) => ({
+      doc: (docId) => {
+        const docRef = {
+          delete: async () => {
+            if (store[colName]) delete store[colName][docId];
+          },
+          set: async (data, opts) => {
+            store[colName] = store[colName] || {};
+            store[colName][docId] = opts?.merge
+              ? Object.assign(store[colName][docId] || {}, data)
+              : { ...data };
+          }
+        };
+        return {
+          ...docRef,
+          get: async () => ({
+            id: docId,
+            ref: docRef,
+            exists: Boolean(store[colName]?.[docId]),
+            data: () => store[colName]?.[docId] || {}
+          })
+        };
+      }
+    })
+  };
+
+  const { code: code77 } = await generateWebLoginCode('tg_7777', mdb);
+  assert.ok(code77, 'Web login code generated for tg_7777');
+
+  const verified77 = await verifyWebLoginCode(code77, mdb);
+  assert.strictEqual(verified77.uid, 'web-user-linked-77', 'UID resolved to linked webUid from telegramUsers');
+  assert.strictEqual(verified77.isTelegramUser, false, 'Linked account is recognized as web user');
+  assert.strictEqual(verified77.isFullyLinked, true, 'Linked web account is fully linked');
+  assert.strictEqual(verified77.email, 'alice@example.com');
+
+  // Verify custom token uses webUid from telegramUsers (same logic as app.post('/api/telegram/web-login'))
+  let mintedTokenUid = null;
+  const mockAuth = {
+    createCustomToken: async (uid) => {
+      mintedTokenUid = uid;
+      return `custom-jwt-token-for-${uid}`;
+    }
+  };
+  const customToken = await mockAuth.createCustomToken(verified77.uid);
+  assert.strictEqual(mintedTokenUid, 'web-user-linked-77', 'Custom token must use webUid from telegramUsers');
+  assert.strictEqual(customToken, 'custom-jwt-token-for-web-user-linked-77');
+
+  // Test 4B: Fall back to users/tg_{telegramUserId} only if unlinked Telegram-native account
+  store.users['tg_8888'] = {
+    name: 'Unlinked Bob',
+    telegramChatId: '8888',
+    isTelegramUser: true
+  };
+  const { code: code88 } = await generateWebLoginCode('tg_8888', mdb);
+  const verified88 = await verifyWebLoginCode(code88, mdb);
+  assert.strictEqual(verified88.uid, 'tg_8888', 'Unlinked account falls back to tg_8888');
+  assert.strictEqual(verified88.isTelegramUser, true, 'Unlinked account stays Telegram-native user');
+
+  // Test 4C: linkTelegramAccount helper & demo mode resolution
+  await linkTelegramAccount(9999, 'web-user-demo-99', null);
+  const { code: code99 } = await generateWebLoginCode('tg_9999', null);
+  const verified99 = await verifyWebLoginCode(code99, null);
+  assert.strictEqual(verified99.uid, 'web-user-demo-99', 'Demo mode resolves webUid from telegramUsers mapping');
+  assert.strictEqual(verified99.isTelegramUser, false);
+  const customTokenDemo = await mockAuth.createCustomToken(verified99.uid);
+  assert.strictEqual(customTokenDemo, 'custom-jwt-token-for-web-user-demo-99');
+
+  console.log('  ✔ Telegram /web login resolves webUid from telegramUsers for custom token passed');
+  console.log('  ✔ Fallback to tg_{telegramUserId} for unlinked Telegram-native account passed');
   console.log('  ✔ Bot-to-web linking lifecycle & delayed notification passed');
   console.log('  ✔ Passwordless SSO re-login retains verified status passed');
   console.log('All Account Linking unit tests passed! ✅');

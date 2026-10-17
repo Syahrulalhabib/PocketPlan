@@ -299,6 +299,7 @@ export async function unlinkAccount(uid, db) {
     if (chatId) {
       invalidateUidCache(chatId);
       await db.collection('telegram_links').doc(String(chatId)).delete().catch(() => {});
+      await db.collection('telegramUsers').doc(String(chatId)).delete().catch(() => {});
       await db.collection('users').doc(`tg_${chatId}`).set({
         linkedWebUid: null,
         migratedTo: null,
@@ -336,6 +337,7 @@ export async function unlinkAccount(uid, db) {
     if (targetChatId) {
       invalidateUidCache(targetChatId);
       demoLinks.delete(targetChatId);
+      demoTelegramUsers.delete(targetChatId);
       demoMigrated.delete(`tg_${targetChatId}`);
     }
     if (targetUid) {
@@ -502,6 +504,14 @@ export async function linkChatWithCode(chatId, code, userFrom, db) {
         firstName: userFrom.first_name || null,
         ...(completedAt && { linkCompletedAt: completedAt })
       }),
+      db.collection('telegramUsers').doc(strId).set({
+        uid,
+        webUid: uid,
+        linkedAt: new Date().toISOString(),
+        username: userFrom.username || null,
+        firstName: userFrom.first_name || null,
+        ...(completedAt && { linkCompletedAt: completedAt })
+      }, { merge: true }),
       db.collection('users').doc(uid).set(
         {
           telegramChatId: strId,
@@ -557,6 +567,12 @@ export async function linkChatWithCode(chatId, code, userFrom, db) {
     linkedWebUid: uid,
     ...(completedAt && { linkCompletedAt: completedAt })
   });
+  demoTelegramUsers.set(strId, {
+    uid,
+    webUid: uid,
+    username: userFrom.username || null,
+    firstName: userFrom.first_name || null
+  });
   _uidCache.set(strId, { uid, exp: Date.now() + CACHE_TTL_MS });
   return uid;
 }
@@ -588,6 +604,27 @@ export async function editTelegramMessage(botToken, chatId, messageId, text, opt
 }
 
 const demoWebCodes = new Map();
+const demoTelegramUsers = new Map();
+
+export { demoTelegramUsers };
+
+export async function linkTelegramAccount(telegramUserId, webUid, db) {
+  const strId = String(telegramUserId).replace(/^tg_/, '');
+  if (db) {
+    await db.collection('telegramUsers').doc(strId).set({
+      uid: webUid,
+      webUid,
+      linkedAt: new Date().toISOString()
+    }, { merge: true });
+    await db.collection('telegram_links').doc(strId).set({
+      uid: webUid,
+      linkedAt: new Date().toISOString()
+    }, { merge: true });
+  } else {
+    demoTelegramUsers.set(strId, { uid: webUid, webUid });
+    demoLinks.set(strId, { uid: webUid, webUid });
+  }
+}
 
 export async function ensureTelegramUser(chatId, userFrom, db) {
   const strId = String(chatId);
@@ -655,25 +692,84 @@ export async function verifyWebLoginCode(code, db) {
   if (db) {
     const doc = await db.collection('telegram_web_codes').doc(cleanCode).get();
     if (!doc.exists) return null;
-    const data = doc.data();
+    const data = doc.data() || {};
     if (new Date(data.expiresAt).getTime() < Date.now()) {
-      await doc.ref.delete();
+      if (doc.ref?.delete) await doc.ref.delete();
       return 'EXPIRED';
     }
-    await doc.ref.delete();
-    const userDoc = await db.collection('users').doc(data.uid).get();
-    const uData = userDoc.data() || {};
-    const chatId = uData.telegramChatId || data.chatId || (data.uid.startsWith('tg_') ? data.uid.replace('tg_', '') : null);
-    const isTg = Boolean(uData.isTelegramUser || data.uid.startsWith('tg_'));
+    if (doc.ref?.delete) await doc.ref.delete();
+
+    const rawUid = String(data.uid || '');
+    const telegramUserId = rawUid.startsWith('tg_')
+      ? rawUid.slice(3)
+      : (data.chatId ? String(data.chatId) : (rawUid.match(/^\d+$/) ? rawUid : null));
+
+    let resolvedUid = rawUid;
+    let isLinkedWeb = false;
+    let tgUserData = null;
+
+    // 1. Read telegramUsers/{telegramUserId} first to get correct webUid
+    if (telegramUserId) {
+      try {
+        const tgSnap = await db.collection('telegramUsers').doc(telegramUserId).get();
+        if (tgSnap && tgSnap.exists) {
+          tgUserData = tgSnap.data() || {};
+          const mappedUid = tgUserData.uid || tgUserData.webUid || tgUserData.userId;
+          if (mappedUid) {
+            resolvedUid = mappedUid;
+            isLinkedWeb = true;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 2. Fallback to telegram_links if not resolved yet
+    if (!isLinkedWeb && telegramUserId) {
+      try {
+        const linkSnap = await db.collection('telegram_links').doc(telegramUserId).get();
+        if (linkSnap && linkSnap.exists) {
+          const linkData = linkSnap.data() || {};
+          if (linkData.uid && !String(linkData.uid).startsWith('tg_')) {
+            resolvedUid = linkData.uid;
+            isLinkedWeb = true;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 3. Fall back to users/tg_{telegramUserId} only if unlinked Telegram-native account
+    const tgDocId = rawUid.startsWith('tg_') ? rawUid : (telegramUserId ? `tg_${telegramUserId}` : rawUid);
+    let userDoc = null;
+    let uData = {};
+
+    if (isLinkedWeb) {
+      userDoc = await db.collection('users').doc(resolvedUid).get();
+      uData = (userDoc && userDoc.exists) ? (userDoc.data() || {}) : {};
+    } else {
+      userDoc = await db.collection('users').doc(tgDocId).get();
+      uData = (userDoc && userDoc.exists) ? (userDoc.data() || {}) : {};
+      if (uData.linkedWebUid) {
+        resolvedUid = uData.linkedWebUid;
+        isLinkedWeb = true;
+        const webDoc = await db.collection('users').doc(resolvedUid).get();
+        if (webDoc && webDoc.exists) {
+          uData = webDoc.data() || {};
+        }
+      }
+    }
+
+    const chatId = uData.telegramChatId || data.chatId || telegramUserId || (rawUid.startsWith('tg_') ? rawUid.slice(3) : null);
+    const isTg = !isLinkedWeb && Boolean(uData.isTelegramUser || String(resolvedUid).startsWith('tg_'));
     const isFullyLinked = isTg
       ? Boolean(uData.linkCompletedAt || (uData.emailVerified && uData.webPasswordSet))
       : true;
+
     return {
-      uid: data.uid,
-      name: uData.name || 'Telegram User',
-      email: uData.email || (isTg ? `${data.uid}@telegram.pocketplan` : 'user@pocketplan.app'),
+      uid: resolvedUid,
+      name: uData.name || tgUserData?.name || (isTg ? 'Telegram User' : 'User'),
+      email: uData.email || (isTg ? `${resolvedUid}@telegram.pocketplan` : 'user@pocketplan.app'),
       telegramChatId: chatId,
-      telegramUsername: uData.telegramUsername || null,
+      telegramUsername: uData.telegramUsername || tgUserData?.username || null,
       messageId: data.messageId || null,
       isTelegramUser: isTg,
       emailVerified: isTg ? Boolean(uData.emailVerified) : true,
@@ -690,25 +786,48 @@ export async function verifyWebLoginCode(code, db) {
     return 'EXPIRED';
   }
   demoWebCodes.delete(cleanCode);
-  let demoChatId = entry.uid.startsWith('tg_') ? entry.uid.replace('tg_', '') : null;
+
+  const rawUid = String(entry.uid || '');
+  let demoChatId = rawUid.startsWith('tg_') ? rawUid.slice(3) : (entry.chatId ? String(entry.chatId) : null);
+  let resolvedUid = rawUid;
+  let isLinkedWeb = false;
   let demoUsername = null;
   let demoLink = null;
-  for (const [cId, link] of demoLinks.entries()) {
-    if (link.uid === entry.uid) {
-      demoChatId = cId;
-      demoUsername = link.username || null;
-      demoLink = link;
-      break;
+
+  if (demoChatId && demoTelegramUsers.has(demoChatId)) {
+    const tgU = demoTelegramUsers.get(demoChatId);
+    const mapped = tgU?.uid || tgU?.webUid;
+    if (mapped) {
+      resolvedUid = mapped;
+      isLinkedWeb = true;
+      demoUsername = tgU.username || null;
     }
   }
-  const isTg = Boolean(entry.uid.startsWith('tg_') || demoLink?.isTelegramUser);
+
+  if (!isLinkedWeb) {
+    for (const [cId, link] of demoLinks.entries()) {
+      if (link.uid === rawUid || cId === demoChatId) {
+        demoChatId = cId;
+        demoUsername = link.username || null;
+        demoLink = link;
+        if (link.uid && !String(link.uid).startsWith('tg_')) {
+          resolvedUid = link.uid;
+          isLinkedWeb = true;
+        }
+        break;
+      }
+    }
+  }
+
+  const isTg = !isLinkedWeb && Boolean(rawUid.startsWith('tg_') || demoLink?.isTelegramUser);
   const isFullyLinked = isTg
     ? Boolean(demoLink?.linkCompletedAt || (demoLink?.emailVerified && demoLink?.webPasswordSet))
     : true;
+
   return {
-    uid: entry.uid,
+    uid: resolvedUid,
     name: demoUsername ? `@${demoUsername}` : (isTg ? 'Telegram User' : 'User'),
-    email: demoLink?.email || (isTg ? `${entry.uid}@telegram.pocketplan` : 'user@pocketplan.app'),
+    email: demoLink?.email || (isTg ? `${resolvedUid}@telegram.pocketplan` : 'user@pocketplan.app'),
     telegramChatId: demoChatId || entry.chatId || null,
     telegramUsername: demoUsername,
     messageId: entry.messageId || null,
