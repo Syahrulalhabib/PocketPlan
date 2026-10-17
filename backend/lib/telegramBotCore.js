@@ -425,11 +425,101 @@ export async function findLinkedUid(chatId, db) {
 
   let resolvedUid = null;
   if (db) {
-    const snap = await db.collection('telegram_links').doc(strId).get();
-    resolvedUid = snap.exists ? snap.data().uid : null;
+    // 1. Check telegramUsers/{chatId} for webUid
+    try {
+      const tgSnap = await db.collection('telegramUsers').doc(strId).get();
+      if (tgSnap && tgSnap.exists) {
+        const tgData = tgSnap.data() || {};
+        const mapped = tgData.uid || tgData.webUid || tgData.userId;
+        if (mapped && !String(mapped).startsWith('tg_')) {
+          resolvedUid = mapped;
+        }
+      }
+    } catch (_) {}
+
+    // 2. Check telegram_links/{chatId} for real webUid
+    if (!resolvedUid) {
+      try {
+        const snap = await db.collection('telegram_links').doc(strId).get();
+        if (snap && snap.exists) {
+          const lData = snap.data() || {};
+          if (lData.uid && !String(lData.uid).startsWith('tg_')) {
+            resolvedUid = lData.uid;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 3. Check users/tg_{chatId} for linkedWebUid
+    if (!resolvedUid) {
+      try {
+        const tgUserSnap = await db.collection('users').doc(`tg_${strId}`).get();
+        if (tgUserSnap && tgUserSnap.exists) {
+          const tgUserData = tgUserSnap.data() || {};
+          if (tgUserData.linkedWebUid && !String(tgUserData.linkedWebUid).startsWith('tg_')) {
+            resolvedUid = tgUserData.linkedWebUid;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 4. Query users collection where telegramChatId == strId (string/number) or linkedTelegramUid == tg_{strId}
+    if (!resolvedUid) {
+      try {
+        const numId = Number(strId);
+        let qSnap = null;
+        if (typeof db.collection('users').where === 'function') {
+          qSnap = await db.collection('users').where('telegramChatId', '==', strId).limit(1).get();
+          if ((!qSnap || qSnap.empty) && !isNaN(numId)) {
+            qSnap = await db.collection('users').where('telegramChatId', '==', numId).limit(1).get();
+          }
+          if (!qSnap || qSnap.empty) {
+            qSnap = await db.collection('users').where('linkedTelegramUid', '==', `tg_${strId}`).limit(1).get();
+          }
+        }
+        if (qSnap && !qSnap.empty) {
+          const foundDoc = qSnap.docs[0];
+          if (foundDoc && foundDoc.id && !foundDoc.id.startsWith('tg_')) {
+            resolvedUid = foundDoc.id;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // Self-heal mappings if resolved to a linked web UID
+    if (resolvedUid && !resolvedUid.startsWith('tg_')) {
+      db.collection('telegramUsers').doc(strId).set({
+        uid: resolvedUid,
+        webUid: resolvedUid,
+        linkedAt: new Date().toISOString()
+      }, { merge: true }).catch(() => {});
+      db.collection('telegram_links').doc(strId).set({
+        uid: resolvedUid,
+        linkedAt: new Date().toISOString()
+      }, { merge: true }).catch(() => {});
+      db.collection('users').doc(`tg_${strId}`).set({
+        linkedWebUid: resolvedUid
+      }, { merge: true }).catch(() => {});
+    }
+
+    // 5. Fallback to telegram_links doc (for unlinked telegram-native user tg_{chatId}) or null
+    if (!resolvedUid) {
+      try {
+        const snap = await db.collection('telegram_links').doc(strId).get();
+        resolvedUid = snap && snap.exists ? snap.data().uid : null;
+      } catch (_) {}
+    }
   } else {
-    const found = demoLinks.get(strId);
-    resolvedUid = found ? found.uid : null;
+    // Demo in-memory mode
+    if (demoTelegramUsers.has(strId)) {
+      const tgU = demoTelegramUsers.get(strId);
+      const mapped = tgU?.uid || tgU?.webUid;
+      if (mapped && !String(mapped).startsWith('tg_')) resolvedUid = mapped;
+    }
+    if (!resolvedUid && demoLinks.has(strId)) {
+      const found = demoLinks.get(strId);
+      resolvedUid = found ? found.uid : null;
+    }
   }
 
   _uidCache.set(strId, { uid: resolvedUid, exp: now + CACHE_TTL_MS });
@@ -708,14 +798,18 @@ export async function verifyWebLoginCode(code, db) {
     let isLinkedWeb = false;
     let tgUserData = null;
 
+    if (rawUid && !rawUid.startsWith('tg_') && rawUid !== 'null') {
+      isLinkedWeb = true;
+    }
+
     // 1. Read telegramUsers/{telegramUserId} first to get correct webUid
-    if (telegramUserId) {
+    if (!isLinkedWeb && telegramUserId) {
       try {
         const tgSnap = await db.collection('telegramUsers').doc(telegramUserId).get();
         if (tgSnap && tgSnap.exists) {
           tgUserData = tgSnap.data() || {};
           const mappedUid = tgUserData.uid || tgUserData.webUid || tgUserData.userId;
-          if (mappedUid) {
+          if (mappedUid && !String(mappedUid).startsWith('tg_')) {
             resolvedUid = mappedUid;
             isLinkedWeb = true;
           }
@@ -737,8 +831,61 @@ export async function verifyWebLoginCode(code, db) {
       } catch (_) {}
     }
 
-    // 3. Fall back to users/tg_{telegramUserId} only if unlinked Telegram-native account
+    // 3. Fall back to users/tg_{telegramUserId} linkedWebUid
     const tgDocId = rawUid.startsWith('tg_') ? rawUid : (telegramUserId ? `tg_${telegramUserId}` : rawUid);
+    if (!isLinkedWeb && tgDocId) {
+      try {
+        const tgDocSnap = await db.collection('users').doc(tgDocId).get();
+        if (tgDocSnap && tgDocSnap.exists) {
+          const tgDocData = tgDocSnap.data() || {};
+          if (tgDocData.linkedWebUid && !String(tgDocData.linkedWebUid).startsWith('tg_')) {
+            resolvedUid = tgDocData.linkedWebUid;
+            isLinkedWeb = true;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 4. Query users collection where telegramChatId == telegramUserId (string/number) or linkedTelegramUid
+    if (!isLinkedWeb && telegramUserId) {
+      try {
+        const numId = Number(telegramUserId);
+        let qSnap = null;
+        if (typeof db.collection('users').where === 'function') {
+          qSnap = await db.collection('users').where('telegramChatId', '==', telegramUserId).limit(1).get();
+          if ((!qSnap || qSnap.empty) && !isNaN(numId)) {
+            qSnap = await db.collection('users').where('telegramChatId', '==', numId).limit(1).get();
+          }
+          if (!qSnap || qSnap.empty) {
+            qSnap = await db.collection('users').where('linkedTelegramUid', '==', `tg_${telegramUserId}`).limit(1).get();
+          }
+        }
+        if (qSnap && !qSnap.empty) {
+          const foundDoc = qSnap.docs[0];
+          if (foundDoc && foundDoc.id && !foundDoc.id.startsWith('tg_')) {
+            resolvedUid = foundDoc.id;
+            isLinkedWeb = true;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // Self-heal mappings if linked to a web account
+    if (isLinkedWeb && telegramUserId && resolvedUid && !resolvedUid.startsWith('tg_')) {
+      db.collection('telegramUsers').doc(telegramUserId).set({
+        uid: resolvedUid,
+        webUid: resolvedUid,
+        linkedAt: new Date().toISOString()
+      }, { merge: true }).catch(() => {});
+      db.collection('telegram_links').doc(telegramUserId).set({
+        uid: resolvedUid,
+        linkedAt: new Date().toISOString()
+      }, { merge: true }).catch(() => {});
+      db.collection('users').doc(`tg_${telegramUserId}`).set({
+        linkedWebUid: resolvedUid
+      }, { merge: true }).catch(() => {});
+    }
+
     let userDoc = null;
     let uData = {};
 
@@ -748,14 +895,6 @@ export async function verifyWebLoginCode(code, db) {
     } else {
       userDoc = await db.collection('users').doc(tgDocId).get();
       uData = (userDoc && userDoc.exists) ? (userDoc.data() || {}) : {};
-      if (uData.linkedWebUid) {
-        resolvedUid = uData.linkedWebUid;
-        isLinkedWeb = true;
-        const webDoc = await db.collection('users').doc(resolvedUid).get();
-        if (webDoc && webDoc.exists) {
-          uData = webDoc.data() || {};
-        }
-      }
     }
 
     const chatId = uData.telegramChatId || data.chatId || telegramUserId || (rawUid.startsWith('tg_') ? rawUid.slice(3) : null);
@@ -794,10 +933,14 @@ export async function verifyWebLoginCode(code, db) {
   let demoUsername = null;
   let demoLink = null;
 
+  if (rawUid && !rawUid.startsWith('tg_')) {
+    isLinkedWeb = true;
+  }
+
   if (demoChatId && demoTelegramUsers.has(demoChatId)) {
     const tgU = demoTelegramUsers.get(demoChatId);
     const mapped = tgU?.uid || tgU?.webUid;
-    if (mapped) {
+    if (mapped && !String(mapped).startsWith('tg_')) {
       resolvedUid = mapped;
       isLinkedWeb = true;
       demoUsername = tgU.username || null;

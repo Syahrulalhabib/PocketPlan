@@ -9,7 +9,8 @@ import {
   ensureTelegramUser,
   generateWebLoginCode,
   verifyWebLoginCode,
-  linkTelegramAccount
+  linkTelegramAccount,
+  findLinkedUid
 } from './telegramBotCore.js';
 import { handleTelegramUpdate } from './telegramBot.js';
 
@@ -197,7 +198,24 @@ async function runAccountLinkingTests() {
             data: () => store[colName]?.[docId] || {}
           })
         };
-      }
+      },
+      where: (field, op, val) => ({
+        limit: () => ({
+          get: async () => {
+            const matches = [];
+            const col = store[colName] || {};
+            for (const [id, item] of Object.entries(col)) {
+              if (op === '==' && item?.[field] === val) {
+                matches.push({ id, data: () => item });
+              }
+            }
+            return {
+              empty: matches.length === 0,
+              docs: matches
+            };
+          }
+        })
+      })
     })
   };
 
@@ -242,7 +260,29 @@ async function runAccountLinkingTests() {
   const customTokenDemo = await mockAuth.createCustomToken(verified99.uid);
   assert.strictEqual(customTokenDemo, 'custom-jwt-token-for-web-user-demo-99');
 
+  // Test 4D: Legacy linked account (only telegramChatId in users doc, no telegramUsers doc)
+  store.users['web-user-legacy-66'] = {
+    name: 'Legacy Charlie',
+    email: 'charlie@example.com',
+    telegramChatId: '6666',
+    isTelegramUser: false
+  };
+  // findLinkedUid resolves to web-user-legacy-66
+  const legacyResolvedUid = await findLinkedUid('6666', mdb);
+  assert.strictEqual(legacyResolvedUid, 'web-user-legacy-66', 'findLinkedUid resolves webUid from users.telegramChatId query');
+
+  // Even if web code was minted for tg_6666, verifyWebLoginCode resolves to web-user-legacy-66
+  const { code: code66 } = await generateWebLoginCode('tg_6666', mdb);
+  const verified66 = await verifyWebLoginCode(code66, mdb);
+  assert.strictEqual(verified66.uid, 'web-user-legacy-66', 'verifyWebLoginCode resolves webUid for legacy linked account');
+  assert.strictEqual(verified66.isTelegramUser, false);
+  assert.strictEqual(verified66.email, 'charlie@example.com');
+  // Verify self-healing updated telegramUsers and telegram_links
+  assert.strictEqual(store.telegramUsers['6666']?.uid, 'web-user-legacy-66', 'Self-healing populated telegramUsers');
+  assert.strictEqual(store.telegram_links['6666']?.uid, 'web-user-legacy-66', 'Self-healing populated telegram_links');
+
   console.log('  ✔ Telegram /web login resolves webUid from telegramUsers for custom token passed');
+  console.log('  ✔ Legacy web user telegramChatId query resolution and self-healing passed');
   console.log('  ✔ Fallback to tg_{telegramUserId} for unlinked Telegram-native account passed');
   console.log('  ✔ Bot-to-web linking lifecycle & delayed notification passed');
   console.log('  ✔ Passwordless SSO re-login retains verified status passed');

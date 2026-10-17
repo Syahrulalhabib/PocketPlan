@@ -87,7 +87,7 @@ export const AuthProvider = ({ children }) => {
         if (savedTg) {
           try {
             const parsed = JSON.parse(savedTg);
-            if (parsed.id === fbUser.uid || parsed.telegramChatId) extraTg = parsed;
+            if (parsed.id === fbUser.uid) extraTg = parsed;
           } catch {}
         }
         const isTg = Boolean(extraTg?.isTelegramUser || fbUser.uid.startsWith('tg_'));
