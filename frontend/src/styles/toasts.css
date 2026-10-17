@@ -146,19 +146,20 @@
 }
 
 .theme-dark .tab-nav {
-  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 
 .theme-dark .tab-item {
-  background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
-  color: #e5e7eb;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.68);
 }
 
 .theme-dark .tab-item.active {
-  background: #0f172a;
-  color: #f8fafc;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  background: #e45153;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(228, 81, 83, 0.5);
 }
 
 .tab-item:hover:not(.active) {
@@ -167,7 +168,9 @@
 }
 
 .theme-dark .tab-item:hover:not(.active) {
-  filter: brightness(1.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  filter: none;
 }
 
 .table {
