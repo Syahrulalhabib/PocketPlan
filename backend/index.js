@@ -10,7 +10,8 @@ import {
   unlinkAccount,
   dispatchDailyReminders,
   dispatchWeeklyRecap,
-  cleanExpiredTempMessages
+  cleanExpiredTempMessages,
+  demoCronStatus
 } from './lib/telegramBot.js';
 import {
   verifyWebLoginCode,
@@ -339,6 +340,63 @@ app.post('/api/admin/fix-stale-links', async (req, res) => {
   }
 });
 
+app.get('/api/admin/cron-status', async (req, res) => {
+  const cronSecretConfigured = Boolean((process.env.CRON_SECRET || '').trim());
+  const telegramBotTokenConfigured = Boolean((process.env.TELEGRAM_BOT_TOKEN || '').trim());
+
+  let totalLinkedUsers = 0;
+  let usersWithReminderEnabled = 0;
+  let lastMorningRun = null;
+  let lastEveningRun = null;
+
+  try {
+    const db = getDb();
+    if (db) {
+      const linkSnap = await db.collection('telegram_links').get();
+      totalLinkedUsers = linkSnap ? linkSnap.size : 0;
+
+      let enabledCount = 0;
+      if (linkSnap && !linkSnap.empty) {
+        await Promise.all(
+          linkSnap.docs.map(async (doc) => {
+            const uid = doc.data()?.uid;
+            if (!uid) return;
+            const uSnap = await db.collection('users').doc(uid).get();
+            const uData = uSnap.data() || {};
+            if (uData.dailyReminderEnabled !== false) {
+              enabledCount++;
+            }
+          })
+        );
+      }
+      usersWithReminderEnabled = enabledCount;
+
+      const metaSnap = await db.collection('system_meta').doc('cron_status').get();
+      if (metaSnap && metaSnap.exists) {
+        const mData = metaSnap.data() || {};
+        lastMorningRun = mData.lastMorningRun || null;
+        lastEveningRun = mData.lastEveningRun || null;
+      }
+    } else {
+      totalLinkedUsers = 0;
+      usersWithReminderEnabled = 0;
+      lastMorningRun = demoCronStatus.lastMorningRun || null;
+      lastEveningRun = demoCronStatus.lastEveningRun || null;
+    }
+  } catch (err) {
+    console.error('cron-status error:', err);
+  }
+
+  res.json({
+    cronSecretConfigured,
+    telegramBotTokenConfigured,
+    totalLinkedUsers,
+    usersWithReminderEnabled,
+    lastMorningRun,
+    lastEveningRun
+  });
+});
+
 
 app.get('/api/telegram/status', requireAuth, async (req, res) => {
   const uid = req.user?.uid || 'demo-user';
@@ -370,7 +428,18 @@ app.post('/api/telegram/web-login', async (req, res) => {
   try {
     const result = await verifyWebLoginCode(code, getDb());
     if (!result) return res.status(404).json({ error: 'Kode login tidak ditemukan atau salah' });
-    if (result === 'EXPIRED') return res.status(400).json({ error: 'Kode login telah kedaluwarsa' });
+    if (result === 'EXPIRED' || result?.status === 'EXPIRED') {
+      const expiredChatId = result?.chatId;
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      if (botToken && expiredChatId) {
+        sendTelegramMessage(
+          botToken,
+          expiredChatId,
+          '⏳ *Kode login kadaluarsa*\n\nKode kamu sudah tidak berlaku. Ketik /web untuk buat kode baru.'
+        ).catch(() => {});
+      }
+      return res.status(400).json({ error: 'Kode login telah kedaluwarsa' });
+    }
     let customToken = null;
     if (useFirestore) {
       const auth = getAdminAuth();

@@ -190,6 +190,24 @@ async function testRestApiIsolation() {
     assert.strictEqual(typeof rFixAuth.body.fixedCount, 'number');
     console.log('    ✔ /api/admin/fix-stale-links POST auth & fix passed');
 
+    // Admin cron-status endpoint test
+    const rCronStatus = await req(server, 'GET', '/api/admin/cron-status');
+    assert.strictEqual(rCronStatus.status, 200);
+    assert.strictEqual(typeof rCronStatus.body.cronSecretConfigured, 'boolean');
+    assert.strictEqual(typeof rCronStatus.body.telegramBotTokenConfigured, 'boolean');
+    assert.strictEqual(typeof rCronStatus.body.totalLinkedUsers, 'number');
+    assert.strictEqual(typeof rCronStatus.body.usersWithReminderEnabled, 'number');
+    assert.strictEqual(rCronStatus.body.cronSecretConfigured, true);
+    console.log('    ✔ /api/admin/cron-status GET returns valid health check data');
+
+    // POST /api/telegram/web-login boundary tests
+    const rWlNoCode = await req(server, 'POST', '/api/telegram/web-login', {});
+    assert.strictEqual(rWlNoCode.status, 400);
+
+    const rWlNotFound = await req(server, 'POST', '/api/telegram/web-login', { code: 'NOEXIST' });
+    assert.strictEqual(rWlNotFound.status, 404);
+    console.log('    ✔ /api/telegram/web-login boundary validations passed');
+
 
     // Per-uid Map isolation (unit level, same pattern as getDemoTransactions)
     const mapA = new Map(), mapB = new Map();

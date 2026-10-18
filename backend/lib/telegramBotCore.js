@@ -1,6 +1,7 @@
 const demoCodes = new Map();
 const demoLinks = new Map();
 const demoMigrated = new Map();
+export const demoUnlinkedUsers = new Map();
 const _uidCache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -179,7 +180,10 @@ export async function migrateTelegramDataToUser(chatId, targetUid, db) {
         sourceUserRef.set({
           linkedWebUid: targetUid,
           migratedTo: targetUid,
-          migratedAt: new Date().toISOString()
+          migratedAt: new Date().toISOString(),
+          unlinkedAt: null,
+          needsEmailVerification: null,
+          emailVerified: true
         }, { merge: true }),
         db.collection('telegram_links').doc(String(chatId)).set({
           uid: targetUid,
@@ -208,6 +212,8 @@ export async function migrateTelegramDataToUser(chatId, targetUid, db) {
       throw new Error('Akun Telegram ini sudah pernah di-migrate.');
     }
     demoMigrated.set(sourceUid, targetUid);
+    demoUnlinkedUsers.delete(sourceUid);
+    demoUnlinkedUsers.delete(`tg_${chatId}`);
     const existing = demoLinks.get(String(chatId));
     if (existing) {
       existing.uid = targetUid;
@@ -392,7 +398,9 @@ export async function unlinkAccount(uid, db) {
       await db.collection('users').doc(`tg_${chatId}`).set({
         linkedWebUid: null,
         migratedTo: null,
-        migratedAt: null
+        migratedAt: null,
+        unlinkedAt: new Date().toISOString(),
+        needsEmailVerification: true
       }, { merge: true }).catch(() => {});
     }
 
@@ -428,6 +436,10 @@ export async function unlinkAccount(uid, db) {
       demoLinks.delete(targetChatId);
       demoTelegramUsers.delete(targetChatId);
       demoMigrated.delete(`tg_${targetChatId}`);
+      demoUnlinkedUsers.set(`tg_${targetChatId}`, {
+        unlinkedAt: new Date().toISOString(),
+        needsEmailVerification: true
+      });
     }
     if (targetUid) {
       demoMigrated.delete(targetUid);
@@ -436,11 +448,21 @@ export async function unlinkAccount(uid, db) {
           invalidateUidCache(cId);
           demoLinks.delete(cId);
           demoMigrated.delete(`tg_${cId}`);
+          demoUnlinkedUsers.set(`tg_${cId}`, {
+            unlinkedAt: new Date().toISOString(),
+            needsEmailVerification: true
+          });
         }
       }
     }
     demoMigrated.delete(strIdentifier);
-    if (strIdentifier.startsWith('tg_')) demoMigrated.delete(strIdentifier);
+    if (strIdentifier.startsWith('tg_')) {
+      demoMigrated.delete(strIdentifier);
+      demoUnlinkedUsers.set(strIdentifier, {
+        unlinkedAt: new Date().toISOString(),
+        needsEmailVerification: true
+      });
+    }
   }
 
   return { success: true };
@@ -466,6 +488,11 @@ export async function completeTelegramLink(uid, db, botToken = process.env.TELEG
       await db.collection('telegram_links').doc(String(targetChatId)).set({
         linkCompletedAt: now
       }, { merge: true }).catch(() => {});
+      await db.collection('users').doc(`tg_${targetChatId}`).set({
+        unlinkedAt: null,
+        needsEmailVerification: null,
+        emailVerified: true
+      }, { merge: true }).catch(() => {});
     }
   } else {
     const strChatId = uid.startsWith('tg_') ? uid.replace('tg_', '') : null;
@@ -487,6 +514,8 @@ export async function completeTelegramLink(uid, db, botToken = process.env.TELEG
         linkCompletedAt: now
       });
     }
+    if (targetChatId) demoUnlinkedUsers.delete(`tg_${targetChatId}`);
+    demoUnlinkedUsers.delete(uid);
   }
 
   // Notif "🎉 Akun berhasil terhubung!" HANYA dikirim setelah emailVerified === true DAN webPasswordSet === true
@@ -731,7 +760,10 @@ export async function linkChatWithCode(chatId, code, userFrom, db) {
         {
           linkedWebUid: uid,
           telegramChatId: strId,
-          telegramUsername: userFrom.username || null
+          telegramUsername: userFrom.username || null,
+          unlinkedAt: null,
+          needsEmailVerification: null,
+          emailVerified: true
         },
         { merge: true }
       )
@@ -779,6 +811,8 @@ export async function linkChatWithCode(chatId, code, userFrom, db) {
     username: userFrom.username || null,
     firstName: userFrom.first_name || null
   });
+  demoUnlinkedUsers.delete(`tg_${strId}`);
+  demoUnlinkedUsers.delete(uid);
   _uidCache.set(strId, { uid, exp: Date.now() + CACHE_TTL_MS });
   return uid;
 }
@@ -841,6 +875,14 @@ export async function ensureTelegramUser(chatId, userFrom, db) {
   const name = userFrom?.first_name || userFrom?.username || 'Telegram User';
 
   if (db) {
+    const tgUserSnap = await db.collection('users').doc(newUid).get();
+    const tgData = tgUserSnap?.data() || {};
+    if (tgData.unlinkedAt && !tgData.linkedWebUid && !tgData.migratedTo) {
+      // Akun pernah di-unlink — JANGAN buat link otomatis
+      // Return UID tanpa membuat telegram_links entry
+      return newUid;
+    }
+
     await db.collection('users').doc(newUid).set({
       name,
       telegramChatId: strId,
@@ -856,6 +898,10 @@ export async function ensureTelegramUser(chatId, userFrom, db) {
       firstName: userFrom?.first_name || null
     });
   } else {
+    const unlinked = demoUnlinkedUsers.get(newUid);
+    if (unlinked?.unlinkedAt) {
+      return newUid;
+    }
     demoLinks.set(strId, { uid: newUid, username: userFrom?.username || null });
   }
 
@@ -901,7 +947,15 @@ export async function verifyWebLoginCode(code, db) {
     const data = doc.data() || {};
     if (new Date(data.expiresAt).getTime() < Date.now()) {
       if (doc.ref?.delete) await doc.ref.delete();
-      return 'EXPIRED';
+      const rawUid = String(data.uid || '');
+      let expiredChatId = data.chatId || (rawUid.startsWith('tg_') ? rawUid.slice(3) : null);
+      if (!expiredChatId && rawUid && !rawUid.startsWith('tg_')) {
+        try {
+          const uSnap = await db.collection('users').doc(rawUid).get();
+          expiredChatId = uSnap.data()?.telegramChatId || null;
+        } catch (_) {}
+      }
+      return { status: 'EXPIRED', expired: true, chatId: expiredChatId ? String(expiredChatId) : null };
     }
     if (doc.ref?.delete) await doc.ref.delete();
 
@@ -1047,7 +1101,17 @@ export async function verifyWebLoginCode(code, db) {
   if (!entry) return null;
   if (entry.expiresAt < Date.now()) {
     demoWebCodes.delete(cleanCode);
-    return 'EXPIRED';
+    const rawUid = String(entry.uid || '');
+    let expiredChatId = entry.chatId || (rawUid.startsWith('tg_') ? rawUid.slice(3) : null);
+    if (!expiredChatId && rawUid && !rawUid.startsWith('tg_')) {
+      for (const [cId, link] of demoLinks.entries()) {
+        if (link.uid === rawUid) {
+          expiredChatId = cId;
+          break;
+        }
+      }
+    }
+    return { status: 'EXPIRED', expired: true, chatId: expiredChatId ? String(expiredChatId) : null };
   }
   demoWebCodes.delete(cleanCode);
 

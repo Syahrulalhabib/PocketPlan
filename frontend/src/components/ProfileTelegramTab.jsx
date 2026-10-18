@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { TelegramIcon, CheckIcon } from './Icons.jsx';
+import Modal from './Modal.jsx';
 import { getTelegramStatus, requestLinkCode, requestUnlink, cancelLinkCode } from '../services/telegramApi.js';
 import { getUserDocRef, listenDoc, firebaseEnabled } from '../services/firebase.js';
 import { PockySvg } from './FloatingMascot.jsx';
@@ -27,6 +28,7 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
   const [requestingCode, setRequestingCode] = useState(false);
   const [copied, setCopied] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
+  const [showUnlinkModal, setShowUnlinkModal] = useState(false);
   const [cancellingCode, setCancellingCode] = useState(false);
   const timerRef = useRef(null);
   const prevLinkedRef = useRef(isTgAccount || Boolean(initialChatId));
@@ -155,13 +157,17 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
     }
   };
 
-  const handleUnlink = async () => {
-    if (!window.confirm('Disconnect your Telegram account?')) return;
+  const handleOpenUnlinkModal = () => {
+    setShowUnlinkModal(true);
+  };
+
+  const handleConfirmUnlink = async () => {
     try {
       setUnlinking(true);
       await requestUnlink();
       setLinkInfo({ linked: false, chatId: null, username: null });
       setGeneratedCode(null);
+      setShowUnlinkModal(false);
       setStatusMessage?.({ type: 'success', text: 'Telegram account disconnected.' });
     } catch (err) {
       setStatusMessage?.({ type: 'error', text: err?.message || 'Failed to disconnect.' });
@@ -252,7 +258,7 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
             </ul>
           </div>
 
-          <button type="button" className="pill btn-danger" onClick={handleUnlink} disabled={unlinking}>
+          <button type="button" className="pill btn-danger" onClick={handleOpenUnlinkModal} disabled={unlinking}>
             {unlinking ? 'Disconnecting...' : 'Disconnect Account'}
           </button>
         </div>
@@ -317,6 +323,36 @@ const ProfileTelegramTab = ({ user, setStatusMessage }) => {
           )}
         </div>
       )}
+
+      <Modal
+        open={showUnlinkModal}
+        title="Disconnect Telegram?"
+        onClose={() => !unlinking && setShowUnlinkModal(false)}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <p style={{ margin: 0, color: 'var(--muted)', fontSize: '0.95rem', lineHeight: 1.5 }}>
+            Akun Telegram kamu akan diputus dari akun web ini. Kamu tetap bisa menghubungkan lagi nanti.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
+            <button
+              type="button"
+              className="pill btn-secondary"
+              onClick={() => setShowUnlinkModal(false)}
+              disabled={unlinking}
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              className="pill btn-danger"
+              onClick={handleConfirmUnlink}
+              disabled={unlinking}
+            >
+              {unlinking ? 'Memutuskan...' : 'Ya, Putuskan'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

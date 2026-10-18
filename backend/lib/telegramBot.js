@@ -14,12 +14,18 @@ import {
   attachMessageToWebCode,
   deleteTelegramMessage,
   cancelWebLoginCode,
-  completeTelegramLink
+  completeTelegramLink,
+  demoUnlinkedUsers
 } from './telegramBotCore.js';
 import { scanReceiptWithGemini } from './geminiReceiptScanner.js';
 import { updateStreak } from './streak.js';
 
-export { generateLinkCode, getLinkStatus, unlinkAccount, sendTelegramPhoto, completeTelegramLink };
+export const demoCronStatus = {
+  lastMorningRun: null,
+  lastEveningRun: null
+};
+
+export { generateLinkCode, getLinkStatus, unlinkAccount, sendTelegramPhoto, completeTelegramLink, sendWebAccess };
 
 const KEYBOARD = {
   keyboard: [
@@ -2077,7 +2083,31 @@ async function handleGoalCallback(data, botToken, chatId, messageId, uid, db) {
 }
 
 async function sendWebAccess(chatId, uid, db, botToken) {
-  const { code, expiresAt } = await generateWebLoginCode(uid, db);
+  const strChatId = String(chatId);
+  const targetUid = uid || `tg_${strChatId}`;
+
+  // Check if unlinked / unverified Telegram user
+  let uData = {};
+  if (db) {
+    try {
+      const userDoc = await db.collection('users').doc(targetUid).get();
+      uData = (userDoc && userDoc.exists) ? (userDoc.data() || {}) : {};
+    } catch (_) {}
+  } else {
+    const unlinked = demoUnlinkedUsers.get(targetUid);
+    if (unlinked) uData = { ...unlinked };
+  }
+
+  if (uData.needsEmailVerification || (uData.unlinkedAt && !uData.emailVerified)) {
+    return sendTelegramMessage(botToken, chatId,
+      '📧 *Verifikasi Email Diperlukan*\n\n' +
+      'Akun Telegram kamu belum terverifikasi.\n' +
+      'Buka website Pocketplan → daftar dengan email → verifikasi → buat password.\n' +
+      'Setelah itu akun bot dan web akan terhubung otomatis.'
+    );
+  }
+
+  const { code, expiresAt } = await generateWebLoginCode(targetUid, db);
   const expiryDate = new Date(expiresAt);
   const timeStr = expiryDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
   const text = `🌐 *Kode Login Website Pocketplan*\n\n` +
@@ -2097,7 +2127,7 @@ async function sendWebAccess(chatId, uid, db, botToken) {
   });
   if (sent?.result?.message_id) {
     await attachMessageToWebCode(code, sent.result.message_id, chatId, db);
-    queueTempMessage(db, chatId, sent.result.message_id, 300);
+    queueTempMessage(db, chatId, sent.result.message_id, 900);
   }
   return sent;
 }
@@ -2161,14 +2191,24 @@ export function generateEveningReminder(userName, summary = {}) {
 export async function dispatchDailyReminders(db, botToken, type = 'morning', force = false, targetChatId = null) {
   if (!db || !botToken) return { sent: 0, skipped: 0 };
   const todayWib = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+  const nowIso = new Date().toISOString();
+  if (type === 'morning') demoCronStatus.lastMorningRun = nowIso;
+  else if (type === 'evening') demoCronStatus.lastEveningRun = nowIso;
+
+  if (db) {
+    const statusField = type === 'morning' ? 'lastMorningRun' : 'lastEveningRun';
+    db.collection('system_meta').doc('cron_status').set({
+      [statusField]: nowIso,
+      updatedAt: nowIso
+    }, { merge: true }).catch((err) => console.error('[reminder] Failed to record system_meta/cron_status:', err?.message));
+  }
+
   const linkSnap = await db.collection('telegram_links').get();
   let sent = 0;
   let skipped = 0;
   const skipDetails = { disabled: 0, already_sent: 0, missing_user: 0, not_targeted: 0, error: 0 };
 
-  console.log(`[reminder] Starting ${type} reminder dispatch (force=${force}, targetChatId=${targetChatId || 'all'}). Total linked: ${linkSnap.size}`);
-
-  let docs = linkSnap.docs;
+  let docs = linkSnap?.docs || [];
   if (targetChatId) {
     const matched = docs.find((d) => String(d.id) === String(targetChatId));
     if (!matched) {
@@ -2183,6 +2223,14 @@ export async function dispatchDailyReminders(db, botToken, type = 'morning', for
     }
   }
 
+  const nowWib = new Intl.DateTimeFormat('id-ID', {
+    dateStyle: 'full',
+    timeStyle: 'long',
+    timeZone: 'Asia/Jakarta'
+  }).format(new Date());
+
+  console.log(`[cron-reminder] [${nowWib}] Eksekusi reminder '${type}' dimulai (force=${force}, targetChatId=${targetChatId || 'all'}). Total linked terdaftar: ${docs.length}`);
+
   for (const doc of docs) {
     const chatId = doc.id;
     if (targetChatId && String(chatId) !== String(targetChatId)) {
@@ -2194,7 +2242,7 @@ export async function dispatchDailyReminders(db, botToken, type = 'morning', for
     if (!uid || !chatId) {
       skipped++;
       skipDetails.missing_user++;
-      console.log(`[reminder] Skip doc ${doc.id}: missing uid or chatId`);
+      console.log(`[cron-reminder] Skip doc ${doc.id}: data tidak lengkap (missing uid atau chatId)`);
       continue;
     }
 
@@ -2207,7 +2255,7 @@ export async function dispatchDailyReminders(db, botToken, type = 'morning', for
       if (userData.dailyReminderEnabled === false) {
         skipped++;
         skipDetails.disabled++;
-        console.log(`[reminder] Skip ${chatId} (${displayName}): dailyReminderEnabled is false`);
+        console.log(`[cron-reminder] Skip ${chatId} (${displayName}): reminder harian dinonaktifkan (dailyReminderEnabled=false)`);
         continue;
       }
 
@@ -2215,7 +2263,7 @@ export async function dispatchDailyReminders(db, botToken, type = 'morning', for
       if (!force && userData[dateField] === todayWib) {
         skipped++;
         skipDetails.already_sent++;
-        console.log(`[reminder] Skip ${chatId} (${displayName}): already sent today (${todayWib}) for ${type}`);
+        console.log(`[cron-reminder] Skip ${chatId} (${displayName}): sudah terkirim hari ini (${todayWib}) untuk sesi ${type}`);
         continue;
       }
 
@@ -2268,15 +2316,15 @@ export async function dispatchDailyReminders(db, botToken, type = 'morning', for
 
       await userRef.set({ [dateField]: todayWib }, { merge: true });
       sent++;
-      console.log(`[reminder] Sent ${type} reminder to ${chatId} (${displayName}) successfully`);
+      console.log(`[cron-reminder] Berhasil mengirim reminder ${type} ke ${chatId} (${displayName})`);
     } catch (err) {
       skipped++;
       skipDetails.error++;
-      console.error(`[reminder] Error sending ${type} reminder to chatId ${chatId}:`, err?.message);
+      console.error(`[cron-reminder] Gagal mengirim reminder ${type} ke chatId ${chatId}:`, err?.message);
     }
   }
 
-  console.log(`[reminder] Finished ${type} reminder dispatch. Sent: ${sent}, Skipped: ${skipped}, Details:`, JSON.stringify(skipDetails));
+  console.log(`[cron-reminder] [${nowWib}] Eksekusi reminder '${type}' selesai. Total user diproses: ${docs.length}, Terkirim: ${sent}, Di-skip: ${skipped}. Rincian skip:`, JSON.stringify(skipDetails));
   return { sent, skipped, details: skipDetails };
 }
 

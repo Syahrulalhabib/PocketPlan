@@ -11,9 +11,10 @@ import {
   verifyWebLoginCode,
   linkTelegramAccount,
   findLinkedUid,
-  fixStaleTelegramLinks
+  fixStaleTelegramLinks,
+  sendTelegramMessage
 } from './telegramBotCore.js';
-import { handleTelegramUpdate } from './telegramBot.js';
+import { handleTelegramUpdate, sendWebAccess } from './telegramBot.js';
 
 async function runAccountLinkingTests() {
   console.log('Running Account Linking & Notification unit tests...');
@@ -194,6 +195,12 @@ async function runAccountLinkingTests() {
           empty: docs.length === 0,
           docs
         };
+      },
+      add: async (data) => {
+        const id = 'tmp-' + Math.random().toString(36).slice(2);
+        store[colName] = store[colName] || {};
+        store[colName][id] = data;
+        return { id };
       },
       doc: (docId) => {
         const docRef = {
@@ -426,6 +433,93 @@ async function runAccountLinkingTests() {
   const unlinkedToken = await mockAuth.createCustomToken(verifiedUnlinked.uid);
   assert.strictEqual(unlinkedToken, 'custom-jwt-token-for-tg_98765');
   console.log('  ✔ Kriteria 5: Unlinked user /web flow remains fully functional');
+
+  // ========================================================
+  // BAGIAN 4: Fix Unlink - Bot Masih Bisa Login Pakai Kode
+  // ========================================================
+  console.log('\n  [BAGIAN 4] Testing Fix Unlink & Web Login Protection...');
+
+  store.telegram_codes = store.telegram_codes || {};
+  store.telegram_web_codes = store.telegram_web_codes || {};
+
+  // Setup user tg_7001 linked to web-user-7001
+  store.users['tg_7001'] = {
+    name: 'Linked Guy',
+    telegramChatId: '7001',
+    linkedWebUid: 'web-user-7001'
+  };
+  store.telegram_links['7001'] = { uid: 'web-user-7001' };
+
+  // KRITERIA 1: Unlink -> doc tg_7001 memiliki unlinkedAt + needsEmailVerification
+  await unlinkAccount('tg_7001', mdb);
+  const unlinkedDoc = store.users['tg_7001'];
+  assert.ok(unlinkedDoc.unlinkedAt, 'Kriteria 1: doc tg_7001 has unlinkedAt timestamp');
+  assert.strictEqual(unlinkedDoc.needsEmailVerification, true, 'Kriteria 1: needsEmailVerification is true');
+  assert.strictEqual(unlinkedDoc.linkedWebUid, null, 'Kriteria 1: linkedWebUid is reset to null');
+  assert.strictEqual(store.telegram_links['7001'], undefined, 'Kriteria 1: telegram_links doc is deleted');
+  console.log('  ✔ Kriteria 1: Unlink marks tg_7001 with unlinkedAt and needsEmailVerification');
+
+  // KRITERIA 2 & 3: Setelah unlink, ensureTelegramUser TIDAK auto-recreate link
+  // dan /web mengarahkan ke verifikasi email, TIDAK memberikan kode login langsung
+  const resolvedUnlinkedUid = await ensureTelegramUser('7001', { first_name: 'Linked Guy' }, mdb);
+  assert.strictEqual(resolvedUnlinkedUid, 'tg_7001', 'ensureTelegramUser returns tg_7001 without link');
+  assert.strictEqual(store.telegram_links['7001'], undefined, 'ensureTelegramUser did NOT recreate telegram_links entry');
+
+  sentMessages.length = 0;
+  await sendWebAccess('7001', resolvedUnlinkedUid, mdb, 'fake-bot-token');
+  assert.ok(sentMessages.length > 0, 'Kriteria 2 & 3: message sent to user');
+  assert.ok(sentMessages[0].text.includes('Verifikasi Email Diperlukan'), 'Kriteria 3: redirects to email verification');
+  assert.strictEqual(sentMessages[0].text.includes('🔑 *KODE:*'), false, 'Kriteria 2: NO web login code provided');
+  console.log('  ✔ Kriteria 2 & 3: /web after unlink directs to email verification without login code');
+
+  // KRITERIA 4: Selesai verifikasi + linking -> flag dibersihkan dan linking berfungsi normal
+  store.telegram_codes['CODE7001'] = { uid: 'web-user-new7', expiresAt: new Date(Date.now() + 600000).toISOString() };
+  const linkedUid = await linkChatWithCode('7001', 'CODE7001', { first_name: 'Linked Guy' }, mdb);
+  assert.strictEqual(linkedUid, 'web-user-new7');
+
+  const reconnectedDoc = store.users['tg_7001'];
+  assert.strictEqual(reconnectedDoc.unlinkedAt, null, 'Kriteria 4: unlinkedAt cleaned');
+  assert.strictEqual(reconnectedDoc.needsEmailVerification, null, 'Kriteria 4: needsEmailVerification cleaned');
+  assert.strictEqual(reconnectedDoc.emailVerified, true, 'Kriteria 4: emailVerified set to true');
+
+  sentMessages.length = 0;
+  await sendWebAccess('7001', linkedUid, mdb, 'fake-bot-token');
+  assert.ok(sentMessages[0].text.includes('🔑 *KODE:*'), 'Kriteria 4: /web produces login code normally after linking');
+  console.log('  ✔ Kriteria 4: Flags cleared after verification & linking complete');
+
+  // KRITERIA 5: User fresh (tidak pernah di-unlink) alur normal tetap jalan
+  const freshUid = await ensureTelegramUser('88889', { first_name: 'FreshGuy' }, mdb);
+  assert.strictEqual(freshUid, 'tg_88889');
+  assert.ok(store.telegram_links['88889'], 'Kriteria 5: telegram_links created for fresh user');
+  sentMessages.length = 0;
+  await sendWebAccess('88889', freshUid, mdb, 'fake-bot-token');
+  assert.ok(sentMessages[0].text.includes('🔑 *KODE:*'), 'Kriteria 5: Fresh user receives web login code normally');
+  console.log('  ✔ Kriteria 5: Fresh user flow unaffected');
+
+  // TAMBAHAN 2: Kode kadaluarsa -> verifyWebLoginCode returns status EXPIRED with chatId
+  store.telegram_web_codes['EXPCODE'] = {
+    uid: 'tg_88889',
+    chatId: '88889',
+    expiresAt: new Date(Date.now() - 5000).toISOString()
+  };
+  const expRes = await verifyWebLoginCode('EXPCODE', mdb);
+  assert.strictEqual(expRes.status, 'EXPIRED', 'Tambahan 2: verifyWebLoginCode returns EXPIRED status');
+  assert.strictEqual(expRes.chatId, '88889', 'Tambahan 2: verifyWebLoginCode returns chatId');
+  assert.strictEqual(store.telegram_web_codes['EXPCODE'], undefined, 'Tambahan 2: expired code deleted from store');
+
+  // Simulation of /api/telegram/web-login notification sending on EXPIRED
+  sentMessages.length = 0;
+  if ((expRes === 'EXPIRED' || expRes?.status === 'EXPIRED') && expRes?.chatId) {
+    await sendTelegramMessage(
+      'fake-bot-token',
+      expRes.chatId,
+      '⏳ *Kode login kadaluarsa*\n\nKode kamu sudah tidak berlaku. Ketik /web untuk buat kode baru.'
+    );
+  }
+  assert.strictEqual(sentMessages.length, 1);
+  assert.ok(sentMessages[0].text.includes('Kode login kadaluarsa'));
+  assert.strictEqual(sentMessages[0].chat_id, '88889');
+  console.log('  ✔ Tambahan 2: verifyWebLoginCode returns EXPIRED and chatId with notification delivered');
 
   console.log('  ✔ Telegram /web login resolves webUid from telegramUsers for custom token passed');
   console.log('  ✔ Legacy web user telegramChatId query resolution and self-healing passed');
