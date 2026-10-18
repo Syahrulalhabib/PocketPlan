@@ -1040,6 +1040,12 @@ async function testBot() {
   const remRes = await dispatchDailyReminders(mdb, 'token', 'evening', true, '9500');
   assert(remRes.sent >= 0, 'dispatchDailyReminders executed with details');
 
+  // 12. Test dispatchWeeklyRecap
+  const { dispatchWeeklyRecap } = await import('./telegramBot.js');
+  const recapRes = await dispatchWeeklyRecap(mdb, 'token');
+  assert(recapRes.sent >= 0, 'dispatchWeeklyRecap executed without composite query error');
+
+
   console.log('All Telegram integration tests passed!');
 }
 

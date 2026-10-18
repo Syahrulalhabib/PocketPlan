@@ -2367,8 +2367,8 @@ export async function dispatchWeeklyRecap(db, botToken) {
       if (userData.lastWeeklyRecapDate === todayWib) { skipped++; continue; }
 
       // This week expenses (Mon to today)
+      // Filter type in-memory to avoid Firestore composite index requirement (type == 'Expense' + date range)
       const thisSnap = await userRef.collection('transactions')
-        .where('type', '==', 'Expense')
         .where('date', '>=', thisWeekStart)
         .where('date', '<=', todayWib)
         .get();
@@ -2376,6 +2376,7 @@ export async function dispatchWeeklyRecap(db, botToken) {
       const catMap = {};
       thisSnap.forEach(d => {
         const t = d.data();
+        if (t.type !== 'Expense') return;
         const a = Number(t.amount) || 0;
         thisTotal += a;
         catMap[t.category] = (catMap[t.category] || 0) + a;
@@ -2383,12 +2384,16 @@ export async function dispatchWeeklyRecap(db, botToken) {
 
       // Last week expenses
       const lastSnap = await userRef.collection('transactions')
-        .where('type', '==', 'Expense')
         .where('date', '>=', lastWeekStart)
         .where('date', '<=', lastWeekEnd)
         .get();
       let lastTotal = 0;
-      lastSnap.forEach(d => { lastTotal += Number(d.data().amount) || 0; });
+      lastSnap.forEach(d => {
+        const t = d.data();
+        if (t.type === 'Expense') {
+          lastTotal += Number(t.amount) || 0;
+        }
+      });
 
       // Top 3 categories
       const top3 = Object.entries(catMap)
