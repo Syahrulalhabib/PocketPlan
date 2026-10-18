@@ -190,6 +190,18 @@ async function testRestApiIsolation() {
     assert.strictEqual(typeof rFixAuth.body.fixedCount, 'number');
     console.log('    ✔ /api/admin/fix-stale-links POST auth & fix passed');
 
+    // Admin cleanup-stale-telegram endpoint test
+    const rCleanUnauth = await req(server, 'POST', '/api/admin/cleanup-stale-telegram');
+    assert.strictEqual(rCleanUnauth.status, 403);
+
+    const rCleanAuth = await req(server, 'POST', '/api/admin/cleanup-stale-telegram', null, {
+      authorization: 'Bearer test-cron-secret-123'
+    });
+    assert.strictEqual(rCleanAuth.status, 200);
+    assert.strictEqual(rCleanAuth.body.ok, true);
+    assert.strictEqual(typeof rCleanAuth.body.cleaned, 'number');
+    console.log('    ✔ /api/admin/cleanup-stale-telegram POST auth & cleanup passed');
+
     // Admin cron-status endpoint test
     const rCronStatus = await req(server, 'GET', '/api/admin/cron-status');
     assert.strictEqual(rCronStatus.status, 200);
@@ -207,6 +219,18 @@ async function testRestApiIsolation() {
     const rWlNotFound = await req(server, 'POST', '/api/telegram/web-login', { code: 'NOEXIST' });
     assert.strictEqual(rWlNotFound.status, 404);
     console.log('    ✔ /api/telegram/web-login boundary validations passed');
+
+    // Test: /api/telegram/web-login returns 403 for unlinked user code
+    // Setup: link, then unlink to set unlinkedAt flag
+    const { code: wlLinkCode } = await generateLinkCode('web-wl-test', null, 'TestBot');
+    await linkChatWithCode('55001', wlLinkCode, { first_name: 'WlTest' }, null);
+    await unlinkAccount('web-wl-test', null);
+    const { code: wlUnlinkedCode } = await generateWebLoginCode('tg_55001', null);
+    const rWlUnlinked = await req(server, 'POST', '/api/telegram/web-login', { code: wlUnlinkedCode });
+    assert.strictEqual(rWlUnlinked.status, 403);
+    assert.strictEqual(rWlUnlinked.body.needsVerification, true);
+    assert.strictEqual(rWlUnlinked.body.ok, false);
+    console.log('    ✔ /api/telegram/web-login returns 403 for unlinked user needing verification');
 
 
     // Per-uid Map isolation (unit level, same pattern as getDemoTransactions)

@@ -340,6 +340,53 @@ app.post('/api/admin/fix-stale-links', async (req, res) => {
   }
 });
 
+app.post('/api/admin/cleanup-stale-telegram', async (req, res) => {
+  const secret = (process.env.ADMIN_SECRET || process.env.CRON_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
+  if (!secret) {
+    return res.status(401).json({ error: 'ADMIN_SECRET or CRON_SECRET must be configured' });
+  }
+  const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() || req.query?.secret || req.body?.secret;
+  if (!incoming || incoming !== secret) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  const db = getDb();
+  if (!db) {
+    return res.json({ ok: true, cleaned: 0, message: 'Demo mode — no stale data to clean' });
+  }
+  try {
+    let cleaned = 0;
+
+    // 1. Scan telegramUsers — delete if tg_{chatId} has unlinkedAt
+    const tgUsersSnap = await db.collection('telegramUsers').get();
+    for (const doc of (tgUsersSnap?.docs || [])) {
+      const chatId = doc.id;
+      const userDoc = await db.collection('users').doc(`tg_${chatId}`).get();
+      const uData = (userDoc && userDoc.exists) ? (userDoc.data() || {}) : {};
+      if (uData.unlinkedAt) {
+        await doc.ref.delete();
+        cleaned++;
+      }
+    }
+
+    // 2. Scan telegram_links — delete if tg_{chatId} has unlinkedAt
+    const linksSnap = await db.collection('telegram_links').get();
+    for (const doc of (linksSnap?.docs || [])) {
+      const chatId = doc.id;
+      const userDoc = await db.collection('users').doc(`tg_${chatId}`).get();
+      const uData = (userDoc && userDoc.exists) ? (userDoc.data() || {}) : {};
+      if (uData.unlinkedAt) {
+        await doc.ref.delete();
+        cleaned++;
+      }
+    }
+
+    res.json({ ok: true, cleaned });
+  } catch (err) {
+    console.error('cleanup-stale-telegram error:', err);
+    res.status(500).json({ error: err.message || 'Failed to cleanup stale data' });
+  }
+});
+
 app.get('/api/admin/cron-status', async (req, res) => {
   const cronSecretConfigured = Boolean((process.env.CRON_SECRET || '').trim());
   const telegramBotTokenConfigured = Boolean((process.env.TELEGRAM_BOT_TOKEN || '').trim());
@@ -439,6 +486,13 @@ app.post('/api/telegram/web-login', async (req, res) => {
         ).catch(() => {});
       }
       return res.status(400).json({ error: 'Kode login telah kedaluwarsa' });
+    }
+    if (result?.needsVerification) {
+      return res.status(403).json({
+        ok: false,
+        needsVerification: true,
+        message: 'Akun Telegram ini sudah di-unlink. Silakan daftar dengan email dan verifikasi ulang di website.'
+      });
     }
     let customToken = null;
     if (useFirestore) {

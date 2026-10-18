@@ -770,7 +770,7 @@ export async function linkChatWithCode(chatId, code, userFrom, db) {
     ]);
 
     _uidCache.set(strId, { uid, exp: Date.now() + CACHE_TTL_MS });
-    migrateTelegramDataToUser(strId, uid, db).catch((err) => console.error('Migration error:', err));
+    await migrateTelegramDataToUser(strId, uid, db).catch((err) => console.error('Migration error:', err));
     return uid;
   }
 
@@ -968,6 +968,29 @@ export async function verifyWebLoginCode(code, db) {
     let isLinkedWeb = false;
     let tgUserData = null;
 
+    // Guard: if tg_{chatId} was unlinked and not re-verified, block resolve to old web UID
+    if (telegramUserId) {
+      try {
+        const tgDocSnap = await db.collection('users').doc(`tg_${telegramUserId}`).get();
+        const tgData = (tgDocSnap && tgDocSnap.exists) ? (tgDocSnap.data() || {}) : {};
+        if (tgData.unlinkedAt && !tgData.linkedWebUid) {
+          return {
+            uid: `tg_${telegramUserId}`,
+            needsVerification: true,
+            unlinked: true,
+            telegramChatId: telegramUserId,
+            name: tgData.name || 'Telegram User',
+            email: `tg_${telegramUserId}@telegram.pocketplan`,
+            isTelegramUser: true,
+            emailVerified: false,
+            webPasswordSet: false,
+            isFullyLinked: false,
+            messageId: data.messageId || null
+          };
+        }
+      } catch (_) {}
+    }
+
     if (rawUid && !rawUid.startsWith('tg_') && rawUid !== 'null') {
       isLinkedWeb = true;
     }
@@ -1121,6 +1144,27 @@ export async function verifyWebLoginCode(code, db) {
   let isLinkedWeb = false;
   let demoUsername = null;
   let demoLink = null;
+
+  // Guard: if tg_{chatId} was unlinked and not re-verified, block resolve to old web UID
+  const tgKey = rawUid.startsWith('tg_') ? rawUid : (demoChatId ? `tg_${demoChatId}` : null);
+  if (tgKey) {
+    const unlinked = demoUnlinkedUsers.get(tgKey);
+    if (unlinked && unlinked.unlinkedAt && !unlinked.emailVerified) {
+      return {
+        uid: tgKey,
+        needsVerification: true,
+        unlinked: true,
+        telegramChatId: demoChatId || (tgKey ? tgKey.slice(3) : null),
+        name: 'Telegram User',
+        email: `${tgKey}@telegram.pocketplan`,
+        isTelegramUser: true,
+        emailVerified: false,
+        webPasswordSet: false,
+        isFullyLinked: false,
+        messageId: entry.messageId || null
+      };
+    }
+  }
 
   if (rawUid && !rawUid.startsWith('tg_')) {
     isLinkedWeb = true;

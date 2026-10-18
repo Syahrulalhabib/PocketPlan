@@ -521,6 +521,50 @@ async function runAccountLinkingTests() {
   assert.strictEqual(sentMessages[0].chat_id, '88889');
   console.log('  ✔ Tambahan 2: verifyWebLoginCode returns EXPIRED and chatId with notification delivered');
 
+  // BAGIAN 5: verifyWebLoginCode blocks unlinked user from resolving to old web UID
+  console.log('\n  [BAGIAN 5] Testing verifyWebLoginCode unlinkedAt guard...');
+
+  // Setup: link chatId 9001 to web-old-acct, then unlink
+  store.telegram_codes['LINK9001'] = { uid: 'web-old-acct', expiresAt: new Date(Date.now() + 600000).toISOString() };
+  const linked9001 = await linkChatWithCode('9001', 'LINK9001', { first_name: 'OldUser' }, mdb);
+  assert.strictEqual(linked9001, 'web-old-acct');
+
+  await unlinkAccount('web-old-acct', mdb);
+
+  // Simulate stale telegramUsers entry that persists after unlink (old bug — pre-fix data)
+  store.telegramUsers = store.telegramUsers || {};
+  store.telegramUsers['9001'] = { uid: 'web-old-acct', webUid: 'web-old-acct' };
+
+  // Generate web code for tg_9001 (unlinked user)
+  const { code: code9001 } = await generateWebLoginCode('tg_9001', mdb);
+
+  // Kriteria 1: verifyWebLoginCode must return needsVerification, NOT resolve to web-old-acct
+  const verifyRes = await verifyWebLoginCode(code9001, mdb);
+  assert.strictEqual(verifyRes.needsVerification, true, 'Bagian 5 K1: needsVerification is true');
+  assert.strictEqual(verifyRes.unlinked, true, 'Bagian 5 K1: unlinked is true');
+  assert.strictEqual(verifyRes.uid, 'tg_9001', 'Bagian 5 K1: uid stays tg_9001, not web-old-acct');
+  assert.notStrictEqual(verifyRes.uid, 'web-old-acct', 'Bagian 5 K1: did NOT resolve to old web UID');
+  console.log('  ✔ Bagian 5 K1: verifyWebLoginCode blocks unlinked user from resolving to old web UID');
+
+  // Kriteria 3 & 4: after re-link + verify, verifyWebLoginCode resolves normally
+  store.telegram_codes['RELINK9001'] = { uid: 'web-new-acct', expiresAt: new Date(Date.now() + 600000).toISOString() };
+  const relinked = await linkChatWithCode('9001', 'RELINK9001', { first_name: 'NewUser' }, mdb);
+  assert.strictEqual(relinked, 'web-new-acct');
+
+  const { code: codeAfterRelink } = await generateWebLoginCode('web-new-acct', mdb);
+  const verifyAfter = await verifyWebLoginCode(codeAfterRelink, mdb);
+  assert.ok(!verifyAfter.needsVerification, 'Bagian 5 K3: no needsVerification after re-link');
+  assert.ok(verifyAfter.uid, 'Bagian 5 K3: uid resolved');
+  console.log('  ✔ Bagian 5 K3: after re-link, verifyWebLoginCode resolves normally');
+
+  // Kriteria 5: fresh user unaffected
+  const freshUid2 = await ensureTelegramUser('99001', { first_name: 'Fresh2' }, mdb);
+  const { code: freshCode2 } = await generateWebLoginCode(freshUid2, mdb);
+  const verifyFresh = await verifyWebLoginCode(freshCode2, mdb);
+  assert.ok(!verifyFresh.needsVerification, 'Bagian 5 K5: fresh user has no needsVerification');
+  assert.strictEqual(verifyFresh.uid, freshUid2, 'Bagian 5 K5: fresh user uid resolved correctly');
+  console.log('  ✔ Bagian 5 K5: fresh user not affected by unlinkedAt guard');
+
   console.log('  ✔ Telegram /web login resolves webUid from telegramUsers for custom token passed');
   console.log('  ✔ Legacy web user telegramChatId query resolution and self-healing passed');
   console.log('  ✔ Fallback to tg_{telegramUserId} for unlinked Telegram-native account passed');
