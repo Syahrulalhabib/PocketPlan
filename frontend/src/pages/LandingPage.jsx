@@ -271,7 +271,7 @@ const LandingPage = () => {
       <section className="landing-hero">
         <div className="landing-hero-content">
           <h1 className="landing-hero-title">
-            <span className="hero-glow-keyword">Smart Expense Tracking</span> Without the Hassle with <span className="brand-highlight">Pocky</span>
+            Smart Expense Tracking Without the Hassle with <span className="brand-highlight">Pocky</span>
           </h1>
           <p className="landing-hero-desc">
             Kelola arus kas harian, wujudkan target tabungan, dan pantau kesehatan finansial tanpa repot melalui obrolan Telegram atau dashboard web modern.
