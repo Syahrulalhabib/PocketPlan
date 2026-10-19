@@ -232,15 +232,14 @@ app.post('/api/telegram/cancel-link-code', requireAuth, async (req, res) => {
 });
 
 app.all('/api/cron/reminders', async (req, res) => {
+  const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const secret = (process.env.CRON_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
-  if (!secret) {
-    console.warn('[CRON] CRON_SECRET not configured on server');
-    return res.status(401).json({ error: 'CRON_SECRET must be configured' });
-  }
   const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() ||
     req.headers['x-admin-secret'] || req.query?.secret;
-  if (!incoming || incoming !== secret) {
-    console.warn('[CRON] Unauthorized cron attempt: header/query secret mismatch');
+
+  const isAuthorized = isVercelCron || (Boolean(secret) && incoming === secret);
+  if (!isAuthorized) {
+    console.warn('[CRON] Unauthorized cron attempt: neither vercel-cron header nor matching secret provided');
     return res.status(403).json({ error: 'Forbidden' });
   }
   const token = process.env.TELEGRAM_BOT_TOKEN;
