@@ -2190,6 +2190,11 @@ export function generateEveningReminder(userName, summary = {}) {
 
 export async function dispatchDailyReminders(db, botToken, type = 'morning', force = false, targetChatId = null) {
   if (!db || !botToken) return { sent: 0, skipped: 0 };
+  const startTime = Date.now();
+  const sessionName = type === 'morning' ? 'Morning' : 'Evening';
+  const triggeredAt = new Date().toISOString();
+  console.log(`[CRON] ${sessionName} reminder triggered at ${triggeredAt}`);
+
   const todayWib = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
   const nowIso = new Date().toISOString();
   if (type === 'morning') demoCronStatus.lastMorningRun = nowIso;
@@ -2223,13 +2228,7 @@ export async function dispatchDailyReminders(db, botToken, type = 'morning', for
     }
   }
 
-  const nowWib = new Intl.DateTimeFormat('id-ID', {
-    dateStyle: 'full',
-    timeStyle: 'long',
-    timeZone: 'Asia/Jakarta'
-  }).format(new Date());
-
-  console.log(`[cron-reminder] [${nowWib}] Eksekusi reminder '${type}' dimulai (force=${force}, targetChatId=${targetChatId || 'all'}). Total linked terdaftar: ${docs.length}`);
+  console.log(`[CRON] Processing ${docs.length} linked users...`);
 
   for (const doc of docs) {
     const chatId = doc.id;
@@ -2269,6 +2268,7 @@ export async function dispatchDailyReminders(db, botToken, type = 'morning', for
 
       const { bal } = await getBalance(uid, db);
 
+      let sendRes;
       if (type === 'morning') {
         let goals = [];
         const goalSnap = await userRef.collection('goals').get();
@@ -2276,7 +2276,7 @@ export async function dispatchDailyReminders(db, botToken, type = 'morning', for
           goals = goalSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         }
         const text = generateMorningReminder(displayName, bal, goals, userData.currentStreak || 0);
-        await sendTelegramMessage(botToken, chatId, text, {
+        sendRes = await sendTelegramMessage(botToken, chatId, text, {
           reply_markup: {
             inline_keyboard: [
               [{ text: '💳 Cek Saldo', callback_data: 'saldo' }, { text: '🎯 Target Impian', callback_data: 'goals' }]
@@ -2305,7 +2305,7 @@ export async function dispatchDailyReminders(db, botToken, type = 'morning', for
           currentBalance: bal
         };
         const text = generateEveningReminder(displayName, summary);
-        await sendTelegramMessage(botToken, chatId, text, {
+        sendRes = await sendTelegramMessage(botToken, chatId, text, {
           reply_markup: {
             inline_keyboard: [
               [{ text: '💳 Cek Saldo', callback_data: 'saldo' }]
@@ -2314,18 +2314,34 @@ export async function dispatchDailyReminders(db, botToken, type = 'morning', for
         });
       }
 
+      if (!sendRes || sendRes.ok === false) {
+        skipped++;
+        skipDetails.error++;
+        console.error(`[CRON] Gagal mengirim reminder ${type} ke chatId ${chatId}:`, sendRes?.description || 'Telegram API returned not ok');
+        continue;
+      }
+
       await userRef.set({ [dateField]: todayWib }, { merge: true });
       sent++;
-      console.log(`[cron-reminder] Berhasil mengirim reminder ${type} ke ${chatId} (${displayName})`);
+      console.log(`[CRON] Sent reminder ${type} to ${chatId} (${displayName})`);
     } catch (err) {
       skipped++;
       skipDetails.error++;
-      console.error(`[cron-reminder] Gagal mengirim reminder ${type} ke chatId ${chatId}:`, err?.message);
+      console.error(`[CRON] Exception sending reminder ${type} to chatId ${chatId}:`, err?.message);
     }
   }
 
-  console.log(`[cron-reminder] [${nowWib}] Eksekusi reminder '${type}' selesai. Total user diproses: ${docs.length}, Terkirim: ${sent}, Di-skip: ${skipped}. Rincian skip:`, JSON.stringify(skipDetails));
-  return { sent, skipped, details: skipDetails };
+  const skipBreakdown = [];
+  if (skipDetails.disabled) skipBreakdown.push(`${skipDetails.disabled} disabled`);
+  if (skipDetails.already_sent) skipBreakdown.push(`${skipDetails.already_sent} already sent`);
+  if (skipDetails.error) skipBreakdown.push(`${skipDetails.error} error`);
+  if (skipDetails.missing_user) skipBreakdown.push(`${skipDetails.missing_user} missing data`);
+  const skipStr = skipBreakdown.length ? ` (${skipBreakdown.join(', ')})` : '';
+
+  console.log(`[CRON] Sent: ${sent}, Skipped: ${skipped}${skipStr}`);
+  const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`[CRON] Completed in ${duration}s`);
+  return { sent, skipped, details: skipDetails, duration: `${duration}s` };
 }
 
 export async function dispatchWeeklyRecap(db, botToken) {

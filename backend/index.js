@@ -234,13 +234,13 @@ app.post('/api/telegram/cancel-link-code', requireAuth, async (req, res) => {
 app.all('/api/cron/reminders', async (req, res) => {
   const secret = (process.env.CRON_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
   if (!secret) {
-    console.warn('[cron] CRON_SECRET not configured on server');
+    console.warn('[CRON] CRON_SECRET not configured on server');
     return res.status(401).json({ error: 'CRON_SECRET must be configured' });
   }
   const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() ||
     req.headers['x-admin-secret'] || req.query?.secret;
   if (!incoming || incoming !== secret) {
-    console.warn('[cron] Unauthorized cron attempt');
+    console.warn('[CRON] Unauthorized cron attempt: header/query secret mismatch');
     return res.status(403).json({ error: 'Forbidden' });
   }
   const token = process.env.TELEGRAM_BOT_TOKEN;

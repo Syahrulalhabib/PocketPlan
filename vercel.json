@@ -9,8 +9,8 @@
     }
   },
   "crons": [
-    { "path": "/api/cron/reminders?type=morning", "schedule": "0 1 * * *" },
-    { "path": "/api/cron/reminders?type=evening", "schedule": "0 13 * * *" }
+    { "path": "/api/cron/reminders?type=morning", "schedule": "0 23 * * *" },
+    { "path": "/api/cron/reminders?type=evening", "schedule": "0 16 * * *" }
   ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.js" },
