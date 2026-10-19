@@ -165,7 +165,7 @@
 
 .profile-page {
   min-height: 100vh;
-  background: var(--bg) url('/bg-pattern.svg') center/cover no-repeat fixed;
+  background: transparent;
   padding-bottom: 80px;
 }
 

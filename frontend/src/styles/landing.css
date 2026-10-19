@@ -2,13 +2,9 @@
    LANDING PAGE STYLES — POCKETPLAN (REFINED CRAFT & DEPTH)
    ======================================================== */
 
-html {
-  scroll-behavior: smooth;
-}
-
 .landing-wrap {
   min-height: 100vh;
-  background: var(--bg) url('/bg-pattern.svg') center/cover fixed no-repeat;
+  background: transparent;
   color: var(--text);
   display: flex;
   flex-direction: column;
@@ -17,7 +13,7 @@ html {
 }
 
 .theme-dark .landing-wrap {
-  background: var(--bg) url('/bg-pattern.svg') center/cover fixed no-repeat;
+  background: transparent;
 }
 
 /* 1. Navbar */
@@ -26,8 +22,8 @@ html {
   top: 0;
   z-index: 100;
   background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--card-border);
   transition: background 0.2s ease, border-color 0.2s ease;
 }
@@ -487,7 +483,6 @@ html {
   opacity: 0;
   transform: translateY(24px);
   transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: opacity, transform;
 }
 
 .landing-section.is-visible {
