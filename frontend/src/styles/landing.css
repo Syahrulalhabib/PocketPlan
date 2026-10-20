@@ -400,8 +400,8 @@
   display: block;
 }
 .telegram-avatar img {
-  width: 50px;
-  height: 50px;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   display: block;
 }
