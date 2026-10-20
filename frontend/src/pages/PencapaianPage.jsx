@@ -56,7 +56,7 @@ const PencapaianPage = () => {
   const [loading, setLoading] = useState(!isDemo);
 
   useEffect(() => {
-    document.title = 'Achievements & Milestones — Pocketplan';
+    document.title = 'Achievements & Milestones - Pocketplan';
   }, []);
 
   useEffect(() => {

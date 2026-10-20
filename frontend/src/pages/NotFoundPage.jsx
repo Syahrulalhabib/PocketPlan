@@ -7,7 +7,7 @@ const NotFoundPage = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    document.title = '404 — Page Not Found | Pocketplan';
+    document.title = '404 - Page Not Found | Pocketplan';
   }, []);
 
   return (

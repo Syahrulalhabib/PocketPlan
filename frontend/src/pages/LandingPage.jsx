@@ -119,7 +119,7 @@ const LandingPage = () => {
   };
 
   useEffect(() => {
-    document.title = 'Pocketplan — Smart Financial Tracking with Telegram Bot & Web';
+    document.title = 'Pocketplan - Smart Financial Tracking with Telegram Bot & Web';
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
       metaDesc.setAttribute(
