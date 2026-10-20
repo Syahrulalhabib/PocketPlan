@@ -53,8 +53,10 @@ if (getDb()) {
 
 const app = express();
 
-// CORS: restrict to FRONTEND_ORIGIN in production, fallback to * for local dev
-const corsOrigin = process.env.FRONTEND_ORIGIN || (process.env.NODE_ENV === 'production' ? undefined : '*');
+// CORS: FRONTEND_ORIGIN for production, regex *.vercel.app for preview, * for local dev
+const corsOrigin = process.env.FRONTEND_ORIGIN
+  || (process.env.VERCEL_ENV === 'preview' ? /\.vercel\.app$/ : undefined)
+  || (process.env.NODE_ENV !== 'production' ? '*' : undefined);
 app.use(cors(corsOrigin ? { origin: corsOrigin } : undefined));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -184,6 +186,18 @@ app.post('/api/telegram-webhook', async (req, res) => {
   if (incomingSecret !== webhookSecret) {
     return res.status(403).json({ error: 'Forbidden' });
   }
+  // Staging guard: only process dev chat IDs in non-production
+  const vercelEnv = process.env.VERCEL_ENV || '';
+  if (vercelEnv && vercelEnv !== 'production') {
+    const chatId = req.body?.message?.chat?.id
+      || req.body?.callback_query?.message?.chat?.id;
+    const devIds = (process.env.DEV_TELEGRAM_IDS || '')
+      .split(',').map(s => s.trim()).filter(Boolean);
+    if (!devIds.includes(String(chatId))) {
+      return res.status(200).json({ ok: true, skipped: 'non-dev chat in staging' });
+    }
+  }
+
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return res.status(500).json({ error: 'TELEGRAM_BOT_TOKEN not configured' });
 
@@ -238,6 +252,12 @@ function getValidAdminSecrets() {
 }
 
 app.all('/api/cron/reminders', async (req, res) => {
+  // Staging gate: cron disabled outside production (defense-in-depth, Vercel cron is production-only anyway)
+  const cronVercelEnv = process.env.VERCEL_ENV || '';
+  if (cronVercelEnv && cronVercelEnv !== 'production') {
+    return res.status(200).json({ ok: false, skipped: 'Cron disabled in non-production', env: cronVercelEnv });
+  }
+
   const userAgent = (req.headers['user-agent'] || '').toLowerCase();
   const isVercelCron = userAgent.includes('vercel-cron') ||
     Boolean(req.headers['x-vercel-cron-schedule']) ||

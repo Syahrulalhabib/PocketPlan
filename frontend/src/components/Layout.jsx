@@ -47,6 +47,14 @@ const Layout = ({ children }) => {
   return (
     <div className="page-shell">
       <DemoBanner />
+      {import.meta.env.VITE_STAGING_BANNER && (
+        <div style={{
+          background: '#ef4444', color: 'white', textAlign: 'center',
+          padding: '4px 0', fontSize: '12px', fontWeight: 600, letterSpacing: '0.05em'
+        }}>
+          STAGING ENVIRONMENT
+        </div>
+      )}
       <header className="topbar card">
         <div className="topbar-inner">
           <button
