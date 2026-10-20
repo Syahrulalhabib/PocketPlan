@@ -147,7 +147,6 @@ const LandingPage = () => {
       {/* Hero */}
       <section className="landing-hero">
         <div className="landing-hero-content">
-          <div className="landing-hero-eyebrow">✨ Gratis & Siap Pakai di Telegram</div>
           <h1 className="landing-hero-title">
             Catat Pengeluaran<br />Tanpa Ribet, Cukup<br /><span className="brand-highlight">Chat Pocky</span>
           </h1>
