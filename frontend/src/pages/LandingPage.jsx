@@ -37,6 +37,12 @@ const features = [
     iconImg: '/feature-goals.svg',
     title: 'Streaks & Milestones',
     desc: 'Bangun kedisiplinan finansial harian melalui rekor streak pencatatan dan koleksi lencana pencapaian target tabungan.'
+  },
+  {
+    iconImg: '/feature-balance.svg',
+    title: 'Telegram ↔ Web Sync',
+    desc: 'Satu data terhubung instan di dua perangkat. Catat cepat di Telegram saat bepergian, pantau analitik mendalam di dashboard web kapan saja.',
+    badge: 'Seamless'
   }
 ];
 
@@ -61,28 +67,28 @@ const steps = [
 const botCommands = [
   {
     cmd: '/catat',
-    example: 'lunch padang 32000',
-    reply: 'Expense of Rp 32,000 (Food) recorded successfully.\nYour balance has been updated.'
+    example: 'nasi padang 32000',
+    reply: '✅ Pengeluaran Rp 32.000 (Makanan) berhasil dicatat.\nSaldo Anda telah diperbarui secara otomatis.'
   },
   {
     cmd: '/saldo',
     example: '',
-    reply: 'Current Balance: Rp 3,250,000\nIncome: Rp 5,000,000 | Expense: Rp 1,750,000'
+    reply: '💰 Saldo Saat Ini: Rp 3.250.000\n📥 Pemasukan: Rp 5.000.000 | 📤 Pengeluaran: Rp 1.750.000'
   },
   {
     cmd: '/budget',
     example: '',
-    reply: 'Food Budget: Rp 850,000 / Rp 1,500,000 (56% used) • Status: Safe'
+    reply: '🍽️ Anggaran Makanan: Rp 850.000 / Rp 1.500.000 (56% terpakai) • Status: Aman ✅'
   },
   {
     cmd: '/streak',
     example: '',
-    reply: 'Active Streak: 7 consecutive days. Best record: 14 days.'
+    reply: '🔥 Status Streak: 7 hari berturut-turut aktif!\nRekor terbaik: 14 hari ✨'
   },
   {
     cmd: '/goal',
     example: '',
-    reply: 'Target "Dana Darurat": Rp 5.000.000 / Rp 10.000.000 (50% tercapai)'
+    reply: '🎯 Target "Dana Darurat": Rp 5.000.000 / Rp 10.000.000 (50% tercapai)'
   }
 ];
 
@@ -271,17 +277,17 @@ const LandingPage = () => {
       <section className="landing-hero">
         <div className="landing-hero-content">
           <h1 className="landing-hero-title">
-            Smart Expense Tracking Without the Hassle with <span className="brand-highlight">Pocky</span>
+            Catat Pengeluaran Tanpa Ribet dengan <span className="brand-highlight">Pocky</span>
           </h1>
           <p className="landing-hero-desc">
             Kelola arus kas harian, wujudkan target tabungan, dan pantau kesehatan finansial tanpa repot melalui obrolan Telegram atau dashboard web modern.
           </p>
           <div className="landing-hero-cta">
             <a href={telegramUrl} target="_blank" rel="noreferrer" className="cta-primary">
-              Start via Telegram
+              Mulai via Telegram
             </a>
             <Link to="/demo" className="cta-secondary">
-              Try Interactive Demo
+              Coba Demo Interaktif
             </Link>
           </div>
           <div className="hero-trust-strip">
@@ -291,11 +297,11 @@ const LandingPage = () => {
             </div>
             <div className="trust-item">
               <span className="trust-icon">🔒</span>
-              <span>Encrypted Verification</span>
+              <span>Terenkripsi &amp; Privat</span>
             </div>
             <div className="trust-item">
               <span className="trust-icon">✨</span>
-              <span>100% Free to Use</span>
+              <span>100% Gratis Digunakan</span>
             </div>
           </div>
         </div>
