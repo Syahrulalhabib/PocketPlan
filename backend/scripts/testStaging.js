@@ -3,7 +3,15 @@
 // Usage: node scripts/testStaging.js <preview-url> [command]
 // Example: node scripts/testStaging.js https://pocketplan-xyz.vercel.app "/saldo"
 
-import 'dotenv/config';
+import { existsSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+for (const p of [join(scriptDir, '..', '.env'), join(scriptDir, '..', '..', '.env'), '.env']) {
+  if (existsSync(p)) { dotenv.config({ path: p }); break; }
+}
 
 const [,, previewUrl, rawCommand = '/start'] = process.argv;
 if (!previewUrl) {
