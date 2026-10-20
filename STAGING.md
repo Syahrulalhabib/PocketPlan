@@ -15,7 +15,16 @@ feature/xxx  →  PR ke staging  →  CI pass  →  merge  →  test preview  �
 
 ## Test Bot di Staging
 
-Bot Telegram tetap mengarah ke production. Untuk test staging, kirim update buatan:
+Bot staging terpisah: **@Pocketplan_dev_bot** (dev) vs **@yourpocketplan_bot** (production).
+
+- Production (`main`) → `@yourpocketplan_bot` → `https://pocketplan-rul.vercel.app/api/telegram-webhook` (semua user)
+- Staging (`staging`) → `@Pocketplan_dev_bot` → `https://pocketplan-git-staging-syahruls-projects-28340111.vercel.app/api/telegram-webhook` (hanya kamu)
+
+### Cara 1 — Chat langsung (recommended)
+Buka chat **@Pocketplan_dev_bot** di aplikasi Telegram dan kirim perintah seperti biasa (`/start`, `/saldo`, `kopi 25rb`). Balasan langsung dari kode `staging`.
+
+### Cara 2 — Via script (fallback)
+Kalau tidak ada bot dev, kirim update buatan:
 
 ```bash
 cd backend
