@@ -231,16 +231,22 @@ app.post('/api/telegram/cancel-link-code', requireAuth, async (req, res) => {
   }
 });
 
+function getValidAdminSecrets() {
+  return [process.env.ADMIN_SECRET, process.env.CRON_SECRET, process.env.TELEGRAM_WEBHOOK_SECRET]
+    .map((s) => (s || '').trim())
+    .filter(Boolean);
+}
+
 app.all('/api/cron/reminders', async (req, res) => {
   const userAgent = (req.headers['user-agent'] || '').toLowerCase();
   const isVercelCron = userAgent.includes('vercel-cron') ||
     Boolean(req.headers['x-vercel-cron-schedule']) ||
     req.headers['x-vercel-cron'] === '1';
-  const secret = (process.env.CRON_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
+  const validSecrets = getValidAdminSecrets();
   const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() ||
     req.headers['x-admin-secret'] || req.query?.secret;
 
-  const isAuthorized = isVercelCron || (Boolean(secret) && incoming === secret);
+  const isAuthorized = isVercelCron || (validSecrets.length > 0 && validSecrets.includes(incoming));
   if (!isAuthorized) {
     console.warn('[CRON] Unauthorized cron attempt: neither vercel-cron header nor matching secret provided');
     return res.status(403).json({ error: 'Forbidden' });
@@ -276,13 +282,13 @@ app.all('/api/cron/reminders', async (req, res) => {
 });
 
 app.all('/api/admin/test-reminder', async (req, res) => {
-  const secret = (process.env.ADMIN_SECRET || process.env.CRON_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
-  if (!secret) {
+  const validSecrets = getValidAdminSecrets();
+  if (validSecrets.length === 0) {
     return res.status(401).json({ error: 'ADMIN_SECRET or CRON_SECRET must be configured' });
   }
   const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() ||
     req.headers['x-admin-secret'] || req.query?.secret || req.body?.secret;
-  if (!incoming || incoming !== secret) {
+  if (!incoming || !validSecrets.includes(incoming)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -306,12 +312,12 @@ app.all('/api/admin/test-reminder', async (req, res) => {
 });
 
 app.post('/api/admin/sync-commands', async (req, res) => {
-  const secret = (process.env.ADMIN_SECRET || process.env.CRON_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
-  if (!secret) {
+  const validSecrets = getValidAdminSecrets();
+  if (validSecrets.length === 0) {
     return res.status(401).json({ error: 'ADMIN_SECRET or CRON_SECRET must be configured' });
   }
   const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() || req.query?.secret || req.body?.secret;
-  if (!incoming || incoming !== secret) {
+  if (!incoming || !validSecrets.includes(incoming)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -325,12 +331,12 @@ app.post('/api/admin/sync-commands', async (req, res) => {
   }
 });
 app.post('/api/admin/fix-stale-links', async (req, res) => {
-  const secret = (process.env.ADMIN_SECRET || process.env.CRON_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
-  if (!secret) {
+  const validSecrets = getValidAdminSecrets();
+  if (validSecrets.length === 0) {
     return res.status(401).json({ error: 'ADMIN_SECRET or CRON_SECRET must be configured' });
   }
   const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() || req.query?.secret || req.body?.secret;
-  if (!incoming || incoming !== secret) {
+  if (!incoming || !validSecrets.includes(incoming)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
   try {
@@ -343,12 +349,12 @@ app.post('/api/admin/fix-stale-links', async (req, res) => {
 });
 
 app.post('/api/admin/cleanup-stale-telegram', async (req, res) => {
-  const secret = (process.env.ADMIN_SECRET || process.env.CRON_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
-  if (!secret) {
+  const validSecrets = getValidAdminSecrets();
+  if (validSecrets.length === 0) {
     return res.status(401).json({ error: 'ADMIN_SECRET or CRON_SECRET must be configured' });
   }
   const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() || req.query?.secret || req.body?.secret;
-  if (!incoming || incoming !== secret) {
+  if (!incoming || !validSecrets.includes(incoming)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
   const db = getDb();
@@ -390,7 +396,10 @@ app.post('/api/admin/cleanup-stale-telegram', async (req, res) => {
 });
 
 app.get('/api/admin/cron-status', async (req, res) => {
-  const cronSecretConfigured = Boolean((process.env.CRON_SECRET || '').trim());
+  const cronSecret = (process.env.CRON_SECRET || '').trim();
+  const adminSecret = (process.env.ADMIN_SECRET || '').trim();
+  const webhookSecret = (process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
+  const cronSecretConfigured = Boolean(cronSecret);
   const telegramBotTokenConfigured = Boolean((process.env.TELEGRAM_BOT_TOKEN || '').trim());
 
   let totalLinkedUsers = 0;
@@ -438,6 +447,10 @@ app.get('/api/admin/cron-status', async (req, res) => {
 
   res.json({
     cronSecretConfigured,
+    adminSecretConfigured: Boolean(adminSecret),
+    webhookSecretConfigured: Boolean(webhookSecret),
+    cronSecretHint: cronSecret ? `${cronSecret.slice(0, 4)}...${cronSecret.slice(-4)} (${cronSecret.length} chars)` : null,
+    adminSecretHint: adminSecret ? `${adminSecret.slice(0, 4)}...${adminSecret.slice(-4)} (${adminSecret.length} chars)` : null,
     telegramBotTokenConfigured,
     totalLinkedUsers,
     usersWithReminderEnabled,
