@@ -1498,14 +1498,19 @@ export async function handleTelegramUpdate(update, db, botToken) {
     if (!newCat) {
       return sendTelegramMessage(botToken, chatId, '🏷️ Ketik: `/kategori [nama kategori]`\nContoh: `/kategori Food` atau `/kategori Shopping`');
     }
+    const VALID_CATEGORIES = ['Food', 'Shopping', 'Transport', 'Bills', 'Health', 'Education', 'Entertainment', 'Charity', 'Salary', 'Other'];
+    const matched = VALID_CATEGORIES.find(c => c.toLowerCase() === newCat.toLowerCase()) || null;
+    if (!matched) {
+      return sendTelegramMessage(botToken, chatId, `❌ Kategori "${escapeMarkdown(newCat)}" tidak valid.\n\n📋 Pilihan: ${VALID_CATEGORIES.join(', ')}`);
+    }
     if (db) {
       const snap = await db.collection('users').doc(uid).collection('transactions').orderBy('createdAt', 'desc').limit(1).get();
       if (snap.empty) return sendTelegramMessage(botToken, chatId, '🤷 Belum ada transaksi yang bisa diubah.');
-      await snap.docs[0].ref.update({ category: newCat });
+      await snap.docs[0].ref.update({ category: matched });
       return sendTelegramMessage(
         botToken,
         chatId,
-        `🏷️ *Kategori Diperbarui Pocky!*\nKini menjadi: *${escapeMarkdown(newCat)}*`,
+        `🏷️ *Kategori Diperbarui Pocky!*\nKini menjadi: *${escapeMarkdown(matched)}*`,
         { reply_markup: KEYBOARD }
       );
     }

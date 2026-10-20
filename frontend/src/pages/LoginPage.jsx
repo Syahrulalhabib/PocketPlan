@@ -34,7 +34,7 @@ const LoginPage = () => {
       try {
         const data = JSON.parse(stored);
         if (data?.email) setEmail(data.email);
-        if (data?.password) setPassword(data.password);
+        // ponytail: never store password in localStorage — credential exposure risk
         setRemember(true);
       } catch {
         // ignore parse errors
@@ -54,7 +54,7 @@ const LoginPage = () => {
     try {
       await login(email, password);
       if (remember) {
-        localStorage.setItem('pp-remember', JSON.stringify({ email, password }));
+        localStorage.setItem('pp-remember', JSON.stringify({ email }));
       } else {
         localStorage.removeItem('pp-remember');
       }

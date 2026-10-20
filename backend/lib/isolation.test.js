@@ -202,15 +202,24 @@ async function testRestApiIsolation() {
     assert.strictEqual(typeof rCleanAuth.body.cleaned, 'number');
     console.log('    ✔ /api/admin/cleanup-stale-telegram POST auth & cleanup passed');
 
-    // Admin cron-status endpoint test
-    const rCronStatus = await req(server, 'GET', '/api/admin/cron-status');
+    // Admin cron-status endpoint test — requires auth
+    const rCronStatusUnauth = await req(server, 'GET', '/api/admin/cron-status');
+    assert.strictEqual(rCronStatusUnauth.status, 403);
+
+    const rCronStatus = await req(server, 'GET', '/api/admin/cron-status', null, {
+      authorization: 'Bearer test-cron-secret-123'
+    });
     assert.strictEqual(rCronStatus.status, 200);
     assert.strictEqual(typeof rCronStatus.body.cronSecretConfigured, 'boolean');
     assert.strictEqual(typeof rCronStatus.body.telegramBotTokenConfigured, 'boolean');
     assert.strictEqual(typeof rCronStatus.body.totalLinkedUsers, 'number');
     assert.strictEqual(typeof rCronStatus.body.usersWithReminderEnabled, 'number');
     assert.strictEqual(rCronStatus.body.cronSecretConfigured, true);
-    console.log('    ✔ /api/admin/cron-status GET returns valid health check data');
+    // Verify no secret hints leaked
+    assert.strictEqual(rCronStatus.body.cronSecretHint, undefined);
+    assert.strictEqual(rCronStatus.body.adminSecretHint, undefined);
+    assert.strictEqual(rCronStatus.body.webhookSecretConfigured, undefined);
+    console.log('    ✔ /api/admin/cron-status GET auth & no secret hints passed');
 
     // POST /api/telegram/web-login boundary tests
     const rWlNoCode = await req(server, 'POST', '/api/telegram/web-login', {});

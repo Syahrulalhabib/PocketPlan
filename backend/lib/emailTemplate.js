@@ -5,7 +5,8 @@
 
 export const getEmailTemplate = ({ name, verificationUrl, appUrl = 'https://pocketplan.my.id' }) => {
   const currentYear = new Date().getFullYear();
-  const recipientName = name ? String(name).trim() : 'Sobat Pocketplan';
+  const rawName = name ? String(name).trim() : 'Sobat Pocketplan';
+  const recipientName = rawName.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const targetUrl = verificationUrl || `${appUrl}/verification`;
   const subject = 'Verifikasi Alamat Email Anda — Pocketplan';
 

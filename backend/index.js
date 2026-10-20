@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { initFirebaseAdmin, getDb, getAdminAuth } from './lib/firebaseAdmin.js';
@@ -29,8 +30,6 @@ import { updateStreak } from './lib/streak.js';
 import { buildMonthlyReport } from './lib/reportHelper.js';
 
 import { formatAchievementItem } from './lib/achievementHelper.js';
-import { getEmailTemplate } from './lib/emailTemplate.js';
-import { sendVerificationMail, sendTestEmail, isSmtpConfigured } from './lib/mailer.js';
 
 dotenv.config();
 initFirebaseAdmin();
@@ -55,9 +54,10 @@ const app = express();
 
 // CORS: FRONTEND_ORIGIN for production, regex *.vercel.app for preview, * for local dev
 const corsOrigin = process.env.FRONTEND_ORIGIN
-  || (process.env.VERCEL_ENV === 'preview' ? /\.vercel\.app$/ : undefined)
-  || (process.env.NODE_ENV !== 'production' ? '*' : undefined);
+  || (process.env.VERCEL_ENV === 'preview' ? /^https:\/\/pocketplan[^.]*\.vercel\.app$/ : undefined)
+  || (process.env.NODE_ENV !== 'production' ? '*' : 'https://pocketplan-rul.vercel.app');
 app.use(cors(corsOrigin ? { origin: corsOrigin } : undefined));
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan('dev'));
@@ -307,7 +307,7 @@ app.all('/api/admin/test-reminder', async (req, res) => {
     return res.status(401).json({ error: 'ADMIN_SECRET or CRON_SECRET must be configured' });
   }
   const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() ||
-    req.headers['x-admin-secret'] || req.query?.secret || req.body?.secret;
+    req.headers['x-admin-secret'];
   if (!incoming || !validSecrets.includes(incoming)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
@@ -327,7 +327,7 @@ app.all('/api/admin/test-reminder', async (req, res) => {
     res.json({ ok: true, test: true, type, targetChatId: chatId || 'all', force, ...result });
   } catch (err) {
     console.error('test-reminder error:', err);
-    res.status(500).json({ error: err.message || 'Failed to send test reminder' });
+    res.status(500).json({ error: 'Failed to send test reminder' });
   }
 });
 
@@ -336,7 +336,8 @@ app.post('/api/admin/sync-commands', async (req, res) => {
   if (validSecrets.length === 0) {
     return res.status(401).json({ error: 'ADMIN_SECRET or CRON_SECRET must be configured' });
   }
-  const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() || req.query?.secret || req.body?.secret;
+  const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() ||
+    req.headers['x-admin-secret'];
   if (!incoming || !validSecrets.includes(incoming)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
@@ -347,7 +348,7 @@ app.post('/api/admin/sync-commands', async (req, res) => {
     res.json({ ok: true, commandsCount: DEFAULT_BOT_COMMANDS.length, result });
   } catch (err) {
     console.error('sync-commands error:', err);
-    res.status(500).json({ error: err.message || 'Failed to sync commands' });
+    res.status(500).json({ error: 'Failed to sync commands' });
   }
 });
 app.post('/api/admin/fix-stale-links', async (req, res) => {
@@ -355,7 +356,8 @@ app.post('/api/admin/fix-stale-links', async (req, res) => {
   if (validSecrets.length === 0) {
     return res.status(401).json({ error: 'ADMIN_SECRET or CRON_SECRET must be configured' });
   }
-  const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() || req.query?.secret || req.body?.secret;
+  const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() ||
+    req.headers['x-admin-secret'];
   if (!incoming || !validSecrets.includes(incoming)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
@@ -364,7 +366,7 @@ app.post('/api/admin/fix-stale-links', async (req, res) => {
     res.json({ ok: true, ...result });
   } catch (err) {
     console.error('fix-stale-links error:', err);
-    res.status(500).json({ error: err.message || 'Failed to fix stale links' });
+    res.status(500).json({ error: 'Failed to fix stale links' });
   }
 });
 
@@ -373,7 +375,8 @@ app.post('/api/admin/cleanup-stale-telegram', async (req, res) => {
   if (validSecrets.length === 0) {
     return res.status(401).json({ error: 'ADMIN_SECRET or CRON_SECRET must be configured' });
   }
-  const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() || req.query?.secret || req.body?.secret;
+  const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() ||
+    req.headers['x-admin-secret'];
   if (!incoming || !validSecrets.includes(incoming)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
@@ -411,14 +414,23 @@ app.post('/api/admin/cleanup-stale-telegram', async (req, res) => {
     res.json({ ok: true, cleaned });
   } catch (err) {
     console.error('cleanup-stale-telegram error:', err);
-    res.status(500).json({ error: err.message || 'Failed to cleanup stale data' });
+    res.status(500).json({ error: 'Failed to cleanup stale data' });
   }
 });
 
 app.get('/api/admin/cron-status', async (req, res) => {
+  const validSecrets = getValidAdminSecrets();
+  if (validSecrets.length === 0) {
+    return res.status(401).json({ error: 'ADMIN_SECRET or CRON_SECRET must be configured' });
+  }
+  const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() ||
+    req.headers['x-admin-secret'];
+  if (!incoming || !validSecrets.includes(incoming)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
   const cronSecret = (process.env.CRON_SECRET || '').trim();
   const adminSecret = (process.env.ADMIN_SECRET || '').trim();
-  const webhookSecret = (process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
   const cronSecretConfigured = Boolean(cronSecret);
   const telegramBotTokenConfigured = Boolean((process.env.TELEGRAM_BOT_TOKEN || '').trim());
 
@@ -468,9 +480,6 @@ app.get('/api/admin/cron-status', async (req, res) => {
   res.json({
     cronSecretConfigured,
     adminSecretConfigured: Boolean(adminSecret),
-    webhookSecretConfigured: Boolean(webhookSecret),
-    cronSecretHint: cronSecret ? `${cronSecret.slice(0, 4)}...${cronSecret.slice(-4)} (${cronSecret.length} chars)` : null,
-    adminSecretHint: adminSecret ? `${adminSecret.slice(0, 4)}...${adminSecret.slice(-4)} (${adminSecret.length} chars)` : null,
     telegramBotTokenConfigured,
     totalLinkedUsers,
     usersWithReminderEnabled,
@@ -546,63 +555,6 @@ app.post('/api/telegram/web-login', async (req, res) => {
   } catch (err) {
     console.error('web-login error:', err);
     res.status(500).json({ error: 'Gagal verifikasi kode login.' });
-  }
-});
-
-// Email verification endpoints
-app.get('/api/auth/email-preview', (req, res) => {
-  const name = req.query.name || 'Sobat Pocketplan';
-  const url = req.query.url || `${req.protocol}://${req.get('host')}/verification?mode=verifyEmail&oobCode=preview-demo-code-123`;
-  const { html } = getEmailTemplate({ name, verificationUrl: url });
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send(html);
-});
-
-app.post('/api/auth/send-test-email', async (req, res) => {
-  const email = req.body?.email;
-  if (!email || !email.includes('@')) {
-    return res.status(400).json({ error: 'Parameter email tujuan diperlukan.' });
-  }
-  try {
-    const result = await sendTestEmail(email);
-    res.json({ ok: true, message: `Email uji coba dikirim ke ${email}`, ...result });
-  } catch (err) {
-    console.error('send-test-email error:', err);
-    res.status(500).json({ error: err?.message || 'Gagal mengirim email uji coba.' });
-  }
-});
-
-app.post('/api/auth/send-verification-email', async (req, res) => {
-  const { email, name, verificationUrl } = req.body || {};
-  if (!email || !email.includes('@')) {
-    return res.status(400).json({ error: 'Email tujuan valid diperlukan.' });
-  }
-  if (!isSmtpConfigured()) {
-    return res.status(503).json({
-      error: 'SMTP belum dikonfigurasi di backend (.env).',
-      smtpConfigured: false
-    });
-  }
-  try {
-    let targetUrl = verificationUrl;
-    if (!targetUrl) {
-      const auth = getAdminAuth();
-      if (auth) {
-        const clientOrigin = process.env.FRONTEND_ORIGIN || `${req.protocol}://${req.get('host')}`;
-        targetUrl = await auth.generateEmailVerificationLink(email, {
-          url: `${clientOrigin}/verification?from=custom_email`,
-          handleCodeInApp: true
-        });
-      } else {
-        const clientOrigin = process.env.FRONTEND_ORIGIN || `${req.protocol}://${req.get('host')}`;
-        targetUrl = `${clientOrigin}/verification?mode=verifyEmail&oobCode=demo-code-${Date.now()}&email=${encodeURIComponent(email)}`;
-      }
-    }
-    const result = await sendVerificationMail({ to: email, name, verificationUrl: targetUrl });
-    res.json({ ok: true, message: `Email verifikasi berhasil dikirim ke ${email}`, ...result });
-  } catch (err) {
-    console.error('send-verification-email error:', err);
-    res.status(500).json({ error: err?.message || 'Gagal mengirim email verifikasi.' });
   }
 });
 
