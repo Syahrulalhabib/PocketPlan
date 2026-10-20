@@ -964,6 +964,201 @@
   }
 }
 
+/* ——— New Design Additions ——— */
+.trust-icon-svg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+}
+
+.landing-proof-strip {
+  max-width: 1360px;
+  margin: 16px auto 0;
+  padding: 24px 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--card-border);
+  border-bottom: 1px solid var(--card-border);
+  background: rgba(0, 0, 0, 0.02);
+}
+.theme-dark .landing-proof-strip {
+  background: rgba(255, 255, 255, 0.03);
+}
+.proof-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.proof-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--card-border);
+}
+.proof-stat {
+  font-size: 0.92rem;
+  color: var(--text);
+}
+.proof-stat strong {
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.feature-emoji {
+  font-size: 2rem;
+  margin-bottom: 16px;
+  line-height: 1;
+}
+
+.steps-connector {
+  position: absolute;
+  top: 52px;
+  left: 18%;
+  right: 18%;
+  height: 2px;
+  background: linear-gradient(90deg, #e45153, #f59e0b, #e45153);
+  opacity: 0.3;
+  border-radius: 2px;
+  z-index: 0;
+}
+.step-icon-emoji {
+  font-size: 1.8rem;
+  margin-bottom: 10px;
+  line-height: 1;
+}
+
+.bot-tabs {
+  max-width: 860px;
+  margin: 0 auto;
+}
+.bot-tab-list {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 22px;
+}
+.bot-tab {
+  padding: 8px 18px;
+  border-radius: var(--pill);
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  font-weight: 700;
+  font-size: 0.9rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.bot-tab:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+.bot-tab.is-active {
+  background: linear-gradient(135deg, #e45153 0%, #dc2626 100%);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(228, 81, 83, 0.35);
+}
+.bot-tab-panel {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-xl, 24px);
+  padding: 26px 30px;
+  box-shadow: var(--card-shadow);
+  transition: transform 0.2s ease;
+}
+.bot-tab-cmd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.bot-tab-reply {
+  background: rgba(0, 0, 0, 0.025);
+  padding: 16px 20px;
+  border-radius: var(--radius-md, 14px);
+  font-size: 0.94rem;
+  line-height: 1.6;
+  border-left: 4px solid var(--primary);
+  color: var(--text);
+  border-top: 1px solid var(--card-border);
+  border-right: 1px solid var(--card-border);
+  border-bottom: 1px solid var(--card-border);
+}
+.theme-dark .bot-tab-reply {
+  background: rgba(255, 255, 255, 0.04);
+}
+.bot-tab-try {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--primary);
+  text-decoration: none;
+  transition: transform 0.18s ease;
+}
+.bot-tab-try:hover {
+  transform: translateX(3px);
+  text-decoration: underline;
+}
+
+.landing-cta-band {
+  max-width: 1360px;
+  margin: 60px auto;
+  padding: 56px 40px;
+  border-radius: var(--radius-xl, 24px);
+  background: linear-gradient(135deg, #e45153 0%, #c0392b 100%);
+  color: #fff;
+  text-align: center;
+  box-shadow: 0 16px 40px -10px rgba(228, 81, 83, 0.45);
+}
+.landing-cta-band h2 {
+  font-size: 2.1rem;
+  font-weight: 800;
+  margin-bottom: 12px;
+  letter-spacing: -0.02em;
+}
+.landing-cta-band p {
+  font-size: 1.05rem;
+  opacity: 0.92;
+  margin: 0 auto 28px;
+  max-width: 620px;
+  line-height: 1.6;
+}
+.landing-cta-band-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.landing-cta-band .cta-primary {
+  background: #ffffff;
+  color: var(--primary);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+.landing-cta-band .cta-primary:hover {
+  background: #f8fafc;
+  color: var(--primary-dark);
+}
+.landing-cta-band .cta-secondary {
+  background: transparent;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.landing-cta-band .cta-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: #ffffff;
+  color: #ffffff;
+}
+
 /* Responsive Adjustments (Desktop & Mobile <=480px) */
 @media (max-width: 920px) {
   .landing-hero {
