@@ -30,9 +30,9 @@ const features = [
 ];
 
 const steps = [
-  { step: '1', icon: '💬', title: 'Mulai di Telegram atau Web', desc: 'Buka @yourpocketplan_bot atau langsung ke dashboard web dari browser — tanpa instalasi rumit.' },
-  { step: '2', icon: '✍️', title: 'Catat Pakai Bahasa Sehari-hari', desc: 'Ketik "kopi 25k", kirim foto struk fisik, atau isi formulir cepat di web — Pocky yang merapikan.' },
-  { step: '3', icon: '📈', title: 'Pantau & Cetak Laporan', desc: 'Pantau batas anggaran bulanan, jaga konsistensi pencatatan harian, dan unduh ringkasan laporan rapi.' }
+  { step: '1', title: 'Mulai di Telegram atau Web', desc: 'Buka @yourpocketplan_bot atau langsung ke dashboard web dari browser — tanpa instalasi rumit.' },
+  { step: '2', title: 'Catat Pakai Bahasa Sehari-hari', desc: 'Ketik "kopi 25k", kirim foto struk fisik, atau isi formulir cepat di web — Pocky yang merapikan.' },
+  { step: '3', title: 'Pantau & Cetak Laporan', desc: 'Pantau batas anggaran bulanan, jaga konsistensi pencatatan harian, dan unduh ringkasan laporan rapi.' }
 ];
 
 const botCommands = [
@@ -299,8 +299,9 @@ const LandingPage = () => {
           <div className="steps-grid">
             {steps.map((s) => (
               <div key={s.step} className="step-card">
-                <div className="step-icon-emoji">{s.icon}</div>
-                <div className="step-number">{s.step}</div>
+                <div className="step-number-wrap">
+                  <div className="step-number">{s.step}</div>
+                </div>
                 <h3>{s.title}</h3>
                 <p>{s.desc}</p>
               </div>
