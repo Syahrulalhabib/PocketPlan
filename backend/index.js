@@ -55,7 +55,7 @@ const app = express();
 // CORS: FRONTEND_ORIGIN for production, regex *.vercel.app for preview, * for local dev
 const corsOrigin = process.env.FRONTEND_ORIGIN
   || (process.env.VERCEL_ENV === 'preview' ? /^https:\/\/pocketplan[^.]*\.vercel\.app$/ : undefined)
-  || (process.env.NODE_ENV !== 'production' ? '*' : 'https://pocketplan-rul.vercel.app');
+  || (process.env.NODE_ENV !== 'production' ? '*' : 'https://pocketplan.ai.id');
 app.use(cors(corsOrigin ? { origin: corsOrigin } : undefined));
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: '10mb' }));

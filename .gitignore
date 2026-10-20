@@ -46,6 +46,10 @@ task.md
 # Docs artifacts
 docs/
 
+# Playwright
+test-results/
+playwright-report/
+
 *.swp
 .vscode/
 .idea/

@@ -69,7 +69,7 @@ export const sendVerificationMail = async ({ to, name, verificationUrl }) => {
   const { subject, html, text } = getEmailTemplate({ name, verificationUrl });
   const mailer = await getTransporter();
 
-  const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER || '"Pocketplan Support" <no-reply@pocketplan.my.id>';
+  const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER || '"Pocketplan Support" <no-reply@pocketplan.ai.id>';
 
   const info = await mailer.sendMail({
     from: fromAddress,
@@ -89,7 +89,7 @@ export const sendVerificationMail = async ({ to, name, verificationUrl }) => {
 };
 
 export const sendTestEmail = async (to = 'test@example.com') => {
-  const sampleUrl = 'https://pocketplan.my.id/verification?mode=verifyEmail&oobCode=demo-code-xyz';
+  const sampleUrl = 'https://pocketplan.ai.id/verification?mode=verifyEmail&oobCode=demo-code-xyz';
   return sendVerificationMail({
     to,
     name: 'Pengguna Uji',

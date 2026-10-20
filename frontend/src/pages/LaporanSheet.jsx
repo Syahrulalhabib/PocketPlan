@@ -409,7 +409,7 @@ const LaporanSheet = ({ report, monthLabel, prevMonthLabel, userName = 'User' })
         <span className="laporan-footer-url">
           <span className="footer-auto-text">Generated automatically</span>
           <span className="footer-sep">•</span>
-          <span className="footer-link-text">pocketplan-rul.vercel.app</span>
+          <span className="footer-link-text">pocketplan.ai.id</span>
         </span>
       </div>
     </div>

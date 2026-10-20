@@ -5,7 +5,7 @@ import { sendVerificationMail } from './mailer.js';
 console.log('Running Email Verification Template & Mailer tests...');
 
 // 1. Template validation
-const sampleUrl = 'https://pocketplan.my.id/verification?mode=verifyEmail&oobCode=test-code-123';
+const sampleUrl = 'https://pocketplan.ai.id/verification?mode=verifyEmail&oobCode=test-code-123';
 const template = getEmailTemplate({
   name: 'Syahrul Habib',
   verificationUrl: sampleUrl

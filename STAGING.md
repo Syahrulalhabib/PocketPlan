@@ -17,7 +17,7 @@ feature/xxx  →  PR ke staging  →  CI pass  →  merge  →  test preview  �
 
 Bot staging terpisah: **@Pocketplan_dev_bot** (dev) vs **@yourpocketplan_bot** (production).
 
-- Production (`main`) → `@yourpocketplan_bot` → `https://pocketplan-rul.vercel.app/api/telegram-webhook` (semua user)
+- Production (`main`) → `@yourpocketplan_bot` → `https://pocketplan.ai.id/api/telegram-webhook` (semua user)
 - Staging (`staging`) → `@Pocketplan_dev_bot` → `https://pocketplan-git-staging-syahruls-projects-28340111.vercel.app/api/telegram-webhook` (hanya kamu)
 
 ### Cara 1 — Chat langsung (recommended)

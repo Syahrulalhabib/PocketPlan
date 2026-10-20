@@ -3,7 +3,7 @@
  * Brand color: #e45153, Font: Poppins, responsive email HTML + text
  */
 
-export const getEmailTemplate = ({ name, verificationUrl, appUrl = 'https://pocketplan.my.id' }) => {
+export const getEmailTemplate = ({ name, verificationUrl, appUrl = 'https://pocketplan.ai.id' }) => {
   const currentYear = new Date().getFullYear();
   const rawName = name ? String(name).trim() : 'Sobat Pocketplan';
   const recipientName = rawName.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
