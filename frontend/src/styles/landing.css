@@ -213,9 +213,6 @@
 
 .landing-hero-title .brand-highlight {
   color: var(--primary);
-  background: linear-gradient(135deg, #e45153 0%, #f59e0b 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 
 .landing-hero-desc {
