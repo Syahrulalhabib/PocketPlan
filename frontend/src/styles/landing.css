@@ -174,9 +174,9 @@
 
 /* 2. Hero Section */
 .landing-hero {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 68px 24px 52px;
+  padding: 72px 32px 64px;
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
   align-items: center;
@@ -473,9 +473,9 @@
 
 /* 4. Common Section Layout */
 .landing-section {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 64px 24px;
+  padding: 72px 32px;
   width: 100%;
   opacity: 0;
   transform: translateY(24px);
@@ -964,21 +964,7 @@
 }
 
 /* Responsive Adjustments (Desktop & Mobile <=480px) */
-/* ——— Hero refinements ——— */
-.landing-hero-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: 999px;
-  background: rgba(228, 81, 83, 0.08);
-  border: 1px solid rgba(228, 81, 83, 0.18);
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--primary);
-  margin-bottom: 14px;
-  letter-spacing: 0.02em;
-}
+/* ——— Refinements: keep layout airy like screenshot ——— */
 .cta-ghost {
   display: inline-flex;
   align-items: center;
@@ -1022,23 +1008,23 @@
 }
 @keyframes scrollBounce { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(4px)} }
 
-/* Proof strip */
+/* Proof strip — airy */
 .landing-proof-strip {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 14px 24px;
+  padding: 18px 32px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   flex-wrap: wrap;
   border-top: 1px solid var(--card-border);
   border-bottom: 1px solid var(--card-border);
   background: rgba(0,0,0,0.015);
 }
 .theme-dark .landing-proof-strip { background: rgba(255,255,255,0.03); }
-.proof-label { font-size: 0.82rem; font-weight: 600; color: var(--muted); }
+.proof-label { font-size: 0.84rem; font-weight: 600; color: var(--muted); }
 .proof-divider { width: 1px; height: 16px; background: var(--card-border); }
-.proof-stat { font-size: 0.84rem; color: var(--text); }
+.proof-stat { font-size: 0.86rem; color: var(--text); }
 .proof-stat strong { color: var(--primary); }
 
 /* Feature emoji + 6-col grid stays auto-fit */
@@ -1109,19 +1095,17 @@
 }
 .bot-tab-try:hover { text-decoration: underline; }
 
-/* CTA band */
+/* CTA band — full-bleed, not boxed */
 .landing-cta-band {
-  max-width: 900px;
-  margin: 48px auto;
-  padding: 40px 32px;
-  border-radius: 20px;
+  margin: 0;
+  padding: 56px 32px;
   background: linear-gradient(135deg, #e45153 0%, #c0392b 100%);
   color: #fff;
   text-align: center;
 }
-.landing-cta-band h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 8px; }
-.landing-cta-band p { opacity: 0.9; margin-bottom: 18px; }
-.landing-cta-band-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.landing-cta-band h2 { font-size: 1.7rem; font-weight: 800; margin-bottom: 10px; }
+.landing-cta-band p { opacity: 0.9; margin-bottom: 20px; }
+.landing-cta-band-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
 .landing-cta-band .cta-primary { background: #fff; color: #e45153; }
 
 @media (max-width: 920px) {
