@@ -2188,24 +2188,26 @@ export function generateEveningReminder(userName, summary = {}) {
   );
 }
 
-export async function dispatchDailyReminders(db, botToken, type = 'morning', force = false, targetChatId = null) {
+export async function dispatchDailyReminders(db, botToken, type = 'morning', force = false, targetChatId = null, isTest = false) {
   if (!db || !botToken) return { sent: 0, skipped: 0 };
   const startTime = Date.now();
   const sessionName = type === 'morning' ? 'Morning' : 'Evening';
   const triggeredAt = new Date().toISOString();
-  console.log(`[CRON] ${sessionName} reminder triggered at ${triggeredAt}`);
+  console.log(`[CRON] ${sessionName} reminder triggered at ${triggeredAt}${isTest ? ' (TEST MODE)' : ''}`);
 
   const todayWib = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
   const nowIso = new Date().toISOString();
-  if (type === 'morning') demoCronStatus.lastMorningRun = nowIso;
-  else if (type === 'evening') demoCronStatus.lastEveningRun = nowIso;
+  if (!isTest) {
+    if (type === 'morning') demoCronStatus.lastMorningRun = nowIso;
+    else if (type === 'evening') demoCronStatus.lastEveningRun = nowIso;
 
-  if (db) {
-    const statusField = type === 'morning' ? 'lastMorningRun' : 'lastEveningRun';
-    db.collection('system_meta').doc('cron_status').set({
-      [statusField]: nowIso,
-      updatedAt: nowIso
-    }, { merge: true }).catch((err) => console.error('[reminder] Failed to record system_meta/cron_status:', err?.message));
+    if (db) {
+      const statusField = type === 'morning' ? 'lastMorningRun' : 'lastEveningRun';
+      db.collection('system_meta').doc('cron_status').set({
+        [statusField]: nowIso,
+        updatedAt: nowIso
+      }, { merge: true }).catch((err) => console.error('[reminder] Failed to record system_meta/cron_status:', err?.message));
+    }
   }
 
   const linkSnap = await db.collection('telegram_links').get();
@@ -2321,9 +2323,11 @@ export async function dispatchDailyReminders(db, botToken, type = 'morning', for
         continue;
       }
 
-      await userRef.set({ [dateField]: todayWib }, { merge: true });
+      if (!isTest) {
+        await userRef.set({ [dateField]: todayWib }, { merge: true });
+      }
       sent++;
-      console.log(`[CRON] Sent reminder ${type} to ${chatId} (${displayName})`);
+      console.log(`[CRON] Sent reminder ${type} to ${chatId} (${displayName})${isTest ? ' (test - date stamp skipped)' : ''}`);
     } catch (err) {
       skipped++;
       skipDetails.error++;

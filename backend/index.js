@@ -232,7 +232,10 @@ app.post('/api/telegram/cancel-link-code', requireAuth, async (req, res) => {
 });
 
 app.all('/api/cron/reminders', async (req, res) => {
-  const isVercelCron = req.headers['x-vercel-cron'] === '1';
+  const userAgent = (req.headers['user-agent'] || '').toLowerCase();
+  const isVercelCron = userAgent.includes('vercel-cron') ||
+    Boolean(req.headers['x-vercel-cron-schedule']) ||
+    req.headers['x-vercel-cron'] === '1';
   const secret = (process.env.CRON_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET || '').trim();
   const incoming = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim() ||
     req.headers['x-admin-secret'] || req.query?.secret;
@@ -294,7 +297,7 @@ app.all('/api/admin/test-reminder', async (req, res) => {
   const chatId = req.query?.chatId || req.body?.chatId || null;
 
   try {
-    const result = await dispatchDailyReminders(getDb(), token, type, force, chatId);
+    const result = await dispatchDailyReminders(getDb(), token, type, force, chatId, true);
     res.json({ ok: true, test: true, type, targetChatId: chatId || 'all', force, ...result });
   } catch (err) {
     console.error('test-reminder error:', err);
