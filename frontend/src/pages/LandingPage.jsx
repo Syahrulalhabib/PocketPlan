@@ -64,12 +64,12 @@ const LandingPage = () => {
   const toggleFaq = (i) => setOpenFaq((prev) => (prev === i ? null : i));
 
   useEffect(() => {
-    document.title = 'Pocketplan — Smart Financial Tracking with Telegram Bot & Web';
+    document.title = 'Pocketplan – Smart Finance in Your Pocket';
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
       metaDesc.setAttribute(
         'content',
-        'Pocketplan: Smart personal finance tracking integrated with Pocky Telegram bot. Manage cashflow, reach savings goals, and export clean PDF reports.'
+        'Pocketplan – Smart Finance in Your Pocket. Aplikasi keuangan pribadi gratis. Catat pengeluaran, atur tabungan, dan scan struk otomatis via AI di Web & Telegram Bot.'
       );
     }
   }, []);

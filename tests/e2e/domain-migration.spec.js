@@ -54,7 +54,7 @@ test.describe('Domain Migration — Frontend', () => {
     await expect(canonical).toHaveAttribute('href', 'https://pocketplan.ai.id/');
 
     const description = page.locator('meta[name="description"]');
-    await expect(description).toHaveAttribute('content', /PocketPlan/);
+    await expect(description).toHaveAttribute('content', /Smart Finance in Your Pocket/);
   });
 
   test('Public SEO assets accessible (robots.txt, sitemap.xml, og-image)', async ({ request }) => {

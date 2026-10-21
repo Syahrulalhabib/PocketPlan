@@ -1,7 +1,7 @@
 <div align="center">
   <img src="frontend/public/pocket-logo.svg" alt="PocketPlan Logo" width="84" height="84" />
   <h1>PocketPlan</h1>
-  <p><strong>Smart Saving, Brighter Future — Master your money with PocketPlan</strong></p>
+  <p><strong>Pocketplan – Smart Finance in Your Pocket — Master your money with PocketPlan</strong></p>
   <p>An intuitive, gamified personal finance app with Telegram bot integration and AI-powered receipt scanning.</p>
 
   <p>

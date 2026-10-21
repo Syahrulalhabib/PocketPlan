@@ -1312,6 +1312,47 @@
     text-align: center;
     margin: 0;
   }
+  .landing-cta-band {
+    margin: 28px 14px;
+    padding: 26px 16px;
+    border-radius: 20px;
+  }
+  .landing-cta-band h2 {
+    font-size: 1.35rem;
+    margin-bottom: 10px;
+  }
+  .landing-cta-band p {
+    font-size: 0.88rem;
+    margin-bottom: 18px;
+  }
+  .landing-cta-band-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .landing-proof-strip {
+    padding: 14px 12px;
+    gap: 12px 16px;
+  }
+  .proof-divider {
+    display: none;
+  }
+  .bot-tab-panel {
+    padding: 18px 14px;
+    border-radius: 16px;
+  }
+  .bot-tab-list {
+    gap: 8px;
+  }
+  .feature-card {
+    padding: 20px 16px;
+  }
+  .faq-trigger {
+    padding: 14px 16px;
+    font-size: 0.95rem;
+  }
+  .faq-content {
+    padding: 0 16px 16px;
+  }
 }
 
 
