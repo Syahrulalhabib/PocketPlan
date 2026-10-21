@@ -44,6 +44,31 @@ test.describe('Domain Migration — Frontend', () => {
       await expect(footer.first()).toHaveText('pocketplan.ai.id');
     }
   });
+
+  test('SEO meta tags and Open Graph present in index.html', async ({ page }) => {
+    await page.goto('/');
+    const ogImage = page.locator('meta[property="og:image"]');
+    await expect(ogImage).toHaveAttribute('content', /og-image\.(jpg|png)/);
+
+    const canonical = page.locator('link[rel="canonical"]');
+    await expect(canonical).toHaveAttribute('href', 'https://pocketplan.ai.id/');
+
+    const description = page.locator('meta[name="description"]');
+    await expect(description).toHaveAttribute('content', /PocketPlan/);
+  });
+
+  test('Public SEO assets accessible (robots.txt, sitemap.xml, og-image)', async ({ request }) => {
+    const robots = await request.get('/robots.txt');
+    expect(robots.status()).toBe(200);
+    expect(await robots.text()).toContain('Sitemap: https://pocketplan.ai.id/sitemap.xml');
+
+    const sitemap = await request.get('/sitemap.xml');
+    expect(sitemap.status()).toBe(200);
+    expect(await sitemap.text()).toContain('https://pocketplan.ai.id/');
+
+    const ogImg = await request.get('/og-image.jpg');
+    expect(ogImg.status()).toBe(200);
+  });
 });
 
 // ─── Backend API — Domain & Functionality ───

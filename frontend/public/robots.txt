@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /transactions
+Disallow: /goals
+Disallow: /reports
+Disallow: /achievements
+Disallow: /profile
+
+Sitemap: https://pocketplan.ai.id/sitemap.xml
