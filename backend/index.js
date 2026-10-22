@@ -186,17 +186,6 @@ app.post('/api/telegram-webhook', async (req, res) => {
   if (incomingSecret !== webhookSecret) {
     return res.status(403).json({ error: 'Forbidden' });
   }
-  // Staging guard: only process dev chat IDs in non-production
-  const vercelEnv = process.env.VERCEL_ENV || '';
-  if (vercelEnv && vercelEnv !== 'production') {
-    const chatId = req.body?.message?.chat?.id
-      || req.body?.callback_query?.message?.chat?.id;
-    const devIds = (process.env.DEV_TELEGRAM_IDS || '')
-      .split(',').map(s => s.trim()).filter(Boolean);
-    if (!devIds.includes(String(chatId))) {
-      return res.status(200).json({ ok: true, skipped: 'non-dev chat in staging' });
-    }
-  }
 
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return res.status(500).json({ error: 'TELEGRAM_BOT_TOKEN not configured' });
