@@ -45,6 +45,21 @@ test.describe('Domain Migration — Frontend', () => {
     }
   });
 
+  test('Mobile light mode: brand-title in nav and footer is dark and readable', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+
+    const navTitle = page.locator('.landing-nav .brand-title');
+    await expect(navTitle).toBeVisible();
+    const navColor = await navTitle.evaluate(el => window.getComputedStyle(el).color);
+    expect(navColor).not.toBe('rgb(255, 255, 255)');
+
+    const footerTitle = page.locator('.landing-footer-brand .brand-title');
+    await expect(footerTitle).toBeVisible();
+    const footerColor = await footerTitle.evaluate(el => window.getComputedStyle(el).color);
+    expect(footerColor).not.toBe('rgb(255, 255, 255)');
+  });
+
   test('SEO meta tags and Open Graph present in index.html', async ({ page }) => {
     await page.goto('/');
     const ogImage = page.locator('meta[property="og:image"]');

@@ -42,6 +42,16 @@
   gap: 16px;
 }
 
+.landing-nav .brand-title,
+.landing-footer-brand .brand-title {
+  color: var(--text, #0f172a);
+  font-weight: 800;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+  display: inline-flex;
+  align-items: center;
+}
+
 .landing-nav-links {
   display: flex;
   align-items: center;
@@ -367,7 +377,7 @@
 .window-badge {
   font-size: 0.74rem;
   font-weight: 700;
-  color: var(--muted);
+  color: var(--text-secondary, #475467);
   text-transform: uppercase;
   letter-spacing: 0.8px;
 }
@@ -469,7 +479,7 @@
 }
 .bubble-check {
   font-weight: 800;
-  color: #93c5fd;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 /* 4. Common Section Layout */
@@ -1212,6 +1222,11 @@
   .landing-nav-actions {
     gap: 8px;
   }
+  .landing-nav .brand-title,
+  .landing-footer-brand .brand-title {
+    font-size: 1.1rem;
+    color: var(--text, #0f172a);
+  }
   .landing-nav-tg {
     display: none;
   }
@@ -1314,7 +1329,7 @@
   }
   .landing-cta-band {
     margin: 28px 14px;
-    padding: 26px 16px;
+    padding: 28px 18px 32px;
     border-radius: 20px;
   }
   .landing-cta-band h2 {
