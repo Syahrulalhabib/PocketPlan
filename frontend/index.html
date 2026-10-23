@@ -35,18 +35,32 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "Pocketplan",
-      "url": "https://pocketplan.ai.id",
-      "description": "Pocketplan – Smart Finance in Your Pocket. Aplikasi keuangan pribadi gratis dengan Telegram Bot dan AI Receipt Scanner",
-      "applicationCategory": "FinanceApplication",
-      "operatingSystem": "Web, Telegram",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "IDR"
-      },
-      "inLanguage": "id"
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "@id": "https://pocketplan.ai.id/#app",
+          "name": "Pocketplan",
+          "alternateName": "PocketPlan",
+          "url": "https://pocketplan.ai.id",
+          "applicationCategory": "FinanceApplication",
+          "operatingSystem": "Web, Telegram",
+          "description": "Pocketplan – Smart Finance in Your Pocket. Aplikasi keuangan pribadi gratis terintegrasi Telegram Bot dan AI Receipt Scanner.",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "IDR"
+          },
+          "inLanguage": "id"
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://pocketplan.ai.id/#website",
+          "url": "https://pocketplan.ai.id",
+          "name": "Pocketplan",
+          "description": "Smart Finance in Your Pocket",
+          "inLanguage": "id"
+        }
+      ]
     }
     </script>
 
@@ -56,7 +70,36 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Crawlable semantic fallback: replaced instantly on React hydration -->
+      <main style="max-width:860px;margin:40px auto;padding:24px;font-family:'Poppins',system-ui,sans-serif;color:#0f172a;line-height:1.6;">
+        <header style="margin-bottom:24px;">
+          <h1 style="font-size:2rem;font-weight:800;color:#e45153;margin-bottom:8px;">Pocketplan – Smart Finance in Your Pocket</h1>
+          <p style="font-size:1.1rem;color:#475569;">Aplikasi keuangan pribadi &amp; tabungan gratis dengan integrasi Telegram Bot (<strong>@yourpocketplan_bot</strong>) dan AI Receipt Scanner.</p>
+        </header>
+        <section style="margin-bottom:24px;">
+          <h2 style="font-size:1.3rem;font-weight:700;margin-bottom:12px;">Solusi Keuangan Pribadi Cerdas</h2>
+          <ul>
+            <li><strong>Catat Pengeluaran &amp; Pemasukan Kilat</strong>: Cukup ketik pesan singkat di Telegram (misal <code>kopi 25k</code>) atau catat via web.</li>
+            <li><strong>AI Scan Struk &amp; Bukti Transfer</strong>: Ekstraksi otomatis nominal, tanggal, dan kategori dari foto struk belanjaan via Google Gemini AI.</li>
+            <li><strong>Target Tabungan &amp; Milestones</strong>: Tetapkan target impian, pantau progres tabungan, dan capai tujuan keuangan lebih terarah.</li>
+            <li><strong>Sinkronisasi Otomatis 2 Arah</strong>: Akun Telegram dan website terhubung mulus dengan kode login tanpa password (SSO).</li>
+            <li><strong>100% Gratis &amp; Tanpa Kartu Kredit</strong>: Coba langsung lewat Demo Mode tanpa registrasi.</li>
+          </ul>
+        </section>
+        <nav aria-label="Navigasi Publik" style="display:flex;gap:16px;flex-wrap:wrap;padding-top:16px;border-top:1px solid #e2e8f0;">
+          <a href="/demo" style="color:#e45153;font-weight:600;text-decoration:none;">Coba Demo Mode</a>
+          <a href="/login" style="color:#e45153;font-weight:600;text-decoration:none;">Masuk Akun</a>
+          <a href="/registration" style="color:#e45153;font-weight:600;text-decoration:none;">Daftar Akun</a>
+          <a href="https://t.me/yourpocketplan_bot" rel="noopener noreferrer" style="color:#2563eb;font-weight:600;text-decoration:none;">Chat Bot Telegram</a>
+        </nav>
+      </main>
+    </div>
+    <noscript>
+      <div style="max-width:860px;margin:16px auto;padding:16px;background:#fef2f2;border:1px solid #fee2e2;border-radius:12px;font-family:sans-serif;color:#991b1b;text-align:center;">
+        <p>Aktifkan JavaScript di browser Anda untuk pengalaman interaktif penuh Pocketplan. Anda juga dapat mencatat keuangan langsung via Telegram di <a href="https://t.me/yourpocketplan_bot" style="color:#b91c1c;font-weight:700;">@yourpocketplan_bot</a>.</p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
