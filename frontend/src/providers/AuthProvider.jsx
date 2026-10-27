@@ -70,63 +70,88 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
       return;
     }
-    const fallbackTimer = setTimeout(() => {
-      setLoading(false);
-    }, 2000);
+    const isPublicLanding = typeof window !== 'undefined' && ['/', '/features', '/how-it-works', '/commands', '/faq'].includes(window.location.pathname);
+    let unsubscribe = null;
+    let fallbackTimer = null;
 
-    const unsubscribe = watchAuth((fbUser) => {
-      clearTimeout(fallbackTimer);
-      if (sessionStorage.getItem('pocketplan_demo_mode') === '1') {
-        setUser(demoUser);
+    const setupAuth = () => {
+      fallbackTimer = setTimeout(() => {
         setLoading(false);
-        return;
-      }
-      if (fbUser) {
-        const savedTg = localStorage.getItem('pocketplan_tg_user');
-        let extraTg = null;
-        if (savedTg) {
-          try {
-            const parsed = JSON.parse(savedTg);
-            if (parsed.id === fbUser.uid) extraTg = parsed;
-          } catch {}
+      }, 2000);
+
+      unsubscribe = watchAuth((fbUser) => {
+        clearTimeout(fallbackTimer);
+        if (sessionStorage.getItem('pocketplan_demo_mode') === '1') {
+          setUser(demoUser);
+          setLoading(false);
+          return;
         }
-        const isTg = Boolean(extraTg?.isTelegramUser || fbUser.uid.startsWith('tg_'));
-        const resolvedEmail = fbUser.email || extraTg?.email || (isTg ? `${fbUser.uid}@telegram.pocketplan` : 'user@pocketplan.app');
-        const isFullyLinked = Boolean(extraTg?.linkCompletedAt || (extraTg?.emailVerified && extraTg?.webPasswordSet));
-        const emailVerified = isTg ? Boolean(isFullyLinked || fbUser.emailVerified || extraTg?.emailVerified) : true;
-        const webPasswordSet = isTg ? Boolean(isFullyLinked || extraTg?.webPasswordSet) : true;
-        const needsVerification = isTg ? (!isFullyLinked && (isDummyEmail(resolvedEmail) || !emailVerified || !webPasswordSet)) : false;
-        const resolved = {
-          id: fbUser.uid,
-          name: fbUser.displayName || extraTg?.name || fbUser.email || (isTg ? 'Telegram User' : 'User'),
-          email: resolvedEmail,
-          photoURL: fbUser.photoURL || extraTg?.photoURL || undefined,
-          isTelegramUser: isTg,
-          telegramChatId: extraTg?.telegramChatId || (isTg && fbUser.uid.startsWith('tg_') ? fbUser.uid.replace('tg_', '') : undefined),
-          telegramUsername: extraTg?.telegramUsername || undefined,
-          emailVerified,
-          webPasswordSet,
-          linkCompletedAt: extraTg?.linkCompletedAt || undefined,
-          needsVerification
-        };
-        setUser(resolved);
-        if (isTg) {
-          localStorage.setItem('pocketplan_tg_user', JSON.stringify(resolved));
+        if (fbUser) {
+          const savedTg = localStorage.getItem('pocketplan_tg_user');
+          let extraTg = null;
+          if (savedTg) {
+            try {
+              const parsed = JSON.parse(savedTg);
+              if (parsed.id === fbUser.uid) extraTg = parsed;
+            } catch {}
+          }
+          const isTg = Boolean(extraTg?.isTelegramUser || fbUser.uid.startsWith('tg_'));
+          const resolvedEmail = fbUser.email || extraTg?.email || (isTg ? `${fbUser.uid}@telegram.pocketplan` : 'user@pocketplan.app');
+          const isFullyLinked = Boolean(extraTg?.linkCompletedAt || (extraTg?.emailVerified && extraTg?.webPasswordSet));
+          const emailVerified = isTg ? Boolean(isFullyLinked || fbUser.emailVerified || extraTg?.emailVerified) : true;
+          const webPasswordSet = isTg ? Boolean(isFullyLinked || extraTg?.webPasswordSet) : true;
+          const needsVerification = isTg ? (!isFullyLinked && (isDummyEmail(resolvedEmail) || !emailVerified || !webPasswordSet)) : false;
+          const resolved = {
+            id: fbUser.uid,
+            name: fbUser.displayName || extraTg?.name || fbUser.email || (isTg ? 'Telegram User' : 'User'),
+            email: resolvedEmail,
+            photoURL: fbUser.photoURL || extraTg?.photoURL || undefined,
+            isTelegramUser: isTg,
+            telegramChatId: extraTg?.telegramChatId || (isTg && fbUser.uid.startsWith('tg_') ? fbUser.uid.replace('tg_', '') : undefined),
+            telegramUsername: extraTg?.telegramUsername || undefined,
+            emailVerified,
+            webPasswordSet,
+            linkCompletedAt: extraTg?.linkCompletedAt || undefined,
+            needsVerification
+          };
+          setUser(resolved);
+          if (isTg) {
+            localStorage.setItem('pocketplan_tg_user', JSON.stringify(resolved));
+          } else {
+            localStorage.removeItem('pocketplan_tg_user');
+          }
         } else {
-          localStorage.removeItem('pocketplan_tg_user');
+          const savedTg = localStorage.getItem('pocketplan_tg_user');
+          if (savedTg) {
+            try { setUser(JSON.parse(savedTg)); } catch { setUser(null); }
+          } else {
+            setUser(null);
+          }
         }
-      } else {
-        const savedTg = localStorage.getItem('pocketplan_tg_user');
-        if (savedTg) {
-          try { setUser(JSON.parse(savedTg)); } catch { setUser(null); }
-        } else {
-          setUser(null);
-        }
-      }
+        setLoading(false);
+      });
+    };
+
+    if (isPublicLanding) {
       setLoading(false);
-    });
+      const deferTimer = typeof window.requestIdleCallback === 'function'
+        ? window.requestIdleCallback(setupAuth, { timeout: 1500 })
+        : setTimeout(setupAuth, 1200);
+
+      return () => {
+        if (typeof window.cancelIdleCallback === 'function' && typeof deferTimer === 'number') {
+          window.cancelIdleCallback(deferTimer);
+        } else {
+          clearTimeout(deferTimer);
+        }
+        if (fallbackTimer) clearTimeout(fallbackTimer);
+        if (unsubscribe) unsubscribe();
+      };
+    }
+
+    setupAuth();
     return () => {
-      clearTimeout(fallbackTimer);
+      if (fallbackTimer) clearTimeout(fallbackTimer);
       if (unsubscribe) unsubscribe();
     };
   }, [isDemo]);

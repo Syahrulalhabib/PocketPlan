@@ -489,6 +489,8 @@
   margin: 0 auto;
   padding: 76px 36px;
   width: 100%;
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 650px;
   opacity: 0;
   transform: translateY(24px);
   transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
@@ -961,7 +963,7 @@
 }
 
 @keyframes heroFadeIn {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0.95; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes heroPreviewIn {
@@ -1276,6 +1278,9 @@
 
 /* Responsive Adjustments (Desktop & Mobile <=480px) */
 @media (max-width: 920px) {
+  .landing-hero-content {
+    animation: none;
+  }
   .landing-hero {
     grid-template-columns: 1fr;
     padding: 42px 20px 32px;
