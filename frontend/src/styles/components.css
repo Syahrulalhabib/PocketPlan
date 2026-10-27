@@ -932,9 +932,60 @@
 }
 
 .remember {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+  color: var(--text-secondary, #4b5563);
+}
+
+.remember input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  min-height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid var(--card-border, #cbd5e1);
+  background: var(--card, #ffffff);
+  cursor: pointer;
+  display: grid;
+  place-content: center;
+  margin: 0;
+  transition: all 0.15s ease;
+  vertical-align: middle;
+}
+
+.remember input[type="checkbox"]:checked {
+  background: var(--primary, #e45153);
+  border-color: var(--primary, #e45153);
+}
+
+.remember input[type="checkbox"]:checked::before {
+  content: '';
+  width: 8px;
+  height: 5px;
+  border-left: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  transform: rotate(-45deg) translate(0.5px, -0.5px);
+}
+
+.remember input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--primary, #e45153);
+  outline-offset: 2px;
+}
+
+.theme-dark .remember input[type="checkbox"] {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.theme-dark .remember input[type="checkbox"]:checked {
+  background: var(--primary, #e45153);
+  border-color: var(--primary, #e45153);
 }
 
 .auth-submit {

@@ -758,14 +758,14 @@
     justify-content: center;
   }
 
-  .auth-page input,
+  .auth-page input:not([type="checkbox"]):not([type="radio"]),
   .auth-page select,
   .auth-page textarea,
   .auth-page button {
     -webkit-appearance: none;
   }
 
-  .auth-page input,
+  .auth-page input:not([type="checkbox"]):not([type="radio"]),
   .auth-page select,
   .auth-page textarea {
     font-size: 16px; /* iOS zoom prevention */
@@ -905,6 +905,19 @@
 
   .auth-row {
     font-size: 12.5px;
+    gap: 8px;
+  }
+
+  .remember {
+    padding: 6px 0;
+    min-height: 38px;
+  }
+
+  .remember input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    min-height: 20px;
   }
 
   .theme-toggle {

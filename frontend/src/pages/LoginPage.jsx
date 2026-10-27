@@ -235,7 +235,12 @@ const LoginPage = () => {
             </div>
             <div className="auth-row">
               <label className="remember">
-                <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Remember me
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                />
+                <span>Remember me</span>
               </label>
               <button type="button" className="mini-link" onClick={handleForgot} disabled={loading}>
                 Forgot password
