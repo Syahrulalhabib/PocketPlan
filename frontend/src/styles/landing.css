@@ -489,16 +489,6 @@
   margin: 0 auto;
   padding: 76px 36px;
   width: 100%;
-  content-visibility: auto;
-  contain-intrinsic-size: 1px 650px;
-  opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.landing-section.is-visible {
-  opacity: 1;
-  transform: translateY(0);
 }
 
 .section-head {
