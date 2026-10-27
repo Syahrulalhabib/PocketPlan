@@ -181,8 +181,9 @@ const LandingPage = () => {
         )}
       </header>
 
-      {/* Hero — Spacious, wide layout */}
-      <section className="landing-hero">
+      <main id="main-content">
+        {/* Hero — Spacious, wide layout */}
+        <section className="landing-hero">
         <div className="landing-hero-content">
           <h1 className="landing-hero-title">
             Smart Expense Tracking Without the Hassle with <span className="brand-highlight">Pocky</span>
@@ -228,10 +229,10 @@ const LandingPage = () => {
 
           <div className="telegram-card-header">
             <div className="telegram-avatar">
-              <img src={pocketLogo} alt="Pocketplan Bot" />
+              <img src={pocketLogo} alt="Pocketplan Bot" width="52" height="52" fetchpriority="high" />
             </div>
             <div className="telegram-info">
-              <h4>Pocky — Pocketplan Bot</h4>
+              <p className="telegram-card-bot-title">Pocky — Pocketplan Bot</p>
               <p>● Online • Your Financial Companion</p>
             </div>
           </div>
@@ -394,6 +395,7 @@ const LandingPage = () => {
           </Link>
         </div>
       </section>
+      </main>
 
       {/* Footer */}
       <footer className="landing-footer">
@@ -401,7 +403,7 @@ const LandingPage = () => {
           <div className="landing-footer-grid">
             <div className="landing-footer-col brand-col">
               <div className="brand landing-footer-brand" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-                <img src={pocketLogo} alt="Pocketplan logo" className="brand-logo" />
+            <img src={pocketLogo} alt="Pocketplan logo" className="brand-logo" width="44" height="36" fetchpriority="high" />
                 <span className="brand-title">Pocketplan</span>
               </div>
               <p className="landing-footer-tagline">

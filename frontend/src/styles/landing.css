@@ -416,7 +416,8 @@
   object-fit: cover;
   display: block;
 }
-.telegram-info h4 {
+.telegram-info h4,
+.telegram-info .telegram-card-bot-title {
   font-size: 1rem;
   margin: 0;
   font-weight: 700;
@@ -1008,7 +1009,10 @@
 .proof-label {
   font-size: 0.88rem;
   font-weight: 600;
-  color: var(--muted);
+  color: #374151;
+}
+.theme-dark .proof-label {
+  color: #94a3b8;
 }
 .proof-divider {
   width: 1px;
@@ -1020,8 +1024,11 @@
   color: var(--text);
 }
 .proof-stat strong {
-  color: var(--primary);
+  color: #b91c1c;
   font-weight: 800;
+}
+.theme-dark .proof-stat strong {
+  color: #f87171;
 }
 
 .feature-emoji {
@@ -1153,12 +1160,13 @@
 }
 .landing-cta-band .cta-primary {
   background: #ffffff;
-  color: var(--primary);
+  color: #991b1b;
+  font-weight: 800;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 .landing-cta-band .cta-primary:hover {
   background: #f8fafc;
-  color: var(--primary-dark);
+  color: #7f1d1d;
 }
 .landing-cta-band .cta-secondary {
   background: transparent;
