@@ -75,8 +75,8 @@
     </noscript>
   </head>
   <body>
-    <div id="root">
-      <!-- Crawlable semantic fallback: replaced instantly on React hydration -->
+    <div id="root"></div>
+    <noscript>
       <main style="max-width:860px;margin:40px auto;padding:24px;font-family:'Poppins',system-ui,sans-serif;color:#0f172a;line-height:1.6;">
         <header style="margin-bottom:24px;">
           <h1 style="font-size:2rem;font-weight:800;color:#e45153;margin-bottom:8px;">Pocketplan – Smart Finance in Your Pocket</h1>
@@ -98,12 +98,10 @@
           <a href="/registration" style="color:#e45153;font-weight:600;text-decoration:none;">Daftar Akun</a>
           <a href="https://t.me/yourpocketplan_bot" rel="noopener noreferrer" style="color:#2563eb;font-weight:600;text-decoration:none;">Chat Bot Telegram</a>
         </nav>
+        <p style="margin-top:20px;padding:12px;background:#fef2f2;border:1px solid #fee2e2;border-radius:8px;color:#991b1b;font-size:0.9rem;">
+          Aktifkan JavaScript di browser Anda untuk pengalaman interaktif penuh Pocketplan.
+        </p>
       </main>
-    </div>
-    <noscript>
-      <div style="max-width:860px;margin:16px auto;padding:16px;background:#fef2f2;border:1px solid #fee2e2;border-radius:12px;font-family:sans-serif;color:#991b1b;text-align:center;">
-        <p>Aktifkan JavaScript di browser Anda untuk pengalaman interaktif penuh Pocketplan. Anda juga dapat mencatat keuangan langsung via Telegram di <a href="https://t.me/yourpocketplan_bot" style="color:#b91c1c;font-weight:700;">@yourpocketplan_bot</a>.</p>
-      </div>
     </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>

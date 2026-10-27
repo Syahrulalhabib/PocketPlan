@@ -25,7 +25,10 @@ body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background: url('/bg-pattern.svg') center/cover no-repeat;
+  background:
+    radial-gradient(circle at 10% 15%, rgba(228, 81, 83, 0.035) 0%, transparent 45%),
+    radial-gradient(circle at 90% 85%, rgba(245, 158, 11, 0.035) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(228, 81, 83, 0.02) 0%, transparent 60%);
   pointer-events: none;
   z-index: -1;
   transform: translateZ(0);
