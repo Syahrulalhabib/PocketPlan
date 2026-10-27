@@ -51,28 +51,48 @@ export const firebaseEnabled = Object.values(firebaseConfig).every(Boolean);
 let app;
 let auth;
 let db;
+let googleProvider;
 
-if (firebaseEnabled) {
-  app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-}
+export const getFirebaseApp = () => {
+  if (!app && firebaseEnabled) {
+    app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+  }
+  return app;
+};
 
-export const getDb = () => db;
-const googleProvider = firebaseEnabled ? new GoogleAuthProvider() : null;
+export const getFirebaseAuth = () => {
+  if (!auth && firebaseEnabled) {
+    auth = getAuth(getFirebaseApp());
+  }
+  return auth;
+};
 
-export const signInEmail = (email, password) => signInWithEmailAndPassword(auth, email, password);
-export const signUpEmail = (email, password) => createUserWithEmailAndPassword(auth, email, password);
-export const signInWithGoogle = () => signInWithPopup(auth, googleProvider).catch((err) => {
+export const getDb = () => {
+  if (!db && firebaseEnabled) {
+    db = getFirestore(getFirebaseApp());
+  }
+  return db;
+};
+
+const getGoogleProvider = () => {
+  if (!googleProvider && firebaseEnabled) {
+    googleProvider = new GoogleAuthProvider();
+  }
+  return googleProvider;
+};
+
+export const signInEmail = (email, password) => signInWithEmailAndPassword(getFirebaseAuth(), email, password);
+export const signUpEmail = (email, password) => createUserWithEmailAndPassword(getFirebaseAuth(), email, password);
+export const signInWithGoogle = () => signInWithPopup(getFirebaseAuth(), getGoogleProvider()).catch((err) => {
   if (err?.code === 'auth/popup-blocked' || err?.code === 'auth/operation-not-supported-in-this-environment') {
-    return signInWithRedirect(auth, googleProvider);
+    return signInWithRedirect(getFirebaseAuth(), getGoogleProvider());
   }
   throw err;
 });
-export const signOutUser = () => signOut(auth);
-export const signInWithToken = (token) => firebaseSignInWithCustomToken(auth, token);
+export const signOutUser = () => signOut(getFirebaseAuth());
+export const signInWithToken = (token) => firebaseSignInWithCustomToken(getFirebaseAuth(), token);
 export const sendVerificationEmail = (user, actionCodeSettings) => {
-  const target = user || auth?.currentUser;
+  const target = user || getFirebaseAuth()?.currentUser;
   if (!target) {
     return Promise.reject(new Error('Sesi pengguna tidak ditemukan untuk verifikasi email.'));
   }
@@ -86,67 +106,95 @@ export const sendVerificationEmail = (user, actionCodeSettings) => {
   } : undefined);
   return settings ? sendEmailVerification(target, settings) : sendEmailVerification(target);
 };
-export const resetPasswordEmail = (email) => sendPasswordResetEmail(auth, email);
+export const resetPasswordEmail = (email) => sendPasswordResetEmail(getFirebaseAuth(), email);
 export const verifyActionCode = (code) => {
-  if (!auth) return Promise.resolve();
-  return applyActionCode(auth, code);
+  const a = getFirebaseAuth();
+  if (!a) return Promise.resolve();
+  return applyActionCode(a, code);
 };
 export const inspectActionCode = (code) => {
-  if (!auth) return Promise.resolve(null);
-  return checkActionCode(auth, code);
+  const a = getFirebaseAuth();
+  if (!a) return Promise.resolve(null);
+  return checkActionCode(a, code);
 };
-export const watchAuth = (cb) => onAuthStateChanged(auth, cb);
-export const updateProfileName = (name) => (auth?.currentUser && name ? updateProfile(auth.currentUser, { displayName: name }) : undefined);
-export const updateProfileData = (data) => (auth?.currentUser ? updateProfile(auth.currentUser, data) : undefined);
+export const watchAuth = (cb) => {
+  const a = getFirebaseAuth();
+  return a ? onAuthStateChanged(a, cb) : () => {};
+};
+export const updateProfileName = (name) => {
+  const u = getFirebaseAuth()?.currentUser;
+  return u && name ? updateProfile(u, { displayName: name }) : undefined;
+};
+export const updateProfileData = (data) => {
+  const u = getFirebaseAuth()?.currentUser;
+  return u ? updateProfile(u, data) : undefined;
+};
 export const updateUserEmail = (newEmail) => {
-  if (!auth?.currentUser) return Promise.reject(new Error('Sesi pengguna tidak ditemukan. Silakan login kembali.'));
+  const u = getFirebaseAuth()?.currentUser;
+  if (!u) return Promise.reject(new Error('Sesi pengguna tidak ditemukan. Silakan login kembali.'));
   if (!newEmail || typeof newEmail !== 'string' || !newEmail.includes('@') || newEmail.includes('@telegram.pocketplan')) {
     return Promise.reject(new Error('Format email tidak valid. Masukkan email asli.'));
   }
-  return updateEmail(auth.currentUser, newEmail);
+  return updateEmail(u, newEmail);
 };
 export const updateUserPassword = (newPassword) => {
-  if (!auth?.currentUser) return Promise.reject(new Error('No authenticated user'));
-  return updatePassword(auth.currentUser, newPassword);
+  const u = getFirebaseAuth()?.currentUser;
+  if (!u) return Promise.reject(new Error('No authenticated user'));
+  return updatePassword(u, newPassword);
 };
 export const reloadAuthUser = async () => {
-  if (!auth?.currentUser) return null;
-  await reload(auth.currentUser);
-  return auth.currentUser;
+  const u = getFirebaseAuth()?.currentUser;
+  if (!u) return null;
+  await reload(u);
+  return u;
 };
 
-export const getAuthToken = () => (auth?.currentUser ? auth.currentUser.getIdToken() : Promise.resolve(null));
+export const getAuthToken = () => {
+  const u = getFirebaseAuth()?.currentUser;
+  return u ? u.getIdToken() : Promise.resolve(null);
+};
 
 // Firestore helpers (per-user subcollections)
 
-export const getUserCollection = (uid, name) => (db ? collection(db, 'users', uid, name) : null);
+export const getUserCollection = (uid, name) => {
+  const d = getDb();
+  return d ? collection(d, 'users', uid, name) : null;
+};
 export const listenCollection = (ref, onData, onError) => (ref ? onSnapshot(ref, onData, onError) : () => {});
 export const listenDoc = (ref, onData, onError) => (ref ? onSnapshot(ref, onData, onError) : () => {});
 export const addCollectionDoc = (ref, data) => (ref ? addDoc(ref, stripUndefined(data)) : Promise.resolve());
 export const deleteCollectionDoc = (uid, collectionName, id) => {
-  if (!db) return Promise.resolve();
-  const ref = doc(db, 'users', uid, collectionName, id);
+  const d = getDb();
+  if (!d) return Promise.resolve();
+  const ref = doc(d, 'users', uid, collectionName, id);
   return deleteDoc(ref);
 };
 export const updateCollectionDoc = (uid, collectionName, id, updates) => {
-  if (!db) return Promise.resolve();
-  const ref = doc(db, 'users', uid, collectionName, id);
+  const d = getDb();
+  if (!d) return Promise.resolve();
+  const ref = doc(d, 'users', uid, collectionName, id);
   return updateDoc(ref, stripUndefined(updates));
 };
 export const updateUserDoc = (uid, updates) => {
-  if (!db) return Promise.resolve();
-  const ref = doc(db, 'users', uid);
+  const d = getDb();
+  if (!d) return Promise.resolve();
+  const ref = doc(d, 'users', uid);
   return setDoc(ref, stripUndefined(updates), { merge: true });
 };
 export const getUserDocData = async (uid) => {
-  if (!db) return null;
-  const ref = doc(db, 'users', uid);
+  const d = getDb();
+  if (!d) return null;
+  const ref = doc(d, 'users', uid);
   const snap = await getDoc(ref);
   return snap.exists() ? snap.data() : null;
 };
-export const getAuthUser = () => auth?.currentUser || null;
+
+export const getAuthUser = () => getFirebaseAuth()?.currentUser || null;
 export const orderedQuery = (ref, field = 'date') => (ref ? query(ref, orderBy(field, 'desc')) : null);
 
 // User doc (for base balance or profile metadata)
-export const getUserDocRef = (uid) => (db ? doc(db, 'users', uid) : null);
+export const getUserDocRef = (uid) => {
+  const d = getDb();
+  return d ? doc(d, 'users', uid) : null;
+};
 export const readDoc = (ref) => (ref ? getDoc(ref) : Promise.resolve(null));

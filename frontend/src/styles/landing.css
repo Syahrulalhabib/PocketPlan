@@ -500,9 +500,12 @@
   font-size: 0.82rem;
   font-weight: 800;
   letter-spacing: 1.8px;
-  color: var(--primary);
+  color: #b91c1c;
   text-transform: uppercase;
   margin-bottom: 8px;
+}
+.theme-dark .section-kicker {
+  color: #f87171;
 }
 .section-h2 {
   font-size: 2.35rem;
@@ -562,8 +565,12 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   background: rgba(228, 81, 83, 0.1);
-  color: var(--primary);
+  color: #b91c1c;
   border: 1px solid rgba(228, 81, 83, 0.25);
+}
+.theme-dark .feature-badge-spotlight {
+  color: #fca5a5;
+  background: rgba(228, 81, 83, 0.2);
 }
 
 .feature-icon-wrap {
@@ -707,7 +714,7 @@
 }
 .bot-cmd-tag {
   background: rgba(228, 81, 83, 0.09);
-  color: var(--primary);
+  color: #b91c1c;
   padding: 5px 12px;
   border-radius: var(--pill);
   font-weight: 700;
@@ -721,18 +728,23 @@
 }
 .theme-dark .bot-cmd-tag {
   background: rgba(228, 81, 83, 0.16);
+  color: #fca5a5;
 }
 
 .bot-cmd-badge {
   font-size: 0.72rem;
   font-weight: 700;
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  background: rgba(16, 185, 129, 0.14);
   padding: 3px 8px;
   border-radius: var(--pill);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   flex-shrink: 0;
+}
+.theme-dark .bot-cmd-badge {
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.2);
 }
 
 .bot-cmd-reply {
@@ -1112,9 +1124,12 @@
   margin-top: 16px;
   font-size: 0.9rem;
   font-weight: 700;
-  color: var(--primary);
+  color: #b91c1c;
   text-decoration: none;
   transition: transform 0.18s ease;
+}
+.theme-dark .bot-tab-try {
+  color: #fca5a5;
 }
 .bot-tab-try:hover {
   transform: translateX(3px);

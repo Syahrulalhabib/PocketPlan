@@ -31,6 +31,14 @@ body::before {
   transform: translateZ(0);
 }
 
+@media (max-width: 640px) {
+  body::before {
+    background:
+      radial-gradient(circle at 10% 15%, rgba(228, 81, 83, 0.04) 0%, transparent 45%),
+      radial-gradient(circle at 90% 85%, rgba(245, 158, 11, 0.04) 0%, transparent 45%);
+  }
+}
+
 img, svg {
   max-width: 100%;
 }
