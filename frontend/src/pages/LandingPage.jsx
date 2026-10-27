@@ -384,8 +384,16 @@ const LandingPage = () => {
 
       {/* CTA Band before Footer */}
       <section className="landing-cta-band">
-        <h2>Ready to Master Your Finances?</h2>
-        <p>100% free, no credit card required. Log your first transaction in under 10 seconds.</p>
+        <div className="landing-cta-badge">
+          <span className="cta-badge-icon">✨</span>
+          <span>100% Free Forever • No Credit Card</span>
+        </div>
+        <h2>
+          Ready to Master Your Finances with <span className="brand-highlight">Pocky</span>?
+        </h2>
+        <p>
+          Start logging expenses effortlessly from Telegram or explore full analytics on the modern web dashboard.
+        </p>
         <div className="landing-cta-band-actions">
           <a href={telegramUrl} target="_blank" rel="noreferrer" className="cta-primary">
             Start via Telegram
